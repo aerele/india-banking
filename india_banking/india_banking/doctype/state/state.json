@@ -1,0 +1,41 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-04-29 17:34:15.887363",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "state_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "state_name",
+   "fieldtype": "Data",
+   "label": "State Name"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-04-29 17:34:46.050981",
+ "modified_by": "Administrator",
+ "module": "India Banking",
+ "name": "State",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

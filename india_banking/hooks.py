@@ -27,6 +27,12 @@ app_license = "gpl-3.0"
 # include js in page
 # page_js = {"page" : "public/js/file.js"}
 
+doctype_js = {
+	"Payment Request": "public/js/payment_request.js",
+	"Payment Order" : "public/js/payment_order.js",
+	"Purchase Order" : "public/js/purchase_order.js"
+}
+
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
@@ -69,6 +75,7 @@ app_license = "gpl-3.0"
 
 # before_install = "india_banking.install.before_install"
 # after_install = "india_banking.install.after_install"
+after_install = "india_banking.india_banking.install.after_install"
 
 # Uninstallation
 # ------------
@@ -118,6 +125,12 @@ app_license = "gpl-3.0"
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
+override_doctype_class = {
+	"Payment Order": "india_banking.india_banking.override.payment_order.CustomPaymentOrder",
+	"Payment Request": "india_banking.india_banking.override.payment_request.CustomPaymentRequest"
+}
+
+
 # Document Events
 # ---------------
 # Hook on document methods and events
@@ -129,6 +142,15 @@ app_license = "gpl-3.0"
 # 		"on_trash": "method"
 # 	}
 # }
+
+doc_events = {
+	"Bank Account": {
+		"validate": "india_banking.india_banking.doc_events.bank_account.validate_ifsc_code",
+	},
+	"Payment Request": {
+		"validate": "india_banking.india_banking.doc_events.payment_request.valdidate_bank_for_wire_transfer",
+	}
+}
 
 # Scheduled Tasks
 # ---------------
@@ -162,6 +184,11 @@ app_license = "gpl-3.0"
 # override_whitelisted_methods = {
 # 	"frappe.desk.doctype.event.event.get_events": "india_banking.event.get_events"
 # }
+
+override_whitelisted_methods = {
+	"erpnext.accounts.doctype.payment_request.payment_request.make_payment_request": "india_banking.india_banking.override.payment_request.make_payment_request"
+}
+
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,

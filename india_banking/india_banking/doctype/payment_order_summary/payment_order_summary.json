@@ -1,0 +1,174 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-04-29 15:19:03.269984",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "party_type",
+  "party",
+  "amount",
+  "banking_section",
+  "mode_of_transfer",
+  "payment_status",
+  "message",
+  "reference_number",
+  "bank_account",
+  "accounting_section",
+  "account",
+  "tax_withholding_category",
+  "payment_entry",
+  "reference_doctype",
+  "state",
+  "accounting_dimensions_section",
+  "cost_center",
+  "project",
+  "payment_initiated",
+  "payment_date"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "party_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Party Type",
+   "options": "DocType",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "party",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Party",
+   "options": "party_type",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "banking_section",
+   "fieldtype": "Section Break",
+   "label": "Banking"
+  },
+  {
+   "columns": 1,
+   "fieldname": "mode_of_transfer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Mode of Transfer",
+   "options": "Mode of Transfer",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Payment Status",
+   "options": "Pending\nInitiated\nProcessed\nFailed\nRejected\nOn Hold"
+  },
+  {
+   "fieldname": "message",
+   "fieldtype": "Code",
+   "label": "Message"
+  },
+  {
+   "fieldname": "reference_number",
+   "fieldtype": "Data",
+   "label": "Reference Number"
+  },
+  {
+   "columns": 2,
+   "fieldname": "bank_account",
+   "fieldtype": "Link",
+   "label": "Bank Account",
+   "options": "Bank Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "accounting_section",
+   "fieldtype": "Section Break",
+   "label": "Accounting"
+  },
+  {
+   "fieldname": "account",
+   "fieldtype": "Link",
+   "label": "Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "tax_withholding_category",
+   "fieldtype": "Link",
+   "label": "Tax Withholding Category",
+   "options": "Tax Withholding Category"
+  },
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Data",
+   "label": "Payment Entry"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Doctype",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "accounting_dimensions_section",
+   "fieldtype": "Section Break",
+   "label": "Accounting Dimensions"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project"
+  },
+  {
+   "default": "0",
+   "fieldname": "payment_initiated",
+   "fieldtype": "Check",
+   "label": "Payment Initiated"
+  },
+  {
+   "fieldname": "payment_date",
+   "fieldtype": "Date",
+   "label": "Payment Date"
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Link",
+   "label": "State",
+   "options": "State"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-04-29 19:47:42.709707",
+ "modified_by": "Administrator",
+ "module": "India Banking",
+ "name": "Payment Order Summary",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

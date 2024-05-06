@@ -6,12 +6,12 @@
  "engine": "InnoDB",
  "field_order": [
   "payment_request_type",
-  "payment_type",
   "transaction_date",
+  "mode_of_payment",
   "column_break_2",
   "naming_series",
   "company",
-  "mode_of_payment",
+  "payment_type",
   "is_adhoc",
   "party_details",
   "party_type",
@@ -89,8 +89,7 @@
    "no_copy": 1,
    "options": "ACC-BPRQ-.YYYY.-",
    "print_hide": 1,
-   "reqd": 1,
-   "set_only_once": 1
+   "reqd": 1
   },
   {
    "fieldname": "mode_of_payment",
@@ -192,7 +191,8 @@
    "fieldname": "bank_account",
    "fieldtype": "Link",
    "label": "Bank Account",
-   "options": "Bank Account"
+   "options": "Bank Account",
+   "reqd": 1
   },
   {
    "fetch_from": "bank_account.bank",
@@ -354,7 +354,7 @@
   },
   {
    "collapsible": 1,
-   "collapsible_depends_on": "doc.payment_gateway_account",
+   "collapsible_depends_on": "eval: doc.payment_gateway_account",
    "depends_on": "eval: doc.payment_request_type == 'Inward'",
    "fieldname": "section_break_7",
    "fieldtype": "Section Break",
@@ -447,7 +447,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-04-30 20:40:27.546497",
+ "modified": "2024-05-06 09:36:06.586272",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

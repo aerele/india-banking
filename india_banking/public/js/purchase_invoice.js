@@ -1,25 +1,22 @@
-frappe.ui.form.on('Purchase Order', {
-	refresh(frm) {
-        if (frm.doc.docstatus == 1) {
-            if (frm.doc.status != "Closed") {
-                if (frm.doc.status != "On Hold") { 
-                    if (flt(frm.doc.per_billed, 2) < 100) {
-                        frm.add_custom_button(__('Bank Payment Request'), function() {
-                            make_bank_payment_request(frm)
-                        }, "Create");
-                    }
-                }
-            }
-        }
-
+frappe.ui.form.on('Purchase Invoice', {
+    refresh(frm) {
+        if (frm.doc.outstanding_amount > 0 && !cint(frm.doc.is_return) && !frm.doc.on_hold) {
+			cur_frm.add_custom_button(
+				__("Bank Payment Request"),
+				function () {
+					this.make_bank_payment_request(frm)
+				},
+				__("Create")
+			);
+		}
         setTimeout(() => {
             cur_frm.remove_custom_button("Payment Request", "Create")
             cur_frm.remove_custom_button("Payment", "Create")
-        }, 100);
-	},
+        }, 500);
+	}
 })
 
-const make_bank_payment_request = function(frm){
+this.make_bank_payment_request = function(frm){
     const payment_request_type = (['Sales Order', 'Sales Invoice'].includes(frm.doc.doctype))
         ? "Inward" : "Outward";
 

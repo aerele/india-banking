@@ -4,7 +4,9 @@
 import frappe
 from frappe.model.document import Document
 
-from erpnext.accounts.doctype.payment_request.payment_request import PaymentRequest
+from erpnext.accounts.doctype.payment_request.payment_request import PaymentRequest, get_existing_payment_request_amount
+from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import get_party_tax_withholding_details
+
 
 from erpnext.accounts.doctype.payment_request import payment_request as PR
 
@@ -12,10 +14,94 @@ from erpnext.accounts.party import get_party_bank_account
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
+from frappe.utils.data import flt, today
 
 
 class BankPaymentRequest(PaymentRequest):
-	pass
+	def validate(self):
+		if not self.is_adhoc:
+			super().validate()
+		else:
+			if self.get("__islocal"):
+				self.status = "Draft"
+			if self.reference_doctype or self.reference_name:
+				frappe.throw("Payments with references cannot be marked as ad-hoc")
+
+		if self.apply_tax_withholding_amount and self.tax_withholding_category and self.payment_request_type == "Outward":
+			if not self.net_total:
+				self.net_total = self.grand_total
+			tds_amount = self.calculate_pr_tds(self.net_total)
+			self.taxes_deducted = tds_amount
+			self.grand_total = self.net_total - self.taxes_deducted
+		else:
+			if self.net_total and not self.grand_total:
+				self.grand_total = self.net_total
+			if self.grand_total and self.net_total != self.grand_total and not self.apply_tax_withholding_amount:
+				self.grand_total = self.net_total
+
+		self.valdidate_bank_for_wire_transfer()
+
+	def validate_payment_request_amount(self):
+		existing_payment_request_amount = flt(
+			get_existing_payment_request_amount(self.reference_doctype, self.reference_name)
+		)
+
+		ref_doc = frappe.get_doc(self.reference_doctype, self.reference_name)
+		if not hasattr(ref_doc, "order_type") or getattr(ref_doc, "order_type") != "Shopping Cart":
+			if self.reference_doctype in ["Purchase Order"]:
+				ref_amount = flt(ref_doc.rounded_total) or flt(ref_doc.grand_total)
+			elif self.reference_doctype in ["Purchase Invoice"]:
+				ref_amount = flt(ref_doc.base_rounded_total)
+			else:
+				ref_amount = PR.get_amount(ref_doc, self.payment_account)
+
+			if existing_payment_request_amount + flt(self.grand_total) > ref_amount:
+				frappe.throw(
+					frappe._("Total Payment Request amount cannot be greater than {0} amount").format(
+						self.reference_doctype
+					)
+				)
+
+	def on_submit(self):
+		debit_account = None
+		if self.payment_type:
+			debit_account = frappe.db.get_value("Payment Type", self.payment_type, "account")
+		elif self.reference_doctype == "Purchase Invoice":
+			debit_account = frappe.db.get_value(self.reference_doctype, self.reference_name, "credit_to")
+
+		if not debit_account:
+			frappe.throw("Unable to determine debit account")
+		if not self.is_adhoc:
+			super().on_submit()
+		else:
+			if self.payment_request_type == "Outward":
+				self.db_set("status", "Initiated")
+				return
+
+	def create_payment_entry(self, submit=True):
+		payment_entry = super().create_payment_entry(submit=submit)
+		payment_entry.source_doctype = self.payment_order_type
+		if payment_entry.docstatus != 1 and self.payment_type:
+			payment_entry.paid_to = frappe.db.get_value("Payment Type", self.payment_type, "account") or ""
+
+		return payment_entry
+
+	def calculate_pr_tds(self, amount):
+		doc = self
+		doc.supplier = self.party
+		doc.company = self.company
+		doc.base_tax_withholding_net_total = amount
+		doc.tax_withholding_net_total = amount
+		doc.taxes = []
+		taxes = get_party_tax_withholding_details(doc, self.tax_withholding_category)
+		if taxes:
+			return taxes["tax_amount"]
+		else:
+			return 0
+
+	def valdidate_bank_for_wire_transfer(self):
+		if self.mode_of_payment == "Wire Transfer" and not self.bank_account:
+			frappe.throw(frappe._("Bank Account is missing for Wire Transfer Payments"))
 
 @frappe.whitelist(allow_guest=True)
 def make_bank_payment_request(**args):
@@ -45,7 +131,7 @@ def make_bank_payment_request(**args):
 		"Payment Request",
 		{"reference_doctype": args.dt, "reference_name": args.dn, "docstatus": 0},
 	)
-
+	
 	existing_payment_request_amount = PR.get_existing_payment_request_amount(args.dt, args.dn)
 
 	if existing_payment_request_amount:
@@ -72,16 +158,19 @@ def make_bank_payment_request(**args):
 				"payment_channel": gateway_account.get("payment_channel"),
 				"payment_request_type": args.get("payment_request_type"),
 				"currency": ref_doc.currency,
+				"company": ref_doc.company,
 				"grand_total": grand_total,
-				"mode_of_payment": args.mode_of_payment,
+				"mode_of_payment": "Wire Transfer",
+				"transaction_date": today(),
 				"email_to": args.recipient_id or ref_doc.owner,
-				"subject": frappe._("Babk Payment Request for {0}").format(args.dn),
+				"subject": frappe._("Bank Payment Request for {0}").format(args.dn),
 				"message": gateway_account.get("message") or PR.get_dummy_message(ref_doc),
 				"reference_doctype": args.dt,
 				"reference_name": args.dn,
 				"party_type": args.get("party_type") or "Customer",
 				"party": args.get("party") or ref_doc.get("customer"),
 				"bank_account": bank_account,
+				"net_total": grand_total
 			}
 		)
 
@@ -89,7 +178,7 @@ def make_bank_payment_request(**args):
 		bpr.update(
 			{
 				"cost_center": ref_doc.get("cost_center"),
-				"project": ref_doc.get("project"),
+				"project": ref_doc.get("project")
 			}
 		)
 
@@ -100,6 +189,7 @@ def make_bank_payment_request(**args):
 			bpr.flags.mute_email = True
 
 		bpr.insert(ignore_permissions=True)
+
 		if args.submit_doc:
 			bpr.submit()
 
@@ -114,8 +204,7 @@ def make_bank_payment_request(**args):
 	return bpr.as_dict()
 
 @frappe.whitelist()
-def make_payment_order(source_name, target_doc=None):
-	print(source_name, "source_name")
+def make_payment_order(source_name, target_doc=None, args= None):
 	from frappe.model.mapper import get_mapped_doc
 
 	def set_missing_values(source, target):
@@ -133,30 +222,65 @@ def make_payment_order(source_name, target_doc=None):
 				"amount": source.grand_total,
 				"party_type": source.party_type,
 				"party": source.party,
-				"custom_bank_payment_request": source_name,
+				"bank_payment_request": source_name,
 				"mode_of_payment": source.mode_of_payment,
 				"bank_account": source.bank_account,
 				"account": account,
 				"is_adhoc": source.is_adhoc,
-				# "state": source.state,
 				"cost_center": source.cost_center,
 				"project": source.project,
 				"tax_withholding_category": source.tax_withholding_category,
+				"payment_entry": source_name
 			},
 		)
 		target.status = "Pending"
 
-	doclist = get_mapped_doc(
-		"Bank Payment Request",
-		source_name,
-		{
-			"Bank Payment Request": {
-				"doctype": "Payment Order",
-			}
-		},
-		target_doc,
-		set_missing_values,
-	)
+	def update_missing_values(source, target):
+		target.payment_order_type = "Payment Entry"
+		account = ""
+		if source.paid_to:
+			account = source.paid_to
+		
+		target.append(
+			"references",
+			{
+				"reference_doctype": source.references[0].reference_doctype,
+				"reference_name": source.references[0].reference_name,
+				"amount": source.references[0].total_amount,
+				"party_type": source.party_type,
+				"party": source.party,
+				"mode_of_payment": source.mode_of_payment,
+				"bank_account": source.bank_account,
+				"account": account,
+				"cost_center": source.cost_center,
+				"project": source.project
+			},
+		)
+		target.status = "Pending"
+	if args.get('ref_doctype') != "Payment Entry":
+		doclist = get_mapped_doc(
+			"Bank Payment Request",
+			source_name,
+			{
+				"Bank Payment Request": {
+					"doctype": "Payment Order",
+				}
+			},
+			target_doc,
+			set_missing_values,
+		)
+	else:
+		doclist = get_mapped_doc(
+			"Payment Entry",
+			source_name,
+			{
+				"Payment Entry": {
+					"doctype": "Payment Order",
+				}
+			},
+			target_doc,
+			update_missing_values,
+		)
 
 	return doclist
 

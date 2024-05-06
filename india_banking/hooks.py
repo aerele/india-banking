@@ -30,7 +30,8 @@ app_license = "gpl-3.0"
 doctype_js = {
 	"Payment Request": "public/js/payment_request.js",
 	"Payment Order" : "public/js/payment_order.js",
-	"Purchase Order" : "public/js/purchase_order.js"
+	"Purchase Order" : "public/js/purchase_order.js",
+	"Purchase Invoice": "public/js/purchase_invoice.js",
 }
 
 # include js in doctype views

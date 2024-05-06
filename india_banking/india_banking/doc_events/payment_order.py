@@ -63,7 +63,6 @@ def make_payment_entries(docname):
 		pe.payment_type = "Pay"
 		pe.payment_entry_type = "Pay"
 		pe.company = payment_order_doc.company
-		pe.state = row.state
 		pe.cost_center = row.cost_center
 		pe.project = row.project
 		pe.posting_date = nowdate()
@@ -84,20 +83,20 @@ def make_payment_entries(docname):
 		pe.paid_amount = row.amount
 		pe.received_amount = row.amount
 		pe.letter_head = frappe.db.get_value("Letter Head", {"is_default": 1}, "name")
+		pe.source_doctype = payment_order_doc.payment_order_type
 
 		if row.tax_withholding_category:
 			net_total = 0
 			for reference in payment_order_doc.references:
 				if reference.party_type == row.party_type and \
 						reference.party == row.party and \
-						reference.state == row.state and \
 						reference.cost_center == row.cost_center and \
 						reference.project == row.project and \
 						reference.bank_account == row.bank_account and \
 						reference.account == row.account and \
 						reference.tax_withholding_category == row.tax_withholding_category and \
 						reference.reference_doctype == row.reference_doctype:
-					net_total += frappe.db.get_value("Payment Request", reference.payment_request, "net_total")
+					net_total += frappe.db.get_value("Bank Payment Request", reference.bank_payment_request, "net_total")
 			pe.paid_amount = net_total
 			pe.received_amount = net_total
 			pe.apply_tax_withholding_amount = 1
@@ -127,7 +126,7 @@ def make_payment_entries(docname):
 			{
 				"reference_no": payment_order_doc.name,
 				"reference_date": nowdate(),
-				"remarks": "Payment Entry from Payment Order - {0}".format(
+				"remarks": "Bank Payment Entry from Payment Order - {0}".format(
 					payment_order_doc.name
 				),
 			}
@@ -136,8 +135,6 @@ def make_payment_entries(docname):
 		pe.set_missing_values()
 		pe.validate()
 		pe.insert(ignore_permissions=True, ignore_mandatory=True)
-		for idx, item in enumerate(pe.taxes):
-			pe.taxes[idx].state = row.state
 		pe.submit()
 		frappe.db.set_value("Payment Order Summary", row.name, "payment_entry", pe.name)
 

@@ -26,6 +26,7 @@ frappe.ui.form.on('Payment Order', {
 					method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
 					source_doctype: "Bank Payment Request",
 					target: frm,
+					args: {"ref_doctype": "Bank Payment Request"},
 					setters: {
 						party: frm.doc.supplier || "",
 						grand_total: "",
@@ -36,6 +37,23 @@ frappe.ui.form.on('Payment Order', {
 						mode_of_payment: "Wire Transfer",
 						transaction_date : ["<=", frm.doc.posting_date],
 						company: frm.doc.company
+					}
+				});
+			}, __("Get from"));
+
+			frm.add_custom_button(__('Payment Entry'), function() {
+				erpnext.utils.map_current_doc({
+					method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
+					source_doctype: "Payment Entry",
+					target: frm,
+					args: {"ref_doctype": "Payment Entry"},
+					setters: {
+						party: frm.doc.supplier || "",
+						paid_amount : ""
+					},
+					get_query_filters: {
+						docstatus: 1,
+						source_doctype: ["!=", "Bank Payment Request"]
 					}
 				});
 			}, __("Get from"));
@@ -164,7 +182,6 @@ frappe.ui.form.on('Payment Order', {
 						row.bank_account = summary_data[i].bank_account;
 						row.account = summary_data[i].account;
 						row.mode_of_transfer = summary_data[i].mode_of_transfer;
-						row.state = summary_data[i].state;
 						row.cost_center = summary_data[i].cost_center;
 						row.project = summary_data[i].project;
 						row.tax_withholding_category = summary_data[i].tax_withholding_category;

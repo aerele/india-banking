@@ -162,7 +162,7 @@ def make_bank_payment_request(**args):
 
 	if draft_payment_request:
 		frappe.db.set_value(
-			"Bank Payment Request", draft_payment_request, "grand_total", grand_total, update_modified=False
+			"Bank Payment Request", draft_payment_request, {"grand_total": grand_total, "net_total": grand_total}, update_modified=False
 		)
 		bpr = frappe.get_doc("Bank Payment Request", draft_payment_request)
 	else:

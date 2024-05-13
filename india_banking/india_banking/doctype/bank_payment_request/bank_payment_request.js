@@ -66,11 +66,6 @@ frappe.ui.form.on('Bank Payment Request', {
 				};
 			});
 		}
-	},
-	validate(frm){
-		if(frm.doc.net_total){
-			frm.doc.grand_total = frm.doc.net_total
-		}
 	}
 });
 

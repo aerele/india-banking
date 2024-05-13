@@ -13,8 +13,8 @@
   "maximum_limit",
   "column_break_jifa",
   "is_bank_specific",
-  "bank",
   "bank_account",
+  "bank",
   "section_break_qg2d",
   "start_time",
   "end_time",
@@ -59,6 +59,8 @@
    "label": "Is Bank Specific"
   },
   {
+   "fetch_from": "bank_account.bank",
+   "fetch_if_empty": 1,
    "fieldname": "bank",
    "fieldtype": "Link",
    "label": "Bank",
@@ -91,12 +93,13 @@
   {
    "fieldname": "priority",
    "fieldtype": "Select",
-   "label": "Priority"
+   "label": "Priority",
+   "options": "0\n1\n2\n3\n4\n5\n6"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-04-29 19:46:10.605159",
+ "modified": "2024-05-07 11:53:23.313669",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Mode of Transfer",

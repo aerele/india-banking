@@ -393,6 +393,7 @@
    "fieldname": "payment_type",
    "fieldtype": "Link",
    "label": "Payment Type",
+   "mandatory_depends_on": "eval:doc.mode_of_payment == \"Wire Transfer\" && doc.reference_doctype != \"Purchase Invoice\" && doc.payment_request_type == \"Outward\"",
    "options": "Payment Type"
   },
   {
@@ -443,11 +444,10 @@
    "label": "Is AdHoc"
   }
  ],
- "in_create": 1,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-05-06 09:36:06.586272",
+ "modified": "2024-05-08 12:55:55.896288",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

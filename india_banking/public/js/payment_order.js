@@ -16,7 +16,7 @@ frappe.ui.form.on('Payment Order', {
 		frm.set_df_property('summary', 'cannot_delete_rows', true);
 		frm.set_df_property('summary', 'cannot_add_rows', true);
 		frm.remove_custom_button("Payment Entry", "Get Payments from");
-		frm.remove_custom_button("Payment Request", "Get Payments from");
+		// frm.remove_custom_button("Payment Request", "Get Payments from");
 		frm.set_df_property("payment_order_type", "options", [""].concat(["Bank Payment Request", "Payment Entry", "Purchase Invoice"]));
 		frm.refresh_field("payment_order_type");
 		if (frm.doc.docstatus == 0) {
@@ -137,7 +137,11 @@ frappe.ui.form.on('Payment Order', {
 				}
 			}
 		}
-
+		frm.set_query("party_type", "references" , function() {
+			return {
+				query: "erpnext.setup.doctype.party_type.party_type.get_party_type",
+			};
+		});
 
 	},
 	remove_button: function(frm) {

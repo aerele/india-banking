@@ -2,12 +2,14 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Bank Payment Request', {
+	setup: function (frm) {
+		frm.set_query("party_type", function () {
+			return {
+				query: "erpnext.setup.doctype.party_type.party_type.get_party_type",
+			};
+		});
+	},
 	refresh(frm) {
-		if(frm.doc.status == "Initiated") {
-			setTimeout(() => {
-				frm.remove_custom_button(__('Create Payment Entry'))
-			}, 100);
-		}
 		frm.set_query("payment_type", function() {
 			return {
 				filters: {
@@ -15,7 +17,17 @@ frappe.ui.form.on('Bank Payment Request', {
 				}
 			};
 		});
+
+		setTimeout(() => {
+			frm.trigger('toggle_custom_button')
+		}, 500);
 	},
+	toggle_custom_button(frm){
+		if(frm.doc.status == "Initiated") {
+			frm.remove_custom_button(__('Create Payment Entry'))
+		}
+	},
+
 	company (frm) {
 		frm.set_query("payment_type", function() {
 			return {
@@ -53,6 +65,11 @@ frappe.ui.form.on('Bank Payment Request', {
 					filters: conditions
 				};
 			});
+		}
+	},
+	validate(frm){
+		if(frm.doc.net_total){
+			frm.doc.grand_total = frm.doc.net_total
 		}
 	}
 });

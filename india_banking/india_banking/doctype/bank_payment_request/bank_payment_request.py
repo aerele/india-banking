@@ -47,17 +47,18 @@ class BankPaymentRequest(PaymentRequest):
 		)
 
 		ref_doc = frappe.get_doc(self.reference_doctype, self.reference_name)
+
 		if not hasattr(ref_doc, "order_type") or getattr(ref_doc, "order_type") != "Shopping Cart":
 			if self.reference_doctype in ["Purchase Order"]:
 				ref_amount = flt(ref_doc.rounded_total) or flt(ref_doc.grand_total)
 			elif self.reference_doctype in ["Purchase Invoice"]:
 				ref_amount = flt(ref_doc.base_rounded_total)
 			else:
-				ref_amount = PR.get_amount(ref_doc, self.payment_account)
+				ref_amount = get_amount(ref_doc, self.payment_account)
 
 			if existing_payment_request_amount + flt(self.grand_total) > ref_amount:
 				frappe.throw(
-					frappe._("Total Payment Request amount cannot be greater than {0} amount").format(
+					frappe._("Total Bank Payment Request amount cannot be greater than {0} amount").format(
 						self.reference_doctype
 					)
 				)
@@ -103,6 +104,24 @@ class BankPaymentRequest(PaymentRequest):
 		if self.mode_of_payment == "Wire Transfer" and not self.bank_account:
 			frappe.throw(frappe._("Bank Account is missing for Wire Transfer Payments"))
 
+
+@frappe.whitelist()
+def validate_payment_request_status(**args):
+	total_bank_payment_request_amount = frappe.db.get_all(
+		"Bank Payment Request", {
+			"reference_doctype": args.get('ref_doctype'),
+			"reference_name": args.get('ref_name'),
+			"docstatus": 1
+		},
+		"sum(grand_total) as grand_total")
+
+	if total_bank_payment_request_amount[0] and total_bank_payment_request_amount[0].get('grand_total'):
+		if flt(total_bank_payment_request_amount[0].get('grand_total')) >= flt(args.get('grand_total')):
+			return 'Completed'
+
+	return ""
+
+
 @frappe.whitelist(allow_guest=True)
 def make_bank_payment_request(**args):
 	"""Make Bank payment request"""
@@ -112,7 +131,8 @@ def make_bank_payment_request(**args):
 	ref_doc = frappe.get_doc(args.dt, args.dn)
 	gateway_account = PR.get_gateway_details(args) or frappe._dict()
 
-	grand_total = PR.get_amount(ref_doc, gateway_account.get("payment_account"))
+	grand_total = get_amount(ref_doc, gateway_account.get("payment_account"))
+
 	if args.loyalty_points and args.dt == "Sales Order":
 		from erpnext.accounts.doctype.loyalty_program.loyalty_program import validate_loyalty_points
 
@@ -127,19 +147,22 @@ def make_bank_payment_request(**args):
 		get_party_bank_account(args.get("party_type"), args.get("party")) if args.get("party_type") else ""
 	)
 
+	if not bank_account:
+		frappe.throw(frappe._("Bank Account is missing for {0} - {1}").format(args.get("party_type"), args.get("party")))
+
 	draft_payment_request = frappe.db.get_value(
-		"Payment Request",
+		"Bank Payment Request",
 		{"reference_doctype": args.dt, "reference_name": args.dn, "docstatus": 0},
 	)
 	
-	existing_payment_request_amount = PR.get_existing_payment_request_amount(args.dt, args.dn)
+	existing_payment_request_amount = get_existing_payment_request_amount(args.dt, args.dn)
 
 	if existing_payment_request_amount:
 		grand_total -= existing_payment_request_amount
 
 	if draft_payment_request:
 		frappe.db.set_value(
-			"Payment Request", draft_payment_request, "grand_total", grand_total, update_modified=False
+			"Bank Payment Request", draft_payment_request, "grand_total", grand_total, update_modified=False
 		)
 		bpr = frappe.get_doc("Bank Payment Request", draft_payment_request)
 	else:
@@ -177,8 +200,8 @@ def make_bank_payment_request(**args):
 		# Update dimensions
 		bpr.update(
 			{
-				"cost_center": ref_doc.get("cost_center"),
-				"project": ref_doc.get("project")
+				"cost_center": ref_doc.get("cost_center") or frappe.get_value(ref_doc.get("doctype") + " Item",{'parent': ref_doc.get("name")}, 'cost_center'),
+				"project": ref_doc.get("project") or frappe.get_value(ref_doc.get("doctype") + " Item",{'parent': ref_doc.get("name")}, 'project')
 			}
 		)
 
@@ -284,3 +307,52 @@ def make_payment_order(source_name, target_doc=None, args= None):
 
 	return doclist
 
+def get_existing_payment_request_amount(ref_dt, ref_dn):
+	"""
+	Get the existing Bank payment request which are unpaid or partially paid for payment channel other than Phone
+	and get the summation of existing paid Bank payment request for Phone payment channel.
+	"""
+	existing_payment_request_amount = frappe.db.sql(
+		"""
+		select sum(grand_total)
+		from `tabBank Payment Request`
+		where
+			reference_doctype = %s
+			and reference_name = %s
+			and docstatus = 1
+			and (status != 'Paid'
+			or (payment_channel = 'Phone'
+				and status = 'Paid'))
+	""",
+		(ref_dt, ref_dn),
+	)
+	return flt(existing_payment_request_amount[0][0]) if existing_payment_request_amount else 0
+
+def get_amount(ref_doc, payment_account=None):
+	"""get amount based on doctype"""
+	dt = ref_doc.doctype
+	if dt in ["Sales Order", "Purchase Order"]:
+		grand_total = flt(ref_doc.rounded_total) or flt(ref_doc.grand_total)
+	elif dt in ["Sales Invoice", "Purchase Invoice"]:
+		if not ref_doc.get("is_pos"):
+			if ref_doc.party_account_currency == ref_doc.currency:
+				grand_total = flt(ref_doc.grand_total)
+			else:
+				grand_total = flt(ref_doc.base_grand_total) / ref_doc.conversion_rate
+		elif dt == "Sales Invoice":
+			for pay in ref_doc.payments:
+				if pay.type == "Phone" and pay.account == payment_account:
+					grand_total = pay.amount
+					break
+	elif dt == "POS Invoice":
+		for pay in ref_doc.payments:
+			if pay.type == "Phone" and pay.account == payment_account:
+				grand_total = pay.amount
+				break
+	elif dt == "Fees":
+		grand_total = ref_doc.outstanding_amount
+
+	if grand_total > 0:
+		return grand_total
+	else:
+		frappe.throw(frappe._("Bank Payment Entry is already created"))

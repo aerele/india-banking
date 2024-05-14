@@ -126,7 +126,8 @@ after_install = "india_banking.india_banking.install.after_install"
 # }
 
 override_doctype_class = {
-	"Payment Order": "india_banking.india_banking.override.payment_order.CustomPaymentOrder"
+	"Payment Order": "india_banking.india_banking.override.payment_order.CustomPaymentOrder",
+	"Payment Entry": "india_banking.india_banking.override.payment_entry.CustomPaymentEntry"
 }
 
 

@@ -3,21 +3,6 @@ from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 
 class CustomPaymentOrder(PaymentOrder):
-	def before_save(self):
-		self.group_same_reference_rows()
-
-	def group_same_reference_rows(self):
-		group_by_reference = {}
-
-		for ref in self.references:
-			key = (ref.reference_doctype, ref.reference_name)
-			if  key in group_by_reference:
-				group_by_reference[key].amount += ref.amount
-			else:
-				group_by_reference[key] = ref
-
-		self.references = group_by_reference.values()
-
 	def validate(self):
 		self.validate_summary()
 		for payment_info in self.summary:

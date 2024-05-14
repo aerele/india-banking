@@ -8,7 +8,6 @@ frappe.ui.form.on('Purchase Order', {
                 "grand_total" :  frm.doc.rounded_total || frm.doc.grand_total
             },
             callback: (r) => {
-                console.log(r, "response")
                 if (frm.doc.docstatus == 1 && r.message != "Completed") {
                     if (frm.doc.status != "Closed") {
                         if (frm.doc.status != "On Hold") {

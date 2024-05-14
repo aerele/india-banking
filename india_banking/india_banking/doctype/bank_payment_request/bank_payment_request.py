@@ -260,25 +260,27 @@ def make_payment_order(source_name, target_doc=None, args= None):
 
 	def update_missing_values(source, target):
 		target.payment_order_type = "Payment Entry"
+
 		account = ""
 		if source.paid_to:
 			account = source.paid_to
-		
-		target.append(
-			"references",
-			{
-				"reference_doctype": source.references[0].reference_doctype,
-				"reference_name": source.references[0].reference_name,
-				"amount": source.references[0].total_amount,
-				"party_type": source.party_type,
-				"party": source.party,
-				"mode_of_payment": source.mode_of_payment,
-				"bank_account": source.bank_account,
-				"account": account,
-				"cost_center": source.cost_center,
-				"project": source.project
-			},
-		)
+		if source.references:
+			target.append(
+				"references",
+				{
+					"reference_doctype": source.references[0].reference_doctype,
+					"reference_name": source.references[0].reference_name,
+					"amount": source.references[0].total_amount,
+					"party_type": source.party_type,
+					"party": source.party,
+					"mode_of_payment": source.mode_of_payment,
+					"bank_account": get_party_bank_account(source.get("party_type"), source.get("party")) if source.get("party_type") else "",
+					"account": account,
+					"cost_center": source.cost_center,
+					"project": source.project,
+					"payment_entry":  source.name
+				}
+			)
 		target.status = "Pending"
 	if args.get('ref_doctype') != "Payment Entry":
 		doclist = get_mapped_doc(

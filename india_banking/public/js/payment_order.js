@@ -78,7 +78,7 @@ frappe.ui.form.on('Payment Order', {
 			// 	});
 			// }, __("Get from"));
 		};
-		if (frm.doc.docstatus===1 && frm.doc.payment_order_type==='Payment Request') {
+		if (frm.doc.docstatus===1 && frm.doc.payment_order_type==='Bank Payment Request') {
 			frm.remove_custom_button(__('Create Payment Entries'));
 		}
 		if (frm.doc.status == "Pending" && frm.doc.docstatus == 1) {

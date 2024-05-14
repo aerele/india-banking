@@ -28,7 +28,6 @@ app_license = "gpl-3.0"
 # page_js = {"page" : "public/js/file.js"}
 
 doctype_js = {
-	"Payment Request": "public/js/payment_request.js",
 	"Payment Order" : "public/js/payment_order.js",
 	"Purchase Order" : "public/js/purchase_order.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
@@ -127,8 +126,7 @@ after_install = "india_banking.india_banking.install.after_install"
 # }
 
 override_doctype_class = {
-	"Payment Order": "india_banking.india_banking.override.payment_order.CustomPaymentOrder",
-	"Payment Request": "india_banking.india_banking.override.payment_request.CustomPaymentRequest"
+	"Payment Order": "india_banking.india_banking.override.payment_order.CustomPaymentOrder"
 }
 
 
@@ -147,9 +145,6 @@ override_doctype_class = {
 doc_events = {
 	"Bank Account": {
 		"validate": "india_banking.india_banking.doc_events.bank_account.validate_ifsc_code",
-	},
-	"Payment Request": {
-		"validate": "india_banking.india_banking.doc_events.payment_request.valdidate_bank_for_wire_transfer",
 	}
 }
 

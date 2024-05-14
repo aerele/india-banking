@@ -268,7 +268,7 @@ def process_payment_requests(payment_order_summary):
 			failed_prs.append(ref.payment_request)
 	
 	for pr in failed_prs:
-		pr_doc = frappe.get_doc("Payment Request", pr)
+		pr_doc = frappe.get_doc("Bank Payment Request", pr)
 		if pr_doc.docstatus == 1:
 			pr_doc.check_if_payment_entry_exists()
 			pr_doc.set_as_cancelled()

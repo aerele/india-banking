@@ -2,12 +2,18 @@ import frappe, json
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 
+from frappe.utils import getdate, now
+
 class CustomPaymentOrder(PaymentOrder):
+	def before_submit(self):
+		unique_id = self.name + getdate(now()).strftime("%Y%m%d%H%M")
+		self.unique_id = unique_id
+
 	def validate(self):
 		self.validate_summary()
 		for payment_info in self.summary:
 			if payment_info.mode_of_transfer == "RTGS" and payment_info.amount >= 500000000:
-				lei_number = frappe.db.get_value(payment_info.party_type, payment_info.party, "custom_lei_number")
+				lei_number = frappe.db.get_value(payment_info.party_type, payment_info.party, "lei_number")
 				if not lei_number:
 					frappe.throw(f"LEI Number required for payment > 50 Cr. For {payment_info.party_type} - {payment_info.party} - {payment_info.amount}")
 
@@ -34,6 +40,10 @@ class CustomPaymentOrder(PaymentOrder):
 		summary_total = 0
 		references_total = 0
 		for ref in self.references:
+			party_name_field = 'supplier_name' if ref.party_type == 'Supplier' else 'customer_name'
+			#update party name
+			ref.party_name = frappe.get_value(ref.party_type, ref.party, party_name_field)
+
 			references_total += ref.amount
 		
 		for sum in self.summary:

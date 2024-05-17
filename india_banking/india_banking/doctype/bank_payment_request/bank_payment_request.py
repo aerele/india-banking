@@ -200,8 +200,14 @@ def make_bank_payment_request(**args):
 		# Update dimensions
 		bpr.update(
 			{
-				"cost_center": ref_doc.get("cost_center") or frappe.get_value(ref_doc.get("doctype") + " Item",{'parent': ref_doc.get("name")}, 'cost_center'),
-				"project": ref_doc.get("project") or frappe.get_value(ref_doc.get("doctype") + " Item",{'parent': ref_doc.get("name")}, 'project')
+				"cost_center": ref_doc.get("cost_center") or 
+    				frappe.get_value(ref_doc.get("doctype") + " Item",
+                        {'parent': ref_doc.get("name")}, 'cost_center'
+                    ),
+				"project": ref_doc.get("project") or 
+    				frappe.get_value(ref_doc.get("doctype") + " Item",
+                        {'parent': ref_doc.get("name")}, 'project'
+                	)
 			}
 		)
 
@@ -252,8 +258,7 @@ def make_payment_order(source_name, target_doc=None, args= None):
 				"is_adhoc": source.is_adhoc,
 				"cost_center": source.cost_center,
 				"project": source.project,
-				"tax_withholding_category": source.tax_withholding_category,
-				"payment_entry": source_name
+				"tax_withholding_category": source.tax_withholding_category
 			},
 		)
 		target.status = "Pending"

@@ -10,6 +10,7 @@
   "section_break_pyak",
   "company",
   "bank_account",
+  "bank",
   "url",
   "column_break_mdgf",
   "api_key",
@@ -60,11 +61,18 @@
    "fieldtype": "Password",
    "label": "API Secret",
    "reqd": 1
+  },
+  {
+   "fetch_from": "bank_account.bank",
+   "fieldname": "bank",
+   "fieldtype": "Data",
+   "label": "Bank",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-04-29 16:50:18.476229",
+ "modified": "2024-05-14 17:20:04.884582",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Connector",

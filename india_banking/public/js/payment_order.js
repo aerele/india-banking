@@ -90,21 +90,60 @@ frappe.ui.form.on('Payment Order', {
 					}
 				}
 				if (uninitiated_payments > 0) {
-					frm.add_custom_button(__('Initiate Payment'), function() {
-						frappe.call({
-							method: "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
-							freeze: 1,
-							args: {
-								docname: frm.doc.name,
-							},
-							callback: function(r) {
-								if(r.message) {
-									frappe.msgprint(r.message)
+					if(frm.doc.company_bank == 'ICICI Bank'){
+						frm.add_custom_button(__('Initiate Payment'), function() {
+							frappe.call({
+								method: "india_banking.india_banking.doc_events.payment_order.generate_payment_otp",
+								freeze: true,
+								args: {
+									docname: frm.doc.name
+								},
+								callback: (res)=>{//
+									if(!res.exc){
+										frappe.prompt(
+											{
+												label: 'Enter OTP',
+												place_holder: 'Enter',
+												fieldname: 'otp',
+												fieldtype: 'Data'
+											}, (values) => {
+											frappe.call({
+												method: "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
+												freeze: 1,
+												args: {
+													docname: frm.doc.name,
+													otp: values.otp,
+												},
+												callback: function(r) {
+													if(r.message) {
+														frappe.msgprint(r.message)
+													}
+													frm.reload_doc();
+												}
+											});
+										})
+									}//
 								}
-								frm.reload_doc();
-							}
+							},
+							"Sent an OTP to the registered account number")
 						});
-					});
+					}else{
+						frm.add_custom_button(__('Initiate Payment'), function() {
+								frappe.call({
+									method: "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
+									freeze: 1,
+									args: {
+										docname: frm.doc.name
+								},
+								callback: function(r) {
+									if(r.message && !res.exc) {
+										frappe.msgprint(r.message)
+									}
+									frm.reload_doc();
+								}
+							});
+						});
+					}
 				}
 			}
 		}
@@ -127,7 +166,7 @@ frappe.ui.form.on('Payment Order', {
 								docname: frm.doc.name,
 							},
 							callback: function(r) {
-								if(r.message) {
+								if(r.message && !res.exc) {
 									frappe.msgprint(r.message)
 								}
 								frm.reload_doc();
@@ -144,6 +183,7 @@ frappe.ui.form.on('Payment Order', {
 		});
 
 	},
+
 	remove_button: function(frm) {
 		// remove custom button of order type that is not imported
 		let label = ["Payment Request", "Purchase Invoice"];
@@ -173,7 +213,7 @@ frappe.ui.form.on('Payment Order', {
 			},
 			freeze: true,
 			callback: function(r) {
-				if(r.message) {
+				if(r.message && !res.exc) {
 					let summary_data = r.message
 					frm.clear_table("summary");
 					var doc_total = 0
@@ -222,7 +262,7 @@ frappe.ui.form.on('Payment Order', {
 				approval_status: frm.doc.approval_status,
 			},
 			callback: function(r) {
-				if(r.message) {
+				if(r.message && !res.exc) {
 					var updated_count = 0
 					for (var line_item in r.message) {
 						if (r.message[line_item].status) {

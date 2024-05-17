@@ -37,8 +37,7 @@ def make_payment_order(source_name, target_doc=None):
 				"amount": source.outstanding_amount,
 				"supplier": source.supplier,
 				"mode_of_payment": "Wire Transfer",
-				"bank_account": bank_account,
-				"state": source.state
+				"bank_account": bank_account
 			},
 		)
 		target.status = "Pending"

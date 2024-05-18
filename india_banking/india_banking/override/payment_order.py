@@ -2,12 +2,14 @@ import frappe, json
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 
-from frappe.utils import getdate, now
+from frappe.utils import getdate, now, cstr
+import re
 
 class CustomPaymentOrder(PaymentOrder):
 	def before_submit(self):
-		unique_id = self.name + getdate(now()).strftime("%Y%m%d%H%M")
+		unique_id = ''.join(re.findall(r'[0-9a-zA-Z]', self.name))+ getdate(now()).strftime("%Y%m%d")
 		self.unique_id = unique_id
+		self.file_reference_id = ''.join(re.findall(r'[0-9a-zA-Z]', self.name))
 
 	def validate(self):
 		self.validate_summary()

@@ -148,7 +148,7 @@ def make_bank_payment_request(**args):
 	)
 
 	if not bank_account:
-		frappe.throw(frappe._("Bank Account is missing for {0} - {1}").format(args.get("party_type"), args.get("party")))
+		frappe.throw(frappe._("Default Bank Account is missing for {0} - {1}").format(args.get("party_type"), args.get("party")))
 
 	draft_payment_request = frappe.db.get_value(
 		"Bank Payment Request",

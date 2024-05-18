@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestServerRequestLog(FrappeTestCase):
+class TestServerApiRequestLog(FrappeTestCase):
 	pass

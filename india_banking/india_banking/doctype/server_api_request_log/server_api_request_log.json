@@ -11,7 +11,9 @@
   "header",
   "payload",
   "response",
-  "status_code"
+  "status_code",
+  "reference_doctype",
+  "reference_docname"
  ],
  "fields": [
   {
@@ -21,7 +23,7 @@
   },
   {
    "fieldname": "url",
-   "fieldtype": "Data",
+   "fieldtype": "Small Text",
    "label": "URL"
   },
   {
@@ -48,14 +50,24 @@
    "fieldname": "status_code",
    "fieldtype": "Data",
    "label": "Status Code"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Data",
+   "label": "Reference Doctype"
+  },
+  {
+   "fieldname": "reference_docname",
+   "fieldtype": "Data",
+   "label": "Reference Docname"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-05-17 17:06:05.103928",
+ "modified": "2024-05-18 11:02:06.641981",
  "modified_by": "Administrator",
  "module": "India Banking",
- "name": "Server Request Log",
+ "name": "Server Api Request Log",
  "owner": "Administrator",
  "permissions": [
   {

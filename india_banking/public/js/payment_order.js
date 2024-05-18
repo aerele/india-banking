@@ -57,26 +57,6 @@ frappe.ui.form.on('Payment Order', {
 					}
 				});
 			}, __("Get from"));
-
-			// frm.add_custom_button(__('Purchase Invoice'), function() {
-			// 	frm.trigger("remove_row_if_empty");
-			// 	erpnext.utils.map_current_doc({
-			// 		method: "india_banking.india_banking.doc_events.purchase_invoice.make_payment_order",
-			// 		source_doctype: "Purchase Invoice",
-			// 		target: frm,
-			// 		setters: {
-			// 			supplier: "",
-			// 			outstanding_amount: "",
-			// 			status: ""
-			// 		},
-			// 		get_query_filters: {
-			// 			docstatus: 1,
-			// 			on_hold: ["!=", 1],
-			// 			due_date : ["<=", frm.doc.posting_date],
-			// 			outstanding_amount: [">", 0]
-			// 		}
-			// 	});
-			// }, __("Get from"));
 		};
 		if (frm.doc.docstatus===1 && frm.doc.payment_order_type==='Bank Payment Request') {
 			frm.remove_custom_button(__('Create Payment Entries'));
@@ -121,11 +101,12 @@ frappe.ui.form.on('Payment Order', {
 													frm.reload_doc();
 												}
 											});
-										})
+										},
+										"Sent an OTP to the registered account number",
+										"Proceed")
 									}//
 								}
-							},
-							"Sent an OTP to the registered account number")
+							})
 						});
 					}else{
 						frm.add_custom_button(__('Initiate Payment'), function() {
@@ -136,7 +117,7 @@ frappe.ui.form.on('Payment Order', {
 										docname: frm.doc.name
 								},
 								callback: function(r) {
-									if(r.message && !res.exc) {
+									if(r.message && !r.exc) {
 										frappe.msgprint(r.message)
 									}
 									frm.reload_doc();
@@ -166,7 +147,7 @@ frappe.ui.form.on('Payment Order', {
 								docname: frm.doc.name,
 							},
 							callback: function(r) {
-								if(r.message && !res.exc) {
+								if(r.message && !r.exc) {
 									frappe.msgprint(r.message)
 								}
 								frm.reload_doc();
@@ -213,7 +194,7 @@ frappe.ui.form.on('Payment Order', {
 			},
 			freeze: true,
 			callback: function(r) {
-				if(r.message && !res.exc) {
+				if(r.message && !r.exc) {
 					let summary_data = r.message
 					frm.clear_table("summary");
 					var doc_total = 0
@@ -262,7 +243,7 @@ frappe.ui.form.on('Payment Order', {
 				approval_status: frm.doc.approval_status,
 			},
 			callback: function(r) {
-				if(r.message && !res.exc) {
+				if(r.message && !r.exc) {
 					var updated_count = 0
 					for (var line_item in r.message) {
 						if (r.message[line_item].status) {

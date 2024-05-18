@@ -6,13 +6,13 @@ import json
 from frappe.model.document import Document
 
 
-class ServerRequestLog(Document):
+class ServerApiRequestLog(Document):
 	pass
 
 
 
 @frappe.whitelist()
-def create_api_log(res, action= None):	
+def create_api_log(res, action= None, ref_doctype= None, ref_docname= None):	
 	"""Can create API log From response
 
 	Args:
@@ -21,7 +21,7 @@ def create_api_log(res, action= None):
 	"""
 	if not res: return
 	
-	log_doc = frappe.new_doc("Server Request Log")
+	log_doc = frappe.new_doc("Server Api Request Log")
 	log_doc.action = action
 	log_doc.url = res.request.url
 	log_doc.method = res.request.method
@@ -29,6 +29,8 @@ def create_api_log(res, action= None):
 	log_doc.payload =res.request.body
 	log_doc.response = json.dumps(res.json())
 	log_doc.status_code = res.status_code
+	log_doc.reference_doctype = ref_doctype
+	log_doc.reference_docname = ref_docname
 	log_doc.save()
 	
 	frappe.db.commit()

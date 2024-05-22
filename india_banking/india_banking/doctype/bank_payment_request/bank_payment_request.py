@@ -173,6 +173,8 @@ def make_bank_payment_request(**args):
 				"Outward" if args.get("dt") in ["Purchase Order", "Purchase Invoice"] else "Inward"
 			)
 
+		bpr.payment_type = "Pay"
+
 		bpr.update(
 			{
 				"payment_gateway_account": gateway_account.get("name"),

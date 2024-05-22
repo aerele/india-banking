@@ -33,6 +33,8 @@ doctype_js = {
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 }
 
+doctype_list_js = {"Payment Order" : "public/js/payment_order_list.js"}
+
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}

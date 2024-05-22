@@ -24,7 +24,7 @@ frappe.ui.form.on('Purchase Order', {
 
         setTimeout(() => {
             frm.trigger('toggle_custom_button')
-        }, 500);
+        }, 1000);
 
     },
 

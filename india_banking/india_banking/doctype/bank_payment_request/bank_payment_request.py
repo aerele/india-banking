@@ -245,6 +245,10 @@ def make_payment_order(source_name, target_doc=None, args= None):
 			account = frappe.db.get_value("Payment Type", source.payment_type, "account")
 		if source.reference_doctype == "Purchase Invoice":
 			account = frappe.db.get_value(source.reference_doctype, source.reference_name, "credit_to")
+
+		for dimension in get_accounting_dimensions():
+			target.update({dimension: source.get(dimension, '')})
+
 		target.append(
 			"references",
 			{
@@ -271,6 +275,10 @@ def make_payment_order(source_name, target_doc=None, args= None):
 		account = ""
 		if source.paid_to:
 			account = source.paid_to
+
+		for dimension in get_accounting_dimensions():
+			target.update({dimension: source.get(dimension, '')})
+
 		if source.references:
 			target.append(
 				"references",

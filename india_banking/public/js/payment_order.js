@@ -22,6 +22,8 @@ frappe.ui.form.on('Payment Order', {
 		if (frm.doc.docstatus == 0) {
 			frm.add_custom_button(__('Bank Payment Request'), function() {
 				frm.trigger("remove_row_if_empty");
+				let docs = frm.doc.references?.map((doc)=>{return doc.bank_payment_request})
+
 				erpnext.utils.map_current_doc({
 					method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
 					source_doctype: "Bank Payment Request",
@@ -34,14 +36,18 @@ frappe.ui.form.on('Payment Order', {
 					get_query_filters: {
 						docstatus: 1,
 						status: ["in", ["Initiated"]],
+						name: ["not in", docs],
 						mode_of_payment: "Wire Transfer",
 						transaction_date : ["<=", frm.doc.posting_date],
 						company: frm.doc.company
 					}
 				});
 			}, __("Get from"));
-
+			frappe.db.get
 			frm.add_custom_button(__('Payment Entry'), function() {
+				frm.trigger("remove_row_if_empty");
+				let docs = frm.doc.references?.map((doc)=>{return doc.payment_entry})
+
 				erpnext.utils.map_current_doc({
 					method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
 					source_doctype: "Payment Entry",
@@ -53,6 +59,7 @@ frappe.ui.form.on('Payment Order', {
 					},
 					get_query_filters: {
 						docstatus: 1,
+						name: ["not in", docs],
 						source_doctype: ["!=", "Bank Payment Request"]
 					}
 				});
@@ -211,6 +218,7 @@ frappe.ui.form.on('Payment Order', {
 						row.project = summary_data[i].project;
 						row.tax_withholding_category = summary_data[i].tax_withholding_category;
 						row.reference_doctype = summary_data[i].reference_doctype;
+						row.payment_entry = summary_data[i].payment_entry;
 					}
 					frm.refresh_field("summary");
 					frm.doc.total = doc_total;

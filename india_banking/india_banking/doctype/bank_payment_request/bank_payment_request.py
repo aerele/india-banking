@@ -22,15 +22,6 @@ class BankPaymentRequest(PaymentRequest):
 		pass
 
 	def validate(self):
-		print(self.as_dict())
-		if not self.is_adhoc:
-			super().validate()
-		else:
-			if self.get("__islocal"):
-				self.status = "Draft"
-			if self.reference_doctype or self.reference_name:
-				frappe.throw("Payments with references cannot be marked as ad-hoc")
-
 		if self.apply_tax_withholding_amount and self.tax_withholding_category and self.payment_request_type == "Outward":
 			if not self.net_total:
 				self.net_total = self.grand_total
@@ -42,6 +33,14 @@ class BankPaymentRequest(PaymentRequest):
 				self.grand_total = self.net_total
 			if self.grand_total and self.net_total != self.grand_total and not self.apply_tax_withholding_amount:
 				self.grand_total = self.net_total
+
+		if not self.is_adhoc:
+			super().validate()
+		else:
+			if self.get("__islocal"):
+				self.status = "Draft"
+			if self.reference_doctype or self.reference_name:
+				frappe.throw("Payments with references cannot be marked as ad-hoc")
 
 		self.valdidate_bank_for_wire_transfer()
 
@@ -75,7 +74,7 @@ class BankPaymentRequest(PaymentRequest):
 			debit_account = frappe.db.get_value(self.reference_doctype, self.reference_name, "credit_to")
 
 		if not debit_account:
-			frappe.throw("Unable to determine debit account")
+			frappe.throw("Debit account for Payment Type <b>{}</b> cannot be determined".format(self.payment_type))
 		if not self.is_adhoc:
 			super().on_submit()
 		else:
@@ -150,7 +149,6 @@ def make_bank_payment_request(**args):
 	)
 	
 	existing_payment_request_amount = get_existing_payment_request_amount(args.dt, args.dn)
-	print(existing_payment_request_amount, "existing_payment_request_amount")
 
 	if existing_payment_request_amount:
 		grand_total -= existing_payment_request_amount
@@ -258,6 +256,7 @@ def make_payment_order(source_name, target_doc=None, args= None):
 
 	def update_missing_values(source, target):
 		target.payment_order_type = "Payment Entry"
+		target.company_bank_account = source.bank_account
 
 		account = ""
 		if source.paid_to:
@@ -283,7 +282,25 @@ def make_payment_order(source_name, target_doc=None, args= None):
 					"payment_entry":  source.name
 				}
 			)
+		else:
+			target.append(
+				"references",
+				{
+					"reference_doctype": "Payment Entry",
+					"reference_name": source.name,
+					"amount": source.paid_amount,
+					"party_type": source.party_type,
+					"party": source.party,
+					"mode_of_payment": "Wire Transfer",
+					"bank_account": source.party_bank_account,
+					"account": source.paid_to,
+					"cost_center": source.cost_center,
+					"project": source.project,
+					"payment_entry":  source.name
+				}
+			)
 		target.status = "Pending"
+
 	if args.get('ref_doctype') != "Payment Entry":
 		doclist = get_mapped_doc(
 			"Bank Payment Request",

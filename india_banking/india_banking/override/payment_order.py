@@ -109,14 +109,14 @@ def get_party_summary(references, company_bank_account):
 	summary = {}
 	for ref in references:
 		ref = frappe._dict(ref)
-		if (ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.reference_doctype) in summary:
-			summary[(ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.reference_doctype)] += ref.amount
+		if (ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry) in summary:
+			summary[(ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry)] += ref.amount
 		else:
-			summary[(ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.reference_doctype)] = ref.amount
+			summary[(ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry)] = ref.amount
 
 	result = []
 	for k, v in summary.items():
-		party_type, party, bank_account, account, cost_center, project, tax_withholding_category, reference_doctype = k
+		party_type, party, bank_account, account, cost_center, project, tax_withholding_category, reference_doctype, payment_entry = k
 		summary_line_item = {}
 		summary_line_item["party_type"] = party_type
 		summary_line_item["party"] = party
@@ -127,6 +127,7 @@ def get_party_summary(references, company_bank_account):
 		summary_line_item["tax_withholding_category"] = tax_withholding_category
 		summary_line_item["reference_doctype"] = reference_doctype
 		summary_line_item["amount"] = v
+		summary_line_item["payment_entry"] = payment_entry
 		result.append(summary_line_item)
 	
 	for row in result:

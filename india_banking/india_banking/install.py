@@ -7,6 +7,7 @@ def after_install():
 	create_lei_number_field()
 	create_default_bank()
 	create_default_mode_of_transfers()
+	create_default_payment_type()
 
 def create_default_mode_of_transfers():
 	for mot in DEFAULT_MODE_OF_TRANSFERS:
@@ -54,3 +55,10 @@ def create_default_bank():
 		bank_doc = frappe.new_doc('Bank')
 		bank_doc.update(bank_details)
 		bank_doc.save()
+
+def create_default_payment_type():
+	if not frappe.db.exists("Payment Type", "Pay"):
+		frappe.get_doc({
+			"doctype": "Payment Type",
+			"payment_type": "Pay"
+		}).insert(ignore_permissions=True, ignore_mandatory=True)

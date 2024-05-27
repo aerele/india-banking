@@ -153,6 +153,7 @@ doc_events = {
 }
 
 # accounting_dimension_doctypes = ['Bank Payment Request', 'Payment Order', 'Payment Order Reference', 'Payment Order Summary']
+accounting_dimension_doctypes = ['Bank Payment Request']
 
 # Scheduled Tasks
 # ---------------

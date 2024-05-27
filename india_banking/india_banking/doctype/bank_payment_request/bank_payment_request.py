@@ -18,7 +18,11 @@ from frappe.utils.data import flt, today
 
 
 class BankPaymentRequest(PaymentRequest):
+	def validate_subscription_details(self):
+		pass
+
 	def validate(self):
+		print(self.as_dict())
 		if not self.is_adhoc:
 			super().validate()
 		else:
@@ -133,16 +137,6 @@ def make_bank_payment_request(**args):
 
 	grand_total = get_amount(ref_doc, gateway_account.get("payment_account"))
 
-	if args.loyalty_points and args.dt == "Sales Order":
-		from erpnext.accounts.doctype.loyalty_program.loyalty_program import validate_loyalty_points
-
-		loyalty_amount = validate_loyalty_points(ref_doc, int(args.loyalty_points))
-		frappe.db.set_value(
-			"Sales Order", args.dn, "loyalty_points", int(args.loyalty_points), update_modified=False
-		)
-		frappe.db.set_value("Sales Order", args.dn, "loyalty_amount", loyalty_amount, update_modified=False)
-		grand_total = grand_total - loyalty_amount
-
 	bank_account = (
 		get_party_bank_account(args.get("party_type"), args.get("party")) if args.get("party_type") else ""
 	)
@@ -156,6 +150,7 @@ def make_bank_payment_request(**args):
 	)
 	
 	existing_payment_request_amount = get_existing_payment_request_amount(args.dt, args.dn)
+	print(existing_payment_request_amount, "existing_payment_request_amount")
 
 	if existing_payment_request_amount:
 		grand_total -= existing_payment_request_amount
@@ -216,18 +211,10 @@ def make_bank_payment_request(**args):
 		for dimension in get_accounting_dimensions():
 			bpr.update({dimension: ref_doc.get(dimension)})
 
-		if args.order_type == "Shopping Cart" or args.mute_email:
-			bpr.flags.mute_email = True
-
 		bpr.insert(ignore_permissions=True)
 
 		if args.submit_doc:
 			bpr.submit()
-
-	if args.order_type == "Shopping Cart":
-		frappe.db.commit()
-		frappe.local.response["type"] = "redirect"
-		frappe.local.response["location"] = bpr.get_payment_url()
 
 	if args.return_doc:
 		return bpr

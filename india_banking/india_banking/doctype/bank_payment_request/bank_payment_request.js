@@ -18,6 +18,23 @@ frappe.ui.form.on('Bank Payment Request', {
 			};
 		});
 
+		frm.set_query("cost_center", function() {
+			return {
+				filters: {
+					"is_group": 0,
+					"disabled": 0
+				}
+			};
+		});
+
+		frm.set_query("mode_of_payment", function() {
+			return {
+				filters: {
+					"name": "Wire Transfer"
+				}
+			};
+		});
+
 		setTimeout(() => {
 			frm.trigger('toggle_custom_button')
 		}, 500);

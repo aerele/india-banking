@@ -1,38 +1,25 @@
 import frappe
-
-STD_BANK_LIST = [
-	{
-		'bank_name': 'Yes Bank',
-		'swift_number': '',
-		'app_name': 'yes_integration_server',
-		'is_standard': True
-	},
-	{
-		'bank_name': 'HDFC Bank',
-		'swift_number': '',
-		'app_name': 'hdfc_integration_server',
-		'is_standard': True
-	},
-	{
-		'bank_name': 'ICICI Bank',
-		'swift_number': '',
-		'app_name': 'icici_integration_server',
-		'is_standard': True
-	},
-	{
-		'bank_name': 'Axis Bank',
-		'swift_number': '',
-		'app_name': 'axis_integration_server',
-		'is_standard': True
-	}
-]
-
+from india_banking.india_banking.default import DEFAULT_MODE_OF_TRANSFERS, STD_BANK_LIST
 def after_install():
 	# As a part of the integration, for making ad-hoc payments, we are enabling creation of it.
 	disable_reqd_for_reference_in_payment_order()
 	update_payment_order_fields_options()
 	create_lei_number_field()
 	create_default_bank()
+	create_default_mode_of_transfers()
+
+def create_default_mode_of_transfers():
+	for mot in DEFAULT_MODE_OF_TRANSFERS:
+		if not frappe.db.exists("Mode of Transfer",mot["mode"]):
+			frappe.get_doc({
+				"doctype": "Mode of Transfer",
+				"mode": mot["mode"],
+				"minimum_limit": mot["minimum_limit"],
+				"maximum_limit": mot["maximum_limit"],
+				"start_time": mot["start_time"],
+				"end_time": mot["end_time"],
+				"priority": mot["priority"]
+			}).insert(ignore_permissions=True)
 
 def update_payment_order_fields_options():
 	payment_order_type = frappe.db.get_value("DocField", {"parent": "Payment Order", "fieldname": "payment_order_type"})

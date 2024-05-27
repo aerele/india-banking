@@ -15,21 +15,18 @@
   "is_adhoc",
   "party_details",
   "party_type",
-  "party",
-  "column_break_4",
   "reference_doctype",
+  "column_break_4",
+  "party",
   "reference_name",
   "transaction_details",
   "net_total",
   "taxes_deducted",
   "grand_total",
-  "is_a_subscription",
   "column_break_18",
   "currency",
   "apply_tax_withholding_amount",
   "tax_withholding_category",
-  "subscription_section",
-  "subscription_plans",
   "bank_account_details",
   "bank_account",
   "bank",
@@ -52,16 +49,14 @@
   "status",
   "make_sales_invoice",
   "section_break_10",
-  "message",
-  "message_examples",
-  "mute_email",
   "payment_url",
   "section_break_7",
-  "payment_gateway",
   "payment_account",
-  "payment_channel",
   "payment_order",
-  "amended_from"
+  "amended_from",
+  "column_break_uumn",
+  "payment_gateway",
+  "payment_channel"
  ],
  "fields": [
   {
@@ -69,10 +64,11 @@
    "fieldname": "payment_request_type",
    "fieldtype": "Select",
    "label": "Payment Request Type",
-   "options": "Outward\nInward",
+   "options": "Outward",
    "reqd": 1
   },
   {
+   "default": "Today",
    "fieldname": "transaction_date",
    "fieldtype": "Date",
    "label": "Transaction Date",
@@ -93,6 +89,7 @@
    "reqd": 1
   },
   {
+   "default": "Wire Transfer",
    "fieldname": "mode_of_payment",
    "fieldtype": "Link",
    "label": "Mode of Payment",
@@ -152,13 +149,7 @@
    "fieldtype": "Currency",
    "label": "Amount",
    "options": "currency",
-   "read_only_depends_on": "eval:!doc.is_adhoc"
-  },
-  {
-   "default": "0",
-   "fieldname": "is_a_subscription",
-   "fieldtype": "Check",
-   "label": "Is a Subscription"
+   "read_only": 1
   },
   {
    "fieldname": "column_break_18",
@@ -170,18 +161,6 @@
    "label": "Transaction Currency",
    "options": "Currency",
    "read_only": 1
-  },
-  {
-   "depends_on": "eval:doc.is_a_subscription",
-   "fieldname": "subscription_section",
-   "fieldtype": "Section Break",
-   "label": "Subscription Section"
-  },
-  {
-   "fieldname": "subscription_plans",
-   "fieldtype": "Table",
-   "label": "Subscription Plans",
-   "options": "Subscription Plan Detail"
   },
   {
    "collapsible": 1,
@@ -214,7 +193,8 @@
    "fetch_from": "bank_account.account",
    "fieldname": "account",
    "fieldtype": "Read Only",
-   "label": "Account"
+   "label": "Account",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_11",
@@ -322,31 +302,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "depends_on": "eval: doc.payment_channel != 'Phone'",
-   "fieldname": "message",
-   "fieldtype": "Text",
-   "label": "Message"
-  },
-  {
-   "depends_on": "eval: doc.payment_channel != 'Phone'",
-   "fieldname": "message_examples",
-   "fieldtype": "HTML",
-   "label": "Message Examples",
-   "options": "<pre><h5>Message Example</h5>\n\n&lt;p&gt;Dear {{ doc.contact_person }},&lt;/p&gt;\n\n&lt;p&gt;Requesting payment for {{ doc.doctype }}, {{ doc.name }} for {{ doc.grand_total }}.&lt;/p&gt;\n\n&lt;a href='{{ payment_url }}'&gt; click here to pay &lt;/a&gt;\n\n</pre>\n",
-   "print_hide": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "mute_email",
-   "fieldtype": "Check",
-   "hidden": 1,
-   "label": "Mute Email",
-   "no_copy": 1,
-   "print_hide": 1,
-   "read_only": 1,
-   "report_hide": 1
-  },
-  {
    "fieldname": "payment_url",
    "fieldtype": "Data",
    "hidden": 1,
@@ -445,12 +400,16 @@
    "fieldname": "is_adhoc",
    "fieldtype": "Check",
    "label": "Is AdHoc"
+  },
+  {
+   "fieldname": "column_break_uumn",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-05-21 13:03:39.165915",
+ "modified": "2024-05-27 12:14:58.043206",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

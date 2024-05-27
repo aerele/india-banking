@@ -8,7 +8,7 @@ import uuid, requests
 import random
 
 from india_banking.india_banking.install import STD_BANK_LIST
-from india_banking.india_banking.doctype.server_api_request_log.server_api_request_log import create_api_log
+from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import create_api_log
 
 @frappe.whitelist()
 def generate_payment_otp(docname):

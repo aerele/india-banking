@@ -13,6 +13,9 @@ from india_banking.india_banking.doctype.india_banking_request_log.india_banking
 @frappe.whitelist()
 def generate_payment_otp(docname):
 	payment_order_doc = frappe.get_doc("Payment Order", docname)
+	payment_order_doc.update_unique_and_file_reference_id(save=True)
+
+	payment_order_doc.reload()
 
 	# Fetch the connector information
 	bank_connector_exists = frappe.db.exists("Bank Connector",

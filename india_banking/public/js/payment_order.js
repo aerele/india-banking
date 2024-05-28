@@ -15,10 +15,13 @@ frappe.ui.form.on('Payment Order', {
 	refresh(frm) {
 		frm.set_df_property('summary', 'cannot_delete_rows', true);
 		frm.set_df_property('summary', 'cannot_add_rows', true);
+
 		frm.remove_custom_button("Payment Entry", "Get Payments from");
 		frm.remove_custom_button("Payment Request", "Get Payments from");
+
 		frm.set_df_property("payment_order_type", "options", [""].concat(["Bank Payment Request", "Payment Entry", "Purchase Invoice"]));
 		frm.refresh_field("payment_order_type");
+
 		if (frm.doc.docstatus == 0) {
 			frm.add_custom_button(__('Bank Payment Request'), function() {
 				frm.trigger("remove_row_if_empty");

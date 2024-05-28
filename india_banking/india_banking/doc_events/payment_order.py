@@ -82,17 +82,6 @@ def make_bank_payment(docname, otp=None):
 				frappe.db.set_value("Payment Order Summary", row.name, "payment_date", nowdate())
 
 		if payment_response.get('server_status') == 'failed':
-			frappe.db.set_value("Payment Order", docname , "status", "Failed")
-			frappe.db.set_value("Payment Order", docname , "docstatus", 2)
-
-			for row in payment_order_doc.summary:
-				frappe.db.set_value("Payment Order Summary", row.name, "payment_status", "Failed")
-				payment_entry_doc = frappe.get_doc("Payment Entry", row.payment_entry)
-				if payment_entry_doc.docstatus == 1:
-					payment_entry_doc.cancel()
-
-				process_bank_payment_requests(row.name)
-
 			return {"message": "Failed - "+ cstr(payment_response.get('server_message'))}
 
 		return {"message": "Payment Initiated"}

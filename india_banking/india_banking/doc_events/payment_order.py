@@ -69,10 +69,23 @@ def make_bank_payment(docname, otp=None):
 
 	payment_order_doc = frappe.get_doc("Payment Order", docname)
 
-	if payment_order_doc.company_bank == 'ICICI Bank' and not otp:
+	# Fetch the connector information
+	bank_connector_exists = frappe.db.exists("Bank Connector",
+		{
+			"company": payment_order_doc.company,
+			"bank_account": payment_order_doc.company_bank_account
+		}
+	)
+
+	if not bank_connector_exists:
+		frappe.throw("Bank Connector is not initialized")
+
+	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
+
+	if payment_order_doc.company_bank == 'ICICI Bank' and bank_connector.bulk_transaction and not otp:
 		frappe.throw(title='Invalid OTP', msg='Cannot Initiate Payment without OTP')
 
-	if payment_order_doc.company_bank == 'ICICI Bank':
+	if payment_order_doc.company_bank == 'ICICI Bank'and bank_connector.bulk_transaction:
 		payment_response = process_bulk_payment(payment_order_doc, otp)
 
 		if payment_response.get('server_status') == 'success':
@@ -96,10 +109,7 @@ def make_bank_payment(docname, otp=None):
 				invoices = []
 
 				payment_response = process_payment(
-					i, 
-		   			payment_order_doc.company_bank_account,
-					payment_order_doc.company,
-					invoices=invoices
+					i, payment_order_doc
 				)
 
 				if payment_response and "payment_status" in payment_response and payment_response["payment_status"] == "Initiated":
@@ -171,6 +181,9 @@ def process_bulk_payment(payment_order_doc, otp):
  
 	app_name = frappe._dict(get_bank_info(payment_order_doc.company_bank)).app_name
 
+	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
+		app_name += "_composite"
+
 	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.make_payment"
 
 	api_key = bank_connector.api_key
@@ -211,6 +224,9 @@ def get_bulk_payment_status(payment_order_doc):
 	payment_payload['doc'] = payment_order_doc.as_dict(convert_dates_to_str=True)
 
 	app_name =  frappe._dict(get_bank_info(payment_order_doc.company_bank)).app_name
+
+	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
+		app_name += "_composite"
 
 	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.get_payment_status"
 
@@ -261,14 +277,14 @@ def get_bulk_payment_status(payment_order_doc):
 		frappe.throw('Invalid Request')
 
 def update_payment_status(payment_order_doc):
-    count = 0
-    for ref in payment_order_doc.summary:
-        if ref.payment_status == 'Processed':
-            count += 1
+	count = 0
+	for ref in payment_order_doc.summary:
+		if ref.payment_status == 'Processed':
+			count += 1
 
-    if count == len(payment_order_doc.summary):
-        frappe.db.set_value("Payment Order",
-            payment_order_doc.name,
+	if count == len(payment_order_doc.summary):
+		frappe.db.set_value("Payment Order",
+			payment_order_doc.name,
 			"status", 'Completed'
 		)
 
@@ -373,59 +389,37 @@ def make_payment_entries(docname):
 		pe.submit()
 		frappe.db.set_value("Payment Order Summary", row.name, "payment_entry", pe.name)
 
-def process_payment(payment_info, company_bank_account, company, otp= None, invoices = None):
+def process_payment(payment_info, payment_order_doc):
 	# Fetch the connector information
-	bank_connector_exists = frappe.db.exists("Bank Connector", {"company": company, "bank_account": company_bank_account})
+	bank_connector_exists = frappe.db.exists("Bank Connector", {
+			"company": payment_order_doc.company,
+			"bank_account": payment_order_doc.company_bank_account
+		}
+	)
 
 	if not bank_connector_exists:
 		frappe.throw("Bank Connector is not initialized")
-  
+
 	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
-	
 
-	payment_payload = frappe._dict({})
+	payment_payload = frappe._dict(payment_info.as_dict(convert_dates_to_str=True))
 
-	# Unique reference to this payment.
-	payment_payload.name = payment_info.name
-	payment_payload.otp = otp
+	party_field_name = "supplier_name" if payment_info.party_type == "Supplier" else "employee_name"
 
-	# Party information
-	payment_payload.party = payment_info.party
-	party_name = ""
-	if payment_info.party_type == "Supplier":
-		party_name = frappe.db.get_value("Supplier", payment_info.party, "supplier_name")
+	party_name = frappe.db.get_value(payment_info.party_type, payment_info.party, party_field_name)
+
 	payment_payload.party_name = party_name
 	payment_payload.desc = f"Payment to {payment_info.party} via {payment_info.parent}"
 
-	# Party's account information
-	bank_account_doc = frappe.get_doc("Bank Account", payment_info.bank_account)
-	payment_payload.account_number = bank_account_doc.bank_account_no
-	payment_payload.ifsc = bank_account_doc.branch_code
+	payment_payload.doc = payment_order_doc.as_dict(convert_dates_to_str=True)
 
-	# Payment details
-	payment_payload.amount = payment_info.amount
-	batch_number = str(random.randint(100,999))
-	payment_payload.batch = batch_number + "0" + payment_info.parent[-2:]
-	payment_payload.mode_of_transfer = payment_info.mode_of_transfer
-	if payment_info.mode_of_transfer == "RTGS" and payment_info.amount >= 500000000:
-		lei_number = frappe.db.get_value(payment_info.party_type, payment_info.party, "lei_number")
-		if lei_number:
-			payment_payload.lei_number = lei_number
-		else:
-			frappe.throw("LEI Number required for payment > 50 Cr")
-	else:
-		payment_payload.lei_number = ""
-
-	# Company bank accoount information
-	company_bank_account_doc = frappe.get_doc("Bank Account", company_bank_account)
-	payment_payload.company_account_number = company_bank_account_doc.bank_account_no
-	payment_payload.company_ifsc = company_bank_account_doc.branch_code
-	payment_payload.company = company
-
-	if not company_bank_account_doc.bank_account_no:
+	if not payment_order_doc.company_account_number:
 		frappe.throw("Source bank account number is missing")
- 
-	app_name =  "india_banking" or frappe._dict(get_bank_info(company_bank_account_doc.bank)).app_name
+
+	app_name = frappe._dict(get_bank_info(payment_order_doc.company_bank)).app_name
+
+	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
+		app_name += "_composite"
 
 	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.make_payment"
 
@@ -440,7 +434,6 @@ def process_payment(payment_info, company_bank_account, company, otp= None, invo
 
 	#create api request log
 	create_api_log(response, 'Make Payment', payment_info.parenttype, payment_info.parent)
-
 
 	if response.status_code == 200:
 		response_data = json.loads(response.text)
@@ -466,7 +459,8 @@ def get_response(payment_info, company_bank_account, company):
 
 	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
 
-	app_name =  "india_banking" or frappe._dict(get_bank_info(company_bank_account_doc.bank)).app_name
+	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
+		app_name += "_composite"
 
 	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.get_payment_status"
 
@@ -476,7 +470,7 @@ def get_response(payment_info, company_bank_account, company):
 		"Authorization": f"token {api_key}:{api_secret}",
 		"Content-Type": "application/json",
 	}
-	
+
 	company_bank_account_doc = frappe.get_doc("Bank Account", company_bank_account)
 	batch_number = str(random.randint(100,999))
 	payload = {

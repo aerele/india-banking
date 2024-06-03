@@ -80,61 +80,68 @@ frappe.ui.form.on('Payment Order', {
 					}
 				}
 				if (uninitiated_payments > 0) {
-					if(frm.doc.company_bank == 'ICICI Bank'){
-						frm.add_custom_button(__('Initiate Payment'), function() {
-							frappe.call({
-								method: "india_banking.india_banking.doc_events.payment_order.generate_payment_otp",
-								freeze: true,
-								args: {
-									docname: frm.doc.name
-								},
-								callback: (res)=>{//
-									if(!res.exc){
-										frappe.prompt(
-											{
-												label: 'Enter OTP',
-												place_holder: 'Enter',
-												fieldname: 'otp',
-												fieldtype: 'Data'
-											}, (values) => {
-											frappe.call({
-												method: "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
-												freeze: 1,
-												args: {
-													docname: frm.doc.name,
-													otp: values.otp,
-												},
-												callback: function(r) {
-													if(r.message) {
-														frappe.msgprint(r.message)
+					frappe.db.get_value(
+						"Bank Connector",
+						{ bank: frm.doc.company_bank},
+						"bulk_transaction"
+					,(r)=>{
+						console.log(r, "r.bulk_transaction")
+						if(r.bulk_transaction){
+							frm.add_custom_button(__('Initiate Payment'), function() {
+								frappe.call({
+									method: "india_banking.india_banking.doc_events.payment_order.generate_payment_otp",
+									freeze: true,
+									args: {
+										docname: frm.doc.name
+									},
+									callback: (res)=>{//
+										if(!res.exc){
+											frappe.prompt(
+												{
+													label: 'Enter OTP',
+													place_holder: 'Enter',
+													fieldname: 'otp',
+													fieldtype: 'Data'
+												}, (values) => {
+												frappe.call({
+													method: "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
+													freeze: 1,
+													args: {
+														docname: frm.doc.name,
+														otp: values.otp,
+													},
+													callback: function(r) {
+														if(r.message) {
+															frappe.msgprint(r.message)
+														}
+														frm.reload_doc();
 													}
-													frm.reload_doc();
-												}
-											});
-										},
-										"Sent an OTP to the registered account number",
-										"Proceed")
-									}//
-								}
-							})
-						});
-					}else{
-						frm.add_custom_button(__('Initiate Payment'), function() {
+												});
+											},
+											"Sent an OTP to the registered account number",
+											"Proceed")
+										}//
+									}
+								})
+							});
+						}else{
+							frm.add_custom_button(__('Initiate Payment'), function() {
 								frappe.call({
 									method: "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
 									freeze: 1,
 									args: {
 										docname: frm.doc.name
-								},
-								callback: function(r) {
-									if(r.message && !r.exc) {
-										frappe.msgprint(r.message)
+									},
+									callback: function(r) {
+										if(r.message && !r.exc) {
+											frappe.msgprint(r.message)
+										}
+										frm.reload_doc();
 									}
-									frm.reload_doc();
-								}
+								});
 							});
-						});
-					}
+						}
+					})
 				}
 			}
 		}
@@ -169,10 +176,11 @@ frappe.ui.form.on('Payment Order', {
 		}
 		frm.set_query("party_type", "references" , function() {
 			return {
-				query: "erpnext.setup.doctype.party_type.party_type.get_party_type",
+				filters: {
+                    "name": ["in", ["Supplier", "Employee"]]
+                }
 			};
 		});
-
 	},
 
 	remove_button: function(frm) {

@@ -14,7 +14,8 @@
   "url",
   "column_break_mdgf",
   "api_key",
-  "api_secret"
+  "api_secret",
+  "bulk_transaction"
  ],
  "fields": [
   {
@@ -68,11 +69,18 @@
    "fieldtype": "Data",
    "label": "Bank",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.bank == \"ICICI Bank\"",
+   "fieldname": "bulk_transaction",
+   "fieldtype": "Check",
+   "label": "Bulk Transaction"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-05-14 17:20:04.884582",
+ "modified": "2024-05-31 09:36:12.254838",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Connector",

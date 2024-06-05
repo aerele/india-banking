@@ -5,7 +5,9 @@ frappe.ui.form.on('Bank Payment Request', {
 	setup: function (frm) {
 		frm.set_query("party_type", function () {
 			return {
-				query: "erpnext.setup.doctype.party_type.party_type.get_party_type",
+				filters: {
+                    "name": ["in", ["Supplier", "Employee"]]
+                }
 			};
 		});
 	},

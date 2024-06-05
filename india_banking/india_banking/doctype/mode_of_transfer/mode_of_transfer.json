@@ -12,6 +12,7 @@
   "minimum_limit",
   "maximum_limit",
   "column_break_jifa",
+  "disabled",
   "is_bank_specific",
   "bank_account",
   "bank",
@@ -95,11 +96,17 @@
    "fieldtype": "Select",
    "label": "Priority",
    "options": "0\n1\n2\n3\n4\n5\n6"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-05-07 11:53:23.313669",
+ "modified": "2024-06-05 12:02:02.197397",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Mode of Transfer",

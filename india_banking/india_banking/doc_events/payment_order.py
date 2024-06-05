@@ -106,8 +106,6 @@ def make_bank_payment(docname, otp=None):
 		count = 0
 		for i in payment_order_doc.summary:
 			if not i.payment_initiated and i.payment_status == "Pending":
-				invoices = []
-
 				payment_response = process_payment(
 					i, payment_order_doc
 				)
@@ -292,14 +290,29 @@ def update_payment_status(payment_order_doc):
 def get_payment_status(docname):
 	payment_order_doc = frappe.get_doc("Payment Order", docname)
 
-	if payment_order_doc.company_bank == 'ICICI Bank':
+	# Fetch the connector information
+	bank_connector_exists = frappe.db.exists("Bank Connector",
+		{
+			"company": payment_order_doc.company,
+			"bank_account": payment_order_doc.company_bank_account
+		}
+	)
+
+	if not bank_connector_exists:
+		frappe.throw("Bank Connector is not initialized")
+
+	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
+
+	if payment_order_doc.company_bank == 'ICICI Bank' and bank_connector.bulk_transaction :
 		get_bulk_payment_status(payment_order_doc)
 
 	else:
 		for i in payment_order_doc.summary:
 			if i.payment_status == "Initiated":
 				payment_response = get_response(i, payment_order_doc.company_bank_account, payment_order_doc.company)
+
 		payment_order_doc.reload()
+		update_payment_status(payment_order_doc)
 
 @frappe.whitelist()
 def make_payment_entries(docname):
@@ -436,12 +449,17 @@ def process_payment(payment_info, payment_order_doc):
 	create_api_log(response, 'Make Payment', payment_info.parenttype, payment_info.parent)
 
 	if response.status_code == 200:
-		response_data = json.loads(response.text)
-		if "message" in response_data and response_data["message"]:
-			if "status" in response_data["message"] and response_data["message"]["status"] == "ACCEPTED":
-				return {"payment_status": "Initiated", "message": ""}
-			else:
-				return {"payment_status": "Failed", "message": response_data["message"]["status"]}
+		response = json.loads(response.text)
+		response_data = frappe._dict((response.get('message') or {}))
+
+		if response_data.status == "ACCEPTED":
+			return {"payment_status": "Initiated", "message": response_data.message}
+
+		elif response_data.status == "Request Failure":
+			return {"payment_status": "", "message": "Request Failure"}
+
+		else:
+			return {"payment_status": "Failed", "message": response_data.message}
 	else:
 		return {"payment_status": "", "message": ""}
 
@@ -452,12 +470,16 @@ def get_bank_info(bank_name):
 	return {}
 
 def get_response(payment_info, company_bank_account, company):
+	payment_order_doc = frappe.get_doc("Payment Order", payment_info.parent)
+
 	bank_connector_exists = frappe.db.exists("Bank Connector", {"company": company, "bank_account": company_bank_account})
 
 	if not bank_connector_exists:
 		frappe.throw("Bank Connector is not initialized")
 
 	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
+
+	app_name = frappe._dict(get_bank_info(payment_order_doc.company_bank)).app_name
 
 	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
 		app_name += "_composite"
@@ -471,42 +493,39 @@ def get_response(payment_info, company_bank_account, company):
 		"Content-Type": "application/json",
 	}
 
-	company_bank_account_doc = frappe.get_doc("Bank Account", company_bank_account)
-	batch_number = str(random.randint(100,999))
-	payload = {
-		"status_payload": {
-			"batch": batch_number + "0" + payment_info.parent[-2:],
-			"name": payment_info.name,
-			"mode_of_transfer": payment_info.mode_of_transfer,
-			"payment_date": str(payment_info.payment_date),
-			"company_account_number": company_bank_account_doc.bank_account_no
-		}
-	}
+	payment_info_payload = frappe._dict(payment_info.as_dict(convert_dates_to_str=True))
 
-	response = requests.request("POST", url, headers=headers, data=json.dumps(payload))
+	payment_info_payload.doc = payment_order_doc.as_dict(convert_dates_to_str=True)
+
+	response = requests.request("POST", url, headers=headers, data=json.dumps({"payload": payment_info_payload}))
 
 	#create api request log
 	create_api_log(response, 'Get Payment Status', payment_info.parenttype, payment_info.parent)
 
 	if response.status_code == 200:
-		response_data = json.loads(response.text)
-		if "message" in response_data and response_data["message"]:
-			if "status" in response_data["message"] and response_data["message"]["status"] == "Processed":
-				if response_data["message"]["reference_number"]:
-					frappe.db.set_value("Payment Order Summary", payment_info.name, "reference_number", response_data["message"]["reference_number"])
-					frappe.db.set_value("Payment Entry", payment_info.payment_entry, "reference_no", response_data["message"]["reference_number"])
+		response = json.loads(response.text)
+		response_data = frappe._dict((response.get('message') or {}))
+
+		if response_data:
+			if response_data.status == "Processed":
+				if response_data.reference_number:
+					frappe.db.set_value("Payment Order Summary", payment_info.name, "reference_number", response_data.reference_number)
+					frappe.db.set_value("Payment Entry", payment_info.payment_entry, "reference_no", response_data.reference_number)
 				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", "Processed")
-			elif "status" in response_data["message"] and response_data["message"]["status"] == "Failed":
-				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", response_data["message"]["status"])
+			
+			elif response_data.status == "Failed":
+				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", response_data.status)
 				payment_entry_doc = frappe.get_doc("Payment Entry", payment_info.payment_entry)
 				if payment_entry_doc.docstatus == 1:
 					payment_entry_doc.cancel()
 				process_bank_payment_requests(payment_info.name)
-			elif "status" in response_data["message"] and response_data["message"]["status"] == "Rejected":
-				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", response_data["message"]["status"])
+			
+			elif response_data.status == "Rejected":
+				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", response_data.status)
 				payment_entry_doc = frappe.get_doc("Payment Entry", payment_info.payment_entry)
 				if payment_entry_doc.docstatus == 1:
 					payment_entry_doc.cancel()
+
 				process_bank_payment_requests(payment_info.name)
 
 def process_bank_payment_requests(payment_order_summary):

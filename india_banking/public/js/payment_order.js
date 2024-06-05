@@ -181,6 +181,13 @@ frappe.ui.form.on('Payment Order', {
                 }
 			};
 		});
+		frm.set_query("mode_of_transfer", "summary" , function() {
+			return {
+				filters: {
+                    "disabled": 0
+                }
+			};
+		});
 	},
 
 	remove_button: function(frm) {

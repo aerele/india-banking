@@ -71,6 +71,7 @@ frappe.ui.form.on('Payment Order', {
 		if (frm.doc.docstatus===1 && frm.doc.payment_order_type==='Bank Payment Request') {
 			frm.remove_custom_button(__('Create Payment Entries'));
 		}
+		let is_pending = false
 		if (frm.doc.status == "Pending" && frm.doc.docstatus == 1) {
 			if (frm.has_perm('write') && 'summary' in frm.doc) {
 				var uninitiated_payments = 0;
@@ -78,14 +79,16 @@ frappe.ui.form.on('Payment Order', {
 					if (!frm.doc.summary[i].payment_initiated) {
 						uninitiated_payments += 1
 					}
+					if(frm.doc.summary[i].payment_status == "Pending"){
+						is_pending = true
+					}
 				}
-				if (uninitiated_payments > 0) {
+				if (uninitiated_payments > 0 && is_pending) {
 					frappe.db.get_value(
 						"Bank Connector",
 						{ bank: frm.doc.company_bank},
 						"bulk_transaction"
 					,(r)=>{
-						console.log(r, "r.bulk_transaction")
 						if(r.bulk_transaction){
 							frm.add_custom_button(__('Initiate Payment'), function() {
 								frappe.call({
@@ -155,7 +158,7 @@ frappe.ui.form.on('Payment Order', {
 					}
 				}
 
-				if (pending_status_check > 0) {
+				if (pending_status_check >= 0) {
 					frm.add_custom_button(__('Get Status'), function() {
 						frappe.call({
 							method: "india_banking.india_banking.doc_events.payment_order.get_payment_status",

@@ -10,6 +10,8 @@ frappe.listview_settings["Payment Order"] = {
 			return [__("Completed"), "green", "status,=,Completed"];
 		}else if (doc.status == 'Rejected') {
 			return [__('Rejected'), "red", "status,=,Rejected"];
+		}else if (doc.status == 'Failed') {
+			return [__('Failed'), "red", "status,=,Failed"];
 		}
 	},
 };

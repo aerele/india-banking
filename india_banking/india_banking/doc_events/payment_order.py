@@ -275,15 +275,24 @@ def get_bulk_payment_status(payment_order_doc):
 		frappe.throw('Invalid Request')
 
 def update_payment_status(payment_order_doc):
-	count = 0
+	success_count = 0
+	faild_count = 0
 	for ref in payment_order_doc.summary:
 		if ref.payment_status == 'Processed':
-			count += 1
+			success_count += 1
+		if ref.payment_status == 'Failed':
+			faild_count += 1
 
-	if count == len(payment_order_doc.summary):
+	if success_count == len(payment_order_doc.summary):
 		frappe.db.set_value("Payment Order",
 			payment_order_doc.name,
 			"status", 'Completed'
+		)
+
+	if faild_count == len(payment_order_doc.summary):
+		frappe.db.set_value("Payment Order",
+			payment_order_doc.name,
+			"status", 'Failed'
 		)
 
 @frappe.whitelist()

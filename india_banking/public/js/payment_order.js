@@ -158,7 +158,7 @@ frappe.ui.form.on('Payment Order', {
 					}
 				}
 
-				if (pending_status_check >= 0) {
+				if (pending_status_check > 0) {
 					frm.add_custom_button(__('Get Status'), function() {
 						frappe.call({
 							method: "india_banking.india_banking.doc_events.payment_order.get_payment_status",

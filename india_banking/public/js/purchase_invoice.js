@@ -4,7 +4,7 @@ frappe.ui.form.on('Purchase Invoice', {
 			cur_frm.add_custom_button(
 				__("Bank Payment Request"),
 				function () {
-					this.make_bank_payment_request(frm)
+					make_bank_payment_request(frm)
 				},
 				__("Create")
 			);
@@ -16,7 +16,7 @@ frappe.ui.form.on('Purchase Invoice', {
 	}
 })
 
-this.make_bank_payment_request = function(frm){
+const make_bank_payment_request = function(frm){
     const payment_request_type = (['Sales Order', 'Sales Invoice'].includes(frm.doc.doctype))
         ? "Inward" : "Outward";
 

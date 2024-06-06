@@ -52,9 +52,10 @@ def create_lei_number_field():
 
 def create_default_bank():
 	for bank_details in STD_BANK_LIST:
-		bank_doc = frappe.new_doc('Bank')
-		bank_doc.update(bank_details)
-		bank_doc.save()
+		if not frappe.db.exists("Bank", bank_details.get("bank_name")):
+			bank_doc = frappe.new_doc('Bank')
+			bank_doc.update(bank_details)
+			bank_doc.save()
 
 def create_default_payment_type():
 	if not frappe.db.exists("Payment Type", "Pay"):

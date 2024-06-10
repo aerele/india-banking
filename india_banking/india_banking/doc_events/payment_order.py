@@ -461,7 +461,10 @@ def process_payment(payment_info, payment_order_doc):
 		response = json.loads(response.text)
 		response_data = frappe._dict((response.get('message') or {}))
 
-		if response_data.status == "ACCEPTED":
+		if not response_data.status:
+			return {"payment_status": "", "message": str(response)}
+
+		elif response_data.status == "ACCEPTED":
 			return {"payment_status": "Initiated", "message": response_data.message}
 
 		elif response_data.status == "Request Failure":
@@ -521,6 +524,9 @@ def get_response(payment_info, company_bank_account, company):
 					frappe.db.set_value("Payment Order Summary", payment_info.name, "reference_number", response_data.reference_number)
 					frappe.db.set_value("Payment Entry", payment_info.payment_entry, "reference_no", response_data.reference_number)
 				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", "Processed")
+
+			elif response_data.status == "Pending":
+				frappe.db.set_value("Payment Order Summary", payment_info.name, "message", "Payment is pending")
 			
 			elif response_data.status == "Failed":
 				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", response_data.status)

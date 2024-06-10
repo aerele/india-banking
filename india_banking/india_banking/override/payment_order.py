@@ -27,7 +27,7 @@ class CustomPaymentOrder(PaymentOrder):
 	def validate_summary(self):
 		if len(self.summary) <= 0:
 			frappe.throw("Please validate the summary")
-		
+
 		default_mode_of_transfer = None
 		if self.default_mode_of_transfer:
 			default_mode_of_transfer = frappe.get_doc("Mode of Transfer", self.default_mode_of_transfer)
@@ -52,7 +52,7 @@ class CustomPaymentOrder(PaymentOrder):
 			ref.party_name = frappe.get_value(ref.party_type, ref.party, party_name_field)
 
 			references_total += ref.amount
-		
+
 		for sum in self.summary:
 			summary_total += sum.amount
 
@@ -80,7 +80,7 @@ class CustomPaymentOrder(PaymentOrder):
 			if summary_item.payment_status in ["Processed", "Initiated"]:
 				frappe.throw("You cannot cancel a payment order with Initiated/Processed payments")
 				return
-	
+
 	def on_trash(self):
 		if self.docstatus == 1:
 			frappe.throw("You cannot delete a payment order")
@@ -110,31 +110,41 @@ def get_party_summary(references, company_bank_account):
 
 	# Considering the following dimensions to group payments
 	# (party_type, party, bank_account, account, cost_center, project)
+	def _get_unique_key(ref=None, key_field=False):
+		summarise_payment_based_on = frappe.get_single("India Banking Settings").summarise_payment_based_on
+
+		if summarise_payment_based_on == "Party":
+			if summarise_field:
+				return  ("party_type", "party", "bank_account", "account", "cost_center", "project",
+				"tax_withholding_category", "reference_doctype", "payment_entry")
+
+			return (ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project,
+			ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry)
+
+		elif summarise_payment_based_on == "Voucher":
+			if summarise_field:
+				return ('party_type', 'party', 'reference_doctype', 'reference_name', 'bank_account',
+				'account', 'cost_center', 'project', 'tax_withholding_category', 'payment_entry')
+
+			return (ref.party_type, ref.party, ref.reference_doctype, ref.reference_name, ref.bank_account,
+			ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.payment_entry)
 
 	summary = {}
 	for ref in references:
 		ref = frappe._dict(ref)
-		if (ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry) in summary:
-			summary[(ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry)] += ref.amount
+		key = _get_unique_key(ref)
+		if key in summary:
+			summary[key] += ref.amount
 		else:
-			summary[(ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry)] = ref.amount
+			summary[key] = ref.amount
 
 	result = []
-	for k, v in summary.items():
-		party_type, party, bank_account, account, cost_center, project, tax_withholding_category, reference_doctype, payment_entry = k
-		summary_line_item = {}
-		summary_line_item["party_type"] = party_type
-		summary_line_item["party"] = party
-		summary_line_item["bank_account"] = bank_account
-		summary_line_item["account"] = account
-		summary_line_item["cost_center"] = cost_center
-		summary_line_item["project"] = project
-		summary_line_item["tax_withholding_category"] = tax_withholding_category
-		summary_line_item["reference_doctype"] = reference_doctype
-		summary_line_item["amount"] = v
-		summary_line_item["payment_entry"] = payment_entry
+	for key, val in summary.items():
+		summary_line_item = {k: v for k, v in zip(_get_unique_key(key_field=True), key) }
+		summary_line_item["amount"] = val
+
 		result.append(summary_line_item)
-	
+
 	for row in result:
 		party_bank = frappe.db.get_value("Bank Account", row["bank_account"], "bank")
 		company_bank = frappe.db.get_value("Bank Account", company_bank_account, "bank")
@@ -145,12 +155,12 @@ def get_party_summary(references, company_bank_account):
 				row["mode_of_transfer"] = mode_of_transfer
 		else:
 			mot = frappe.db.get_value("Mode of Transfer", {
-				"minimum_limit": ["<=", row["amount"]], 
+				"minimum_limit": ["<=", row["amount"]],
 				"maximum_limit": [">", row["amount"]],
 				"is_bank_specific": 0
 				}, 
 				order_by = "priority asc")
 			if mot:
 				row["mode_of_transfer"] = mot
-	
+
 	return result

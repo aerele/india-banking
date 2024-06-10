@@ -20,6 +20,7 @@
   "tax_withholding_category",
   "payment_entry",
   "reference_doctype",
+  "reference_name",
   "accounting_dimensions_section",
   "cost_center",
   "project",
@@ -162,12 +163,19 @@
    "fieldtype": "Date",
    "label": "Payment Date",
    "read_only": 1
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Data",
+   "label": "Reference Name",
+   "options": "reference_doctype",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-05-27 13:42:12.574700",
+ "modified": "2024-06-10 15:59:09.755194",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Payment Order Summary",

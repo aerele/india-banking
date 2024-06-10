@@ -239,6 +239,7 @@ frappe.ui.form.on('Payment Order', {
 						row.project = summary_data[i].project;
 						row.tax_withholding_category = summary_data[i].tax_withholding_category;
 						row.reference_doctype = summary_data[i].reference_doctype;
+						row.reference_name = summary_data[i].reference_name;
 						row.payment_entry = summary_data[i].payment_entry;
 					}
 					frm.refresh_field("summary");

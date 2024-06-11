@@ -481,6 +481,19 @@ def get_bank_info(bank_name):
 			return bank
 	return {}
 
+def notify_party(payment_info, response_data):
+	frappe.log_error("Payment email triggred")
+	if default_email_format:= frappe.get_single("India Banking Settings").default_email_format:
+		try:
+			frappe.sendmail(
+					recipients=["bhavansathru97@gmail.com"],
+					subject="Payment Notification",
+					message="Payment for {0} is completed. Please check the attachment for details".format(payment_info.party),
+					attachments=[{"fname": "payment_details.pdf", "fcontent": frappe.get_print("Payment Order Summary", payment_info.name, default_email_format, as_pdf=True)}]
+                )
+		except Exception as e:
+			frappe.log_error("Payment Email Notification Failed", frappe.get_traceback())
+
 def get_response(payment_info, company_bank_account, company):
 	payment_order_doc = frappe.get_doc("Payment Order", payment_info.parent)
 
@@ -523,6 +536,9 @@ def get_response(payment_info, company_bank_account, company):
 				if response_data.reference_number:
 					frappe.db.set_value("Payment Order Summary", payment_info.name, "reference_number", response_data.reference_number)
 					frappe.db.set_value("Payment Entry", payment_info.payment_entry, "reference_no", response_data.reference_number)
+
+					notify_party(payment_info, response_data)
+
 				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", "Processed")
 
 			elif response_data.status == "Pending":

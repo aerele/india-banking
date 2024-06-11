@@ -5,7 +5,9 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "summarise_payment_based_on"
+  "summarise_payment_based_on",
+  "column_break_wjye",
+  "default_email_format"
  ],
  "fields": [
   {
@@ -13,12 +15,22 @@
    "fieldtype": "Select",
    "label": "Summarise Payment Based On",
    "options": "Party\nVoucher"
+  },
+  {
+   "fieldname": "column_break_wjye",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_email_format",
+   "fieldtype": "Link",
+   "label": "Default Email Format",
+   "options": "Print Format"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-06-10 12:37:27.244568",
+ "modified": "2024-06-10 16:25:19.935240",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

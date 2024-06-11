@@ -110,7 +110,7 @@ def get_party_summary(references, company_bank_account):
 
 	# Considering the following dimensions to group payments
 	# (party_type, party, bank_account, account, cost_center, project)
-	def _get_unique_key(ref=None, key_field=False):
+	def _get_unique_key(ref=None, summarise_field=False):
 		summarise_payment_based_on = frappe.get_single("India Banking Settings").summarise_payment_based_on
 
 		if summarise_payment_based_on == "Party":
@@ -140,7 +140,7 @@ def get_party_summary(references, company_bank_account):
 
 	result = []
 	for key, val in summary.items():
-		summary_line_item = {k: v for k, v in zip(_get_unique_key(key_field=True), key) }
+		summary_line_item = {k: v for k, v in zip(_get_unique_key(summarise_field=True), key) }
 		summary_line_item["amount"] = val
 
 		result.append(summary_line_item)

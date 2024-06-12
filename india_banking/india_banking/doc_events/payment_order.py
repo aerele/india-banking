@@ -486,7 +486,7 @@ def notify_party(payment_info, response_data):
 	if default_email_format:= frappe.get_single("India Banking Settings").default_email_format:
 		try:
 			frappe.sendmail(
-					recipients=["bhavansathru97@gmail.com"],
+					recipients=[payment_info.email],
 					subject="Payment Notification",
 					message="Payment for {0} is completed. Please check the attachment for details".format(payment_info.party),
 					attachments=[{"fname": "payment_details.pdf", "fcontent": frappe.get_print("Payment Order Summary", payment_info.name, default_email_format, as_pdf=True)}]

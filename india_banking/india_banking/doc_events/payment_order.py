@@ -361,30 +361,34 @@ def make_payment_entries(docname):
 
 		if row.tax_withholding_category:
 			net_total = 0
-			for reference in payment_order_doc.references:
-				if reference.party_type == row.party_type and \
-						reference.party == row.party and \
-						reference.cost_center == row.cost_center and \
-						reference.project == row.project and \
-						reference.bank_account == row.bank_account and \
-						reference.account == row.account and \
-						reference.tax_withholding_category == row.tax_withholding_category and \
-						reference.reference_doctype == row.reference_doctype:
-					net_total += frappe.db.get_value("Bank Payment Request", reference.bank_payment_request, "net_total")
+
+			if not payment_order_doc.is_party_wise:
+				net_total = row.amount
+			else:
+				for reference in payment_order_doc.references:
+					if reference.party_type == row.party_type and \
+							reference.party == row.party and \
+							reference.cost_center == row.cost_center and \
+							reference.project == row.project and \
+							reference.bank_account == row.bank_account and \
+							reference.account == row.account and \
+							reference.tax_withholding_category == row.tax_withholding_category and \
+							reference.reference_doctype == row.reference_doctype:
+						net_total += frappe.db.get_value("Bank Payment Request", reference.bank_payment_request, "net_total")
 			pe.paid_amount = net_total
 			pe.received_amount = net_total
 			pe.apply_tax_withholding_amount = 1
 			pe.tax_withholding_category = row.tax_withholding_category
 		for reference in payment_order_doc.references:
+
 			if not reference.is_adhoc:
-				if reference.party_type == row.party_type and \
-						reference.party == row.party and \
-						reference.cost_center == row.cost_center and \
-						reference.project == row.project and \
-						reference.bank_account == row.bank_account and \
-						reference.account == row.account and \
-						reference.tax_withholding_category == row.tax_withholding_category and \
-						reference.reference_doctype == row.reference_doctype:
+				filter_condition = ( reference.party_type == row.party_type and reference.party == row.party and reference.cost_center == row.cost_center
+					and reference.project == row.project and reference.bank_account == row.bank_account and reference.account == row.account
+					and reference.tax_withholding_category == row.tax_withholding_category and reference.reference_doctype == row.reference_doctype )
+				if not payment_order_doc.is_party_wise:
+					filter_condition = filter_condition and (reference.reference_doctype == row.reference_doctype and reference.reference_name == row.reference_name)
+
+				if filter_condition:
 					pe.append(
 						"references",
 						{
@@ -394,7 +398,6 @@ def make_payment_entries(docname):
 							"allocated_amount": reference.amount,
 						},
 					)
-
 		pe.update(
 			{
 				"reference_no": payment_order_doc.name,

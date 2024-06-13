@@ -46,7 +46,7 @@ frappe.ui.form.on('Payment Order', {
 					}
 				});
 			}, __("Get from"));
-			frappe.db.get
+
 			frm.add_custom_button(__('Payment Entry'), function() {
 				frm.trigger("remove_row_if_empty");
 				let docs = frm.doc.references?.map((doc)=>{return doc.payment_entry})
@@ -222,11 +222,15 @@ frappe.ui.form.on('Payment Order', {
 			},
 			freeze: true,
 			callback: function(r) {
+				let is_party_wise = 0;
 				if(r.message && !r.exc) {
 					let summary_data = r.message
 					frm.clear_table("summary");
 					var doc_total = 0
 					for (var i = 0; i < summary_data.length; i++) {
+						if (summary_data[i].is_party_wise && !is_party_wise) {
+							is_party_wise = 1;
+						}
 						doc_total += summary_data[i].amount
 						let row = frm.add_child("summary");
 						row.party_type = summary_data[i].party_type;
@@ -241,6 +245,11 @@ frappe.ui.form.on('Payment Order', {
 						row.reference_doctype = summary_data[i].reference_doctype;
 						row.reference_name = summary_data[i].reference_name;
 						row.payment_entry = summary_data[i].payment_entry;
+					}
+					if (is_party_wise) {
+						frm.set_value("is_party_wise", 1);
+					} else {
+						frm.set_value("is_party_wise", 0);
 					}
 					frm.refresh_field("summary");
 					frm.doc.total = doc_total;

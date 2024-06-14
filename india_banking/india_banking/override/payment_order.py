@@ -11,7 +11,8 @@ class CustomPaymentOrder(PaymentOrder):
 
 	@frappe.whitelist()
 	def update_unique_and_file_reference_id(self, save=False):
-		unique_id = ''.join(re.findall(r'[0-9a-zA-Z]', self.name))+ get_datetime().strftime("%y%m%d%H%M")
+		unique_id = ''.join(re.findall(r'[0-9a-zA-Z]', self.name))
+		unique_id = unique_id[-10:]
 		frappe.db.set_value("Payment Order", self.name, {"unique_id": unique_id, "file_reference_id": unique_id})
 		if save:
 			frappe.db.commit()

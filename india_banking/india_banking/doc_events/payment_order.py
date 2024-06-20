@@ -486,16 +486,19 @@ def get_bank_info(bank_name):
 
 def notify_party(payment_info, response_data):
 	frappe.log_error("Payment email triggred")
-	if default_email_format:= frappe.get_single("India Banking Settings").default_email_format:
-		try:
-			frappe.sendmail(
-					recipients=[payment_info.email],
-					subject="Payment Notification",
-					message="Payment for {0} is completed. Please check the attachment for details".format(payment_info.party),
-					attachments=[{"fname": "payment_details.pdf", "fcontent": frappe.get_print("Payment Order Summary", payment_info.name, default_email_format, as_pdf=True)}]
-                )
-		except Exception as e:
-			frappe.log_error("Payment Email Notification Failed", frappe.get_traceback())
+	if payment_info.payment_entry:
+		default_email_format= frappe.get_single("India Banking Settings").default_email_format or "Payment Advice"
+		if default_email_format:
+			try:
+				payment_entry = frappe.get_doc("Payment Entry", payment_info.payment_entry)
+				frappe.sendmail(
+						recipients=[payment_info.email or frappe.db.get_value('Bank Account', payment_info.bank_account, "email")],
+						subject="Payment Notification",
+						message="Payment for {0} is completed. Please check the attachment for details".format(payment_info.party),
+						attachments=[{"fname": "payment_details.pdf", "fcontent": frappe.get_print("Payment Entry", payment_entry.name, default_email_format, as_pdf=True)}]
+					)
+			except Exception as e:
+				frappe.log_error("Payment Email Notification Failed", frappe.get_traceback())
 
 def get_response(payment_info, company_bank_account, company):
 	payment_order_doc = frappe.get_doc("Payment Order", payment_info.parent)

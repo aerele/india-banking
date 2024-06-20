@@ -6,7 +6,7 @@ frappe.ui.form.on("India Banking Settings", {
         frm.set_query("default_email_format", function() {
             return {
                 filters: {
-                    "doc_type": "Payment Order Summary"
+                    "doc_type": "Payment Entry"
                 }
             }
         })

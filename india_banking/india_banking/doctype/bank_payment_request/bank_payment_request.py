@@ -49,6 +49,17 @@ class BankPaymentRequest(PaymentRequest):
 			get_existing_payment_request_amount(self.reference_doctype, self.reference_name)
 		)
 
+		docname = None
+		if frappe.flags.update_amount or not self.is_new():
+			docname = self.name
+
+		existing_payment_request_amount_drafted = flt(
+			get_existing_payment_request_amount(self.reference_doctype, self.reference_name, submitted=False, update=docname)
+		)
+
+		total_existing_payment_request_amount = existing_payment_request_amount + existing_payment_request_amount_drafted
+
+
 		ref_doc = frappe.get_doc(self.reference_doctype, self.reference_name)
 
 		if not hasattr(ref_doc, "order_type") or getattr(ref_doc, "order_type") != "Shopping Cart":
@@ -59,7 +70,7 @@ class BankPaymentRequest(PaymentRequest):
 			else:
 				ref_amount = get_amount(ref_doc, self.payment_account)
 
-			if existing_payment_request_amount + flt(self.grand_total) > ref_amount:
+			if total_existing_payment_request_amount + flt(self.net_total) > ref_amount:
 				frappe.throw(
 					frappe._("Total Bank Payment Request amount cannot be greater than {0} amount").format(
 						self.reference_doctype
@@ -154,10 +165,18 @@ def make_bank_payment_request(**args):
 		grand_total -= existing_payment_request_amount
 
 	if draft_payment_request:
-		frappe.db.set_value(
-			"Bank Payment Request", draft_payment_request, {"grand_total": grand_total, "net_total": grand_total}, update_modified=False
-		)
 		bpr = frappe.get_doc("Bank Payment Request", draft_payment_request)
+		bpr.db_set("net_total", grand_total, update_modified=False)
+		bpr.validate()
+		frappe.db.set_value(
+			"Bank Payment Request", draft_payment_request, {
+				"net_total": bpr.net_total,
+				"grand_total": bpr.grand_total,
+				"taxes_deducted": bpr.taxes_deducted
+				},
+			update_modified=False
+		)
+
 	else:
 		bpr = frappe.new_doc("Bank Payment Request")
 
@@ -328,26 +347,28 @@ def make_payment_order(source_name, target_doc=None, args= None):
 
 	return doclist
 
-def get_existing_payment_request_amount(ref_dt, ref_dn, submitted= True):
+def get_existing_payment_request_amount(ref_dt, ref_dn, submitted= True, update=None):
 	"""
 	Get the existing Bank payment request which are unpaid or partially paid for payment channel other than Phone
 	and get the summation of existing paid Bank payment request for Phone payment channel.
 	"""
 
 	docstatus = 1 if submitted else 0
+
 	existing_payment_request_amount = frappe.db.sql(
 		"""
-		select sum(grand_total)
+		select sum(net_total)
 		from `tabBank Payment Request`
 		where
-			reference_doctype = %s
+			name != %s
+			and reference_doctype = %s
 			and reference_name = %s
 			and docstatus = %s
 			and (status != 'Paid'
 			or (payment_channel = 'Phone'
 				and status = 'Paid'))
 	""",
-		(ref_dt, ref_dn, docstatus),
+		(update or "", ref_dt, ref_dn, docstatus)
 	)
 	return flt(existing_payment_request_amount[0][0]) if existing_payment_request_amount else 0
 

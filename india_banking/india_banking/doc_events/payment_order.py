@@ -362,19 +362,16 @@ def make_payment_entries(docname):
 		if row.tax_withholding_category:
 			net_total = 0
 
-			if not payment_order_doc.is_party_wise:
-				net_total = row.amount
-			else:
-				for reference in payment_order_doc.references:
-					if reference.party_type == row.party_type and \
-							reference.party == row.party and \
-							reference.cost_center == row.cost_center and \
-							reference.project == row.project and \
-							reference.bank_account == row.bank_account and \
-							reference.account == row.account and \
-							reference.tax_withholding_category == row.tax_withholding_category and \
-							reference.reference_doctype == row.reference_doctype:
-						net_total += frappe.db.get_value("Bank Payment Request", reference.bank_payment_request, "net_total")
+			for reference in payment_order_doc.references:
+				if reference.party_type == row.party_type and \
+						reference.party == row.party and \
+						reference.cost_center == row.cost_center and \
+						reference.project == row.project and \
+						reference.bank_account == row.bank_account and \
+						reference.account == row.account and \
+						reference.tax_withholding_category == row.tax_withholding_category and \
+						reference.reference_doctype == row.reference_doctype:
+					net_total += frappe.db.get_value("Bank Payment Request", reference.bank_payment_request, "net_total")
 			pe.paid_amount = net_total
 			pe.received_amount = net_total
 			pe.apply_tax_withholding_amount = 1
@@ -389,13 +386,14 @@ def make_payment_entries(docname):
 					filter_condition = filter_condition and (reference.reference_doctype == row.reference_doctype and reference.reference_name == row.reference_name)
 
 				if filter_condition:
+					reference_amount  = frappe.db.get_value("Bank Payment Request", reference.bank_payment_request, "net_total")
 					pe.append(
 						"references",
 						{
 							"reference_doctype": reference.reference_doctype,
 							"reference_name": reference.reference_name,
-							"total_amount": reference.amount,
-							"allocated_amount": reference.amount,
+							"total_amount": reference_amount,
+							"allocated_amount": reference_amount,
 						},
 					)
 		pe.update(

@@ -268,6 +268,16 @@ def get_bulk_payment_status(payment_order_doc):
 							if payment_entry_doc.docstatus == 1:
 								payment_entry_doc.cancel()
 							process_bank_payment_requests(row.name)
+
+						elif row_payment_status.transaction_status == 'RVS':
+							frappe.db.set_value("Payment Order Summary", row.name,
+								"payment_status", 'Rejected'
+							)
+							payment_entry_doc = frappe.get_doc("Payment Entry", row.payment_entry)
+							if payment_entry_doc.docstatus == 1:
+								payment_entry_doc.cancel()
+							process_bank_payment_requests(row.name)
+
 			update_payment_status(payment_order_doc)
 		else:
 			frappe.throw(msg=response_details.server_message, title='Failed')
@@ -275,25 +285,45 @@ def get_bulk_payment_status(payment_order_doc):
 		frappe.throw('Invalid Request')
 
 def update_payment_status(payment_order_doc):
-	success_count = 0
-	faild_count = 0
-	for ref in payment_order_doc.summary:
-		if ref.payment_status == 'Processed':
-			success_count += 1
-		if ref.payment_status == 'Failed':
-			faild_count += 1
+	try:
+		success_count = 0
+		faild_count = 0
+		rejected_count = 0
+		for ref in payment_order_doc.summary:
+			status = frappe.db.get_value(
+				"Payment Order Summary", ref.name,
+				"payment_status"
+			)
+			if status == 'Processed':
+				success_count += 1
+			if status == 'Failed':
+				faild_count += 1
+			if status == 'Rejected':
+				rejected_count += 1
 
-	if success_count == len(payment_order_doc.summary):
-		frappe.db.set_value("Payment Order",
-			payment_order_doc.name,
-			"status", 'Completed'
-		)
+		if success_count == len(payment_order_doc.summary):
+			frappe.db.set_value("Payment Order",
+				payment_order_doc.name,
+				"status", 'Approved'
+			)
 
-	if faild_count == len(payment_order_doc.summary):
-		frappe.db.set_value("Payment Order",
-			payment_order_doc.name,
-			"status", 'Failed'
-		)
+		elif faild_count == len(payment_order_doc.summary):
+			frappe.db.set_value("Payment Order",
+				payment_order_doc.name,
+				"status", 'Failed'
+			)
+		elif rejected_count == len(payment_order_doc.summary):
+			frappe.db.set_value("Payment Order",
+				payment_order_doc.name,
+				"status", 'Rejected'
+			)
+		elif success_count > 1 and success_count + faild_count + rejected_count == len(payment_order_doc.summary):
+			frappe.db.set_value("Payment Order",
+				payment_order_doc.name,
+				"status", 'Partially Approved'
+			)
+	except Exception as e:
+		frappe.log_error(title='Payment Order Status Update Error', message=frappe.get_traceback())
 
 @frappe.whitelist()
 def get_payment_status(docname):

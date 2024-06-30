@@ -27,6 +27,16 @@ app_license = "gpl-3.0"
 # include js in page
 # page_js = {"page" : "public/js/file.js"}
 
+doctype_js = {
+	"Payment Order" : "public/js/payment_order.js",
+	"Purchase Order" : "public/js/purchase_order.js",
+	"Purchase Invoice": "public/js/purchase_invoice.js",
+	"Payment Type": "public/js/payment_type.js",
+
+}
+
+doctype_list_js = {"Payment Order" : "public/js/payment_order_list.js"}
+
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
@@ -69,6 +79,7 @@ app_license = "gpl-3.0"
 
 # before_install = "india_banking.install.before_install"
 # after_install = "india_banking.install.after_install"
+after_install = "india_banking.india_banking.install.after_install"
 
 # Uninstallation
 # ------------
@@ -118,6 +129,13 @@ app_license = "gpl-3.0"
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
+override_doctype_class = {
+	"Payment Order": "india_banking.india_banking.override.payment_order.CustomPaymentOrder",
+	"Payment Entry": "india_banking.india_banking.override.payment_entry.CustomPaymentEntry",
+	"Bank":  "india_banking.india_banking.override.bank.CustomBank"
+}
+
+
 # Document Events
 # ---------------
 # Hook on document methods and events
@@ -129,6 +147,15 @@ app_license = "gpl-3.0"
 # 		"on_trash": "method"
 # 	}
 # }
+
+doc_events = {
+	"Bank Account": {
+		"validate": "india_banking.india_banking.doc_events.bank_account.validate_ifsc_code",
+	}
+}
+
+# accounting_dimension_doctypes = ['Bank Payment Request', 'Payment Order', 'Payment Order Reference', 'Payment Order Summary']
+accounting_dimension_doctypes = ['Bank Payment Request']
 
 # Scheduled Tasks
 # ---------------
@@ -162,6 +189,11 @@ app_license = "gpl-3.0"
 # override_whitelisted_methods = {
 # 	"frappe.desk.doctype.event.event.get_events": "india_banking.event.get_events"
 # }
+
+override_whitelisted_methods = {
+	"erpnext.accounts.doctype.payment_request.payment_request.make_payment_request": "india_banking.india_banking.override.payment_request.make_payment_request"
+}
+
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,

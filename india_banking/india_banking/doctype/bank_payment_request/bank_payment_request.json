@@ -1,0 +1,449 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2024-04-30 10:42:52.086041",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "payment_request_type",
+  "transaction_date",
+  "mode_of_payment",
+  "column_break_2",
+  "naming_series",
+  "company",
+  "payment_type",
+  "is_adhoc",
+  "party_details",
+  "party_type",
+  "reference_doctype",
+  "column_break_4",
+  "party",
+  "reference_name",
+  "transaction_details",
+  "net_total",
+  "taxes_deducted",
+  "grand_total",
+  "column_break_18",
+  "currency",
+  "apply_tax_withholding_amount",
+  "tax_withholding_category",
+  "bank_account_details",
+  "bank_account",
+  "bank",
+  "bank_account_no",
+  "account",
+  "column_break_11",
+  "iban",
+  "branch_code",
+  "swift_number",
+  "accounting_dimensions_section",
+  "cost_center",
+  "dimension_col_break",
+  "project",
+  "recipient_and_message",
+  "print_format",
+  "email_to",
+  "subject",
+  "column_break_9",
+  "payment_gateway_account",
+  "status",
+  "make_sales_invoice",
+  "section_break_10",
+  "payment_url",
+  "section_break_7",
+  "payment_account",
+  "payment_order",
+  "amended_from",
+  "column_break_uumn",
+  "payment_gateway",
+  "payment_channel"
+ ],
+ "fields": [
+  {
+   "default": "Outward",
+   "fieldname": "payment_request_type",
+   "fieldtype": "Select",
+   "label": "Payment Request Type",
+   "options": "Outward",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "transaction_date",
+   "fieldtype": "Date",
+   "label": "Transaction Date",
+   "mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer'"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Series",
+   "no_copy": 1,
+   "options": "ACC-BPRQ-.YYYY.-",
+   "print_hide": 1,
+   "reqd": 1
+  },
+  {
+   "default": "Wire Transfer",
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Link",
+   "label": "Mode of Payment",
+   "options": "Mode of Payment"
+  },
+  {
+   "fieldname": "party_details",
+   "fieldtype": "Section Break",
+   "label": "Party Details"
+  },
+  {
+   "fieldname": "party_type",
+   "fieldtype": "Link",
+   "label": "Party Type",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "party",
+   "fieldtype": "Dynamic Link",
+   "label": "Party",
+   "options": "party_type"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Reference Doctype",
+   "no_copy": 1,
+   "options": "DocType",
+   "print_hide": 1,
+   "read_only": 1,
+   "report_hide": 1
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "in_global_search": 1,
+   "in_standard_filter": 1,
+   "label": "Reference Name",
+   "no_copy": 1,
+   "options": "reference_doctype",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "transaction_details",
+   "fieldtype": "Section Break",
+   "label": "Transaction Details"
+  },
+  {
+   "description": "Amount in customer's currency",
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_18",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Transaction Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "bank_account_details",
+   "fieldtype": "Section Break",
+   "label": "Bank Account Details"
+  },
+  {
+   "fieldname": "bank_account",
+   "fieldtype": "Link",
+   "label": "Bank Account",
+   "mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer'",
+   "options": "Bank Account"
+  },
+  {
+   "fetch_from": "bank_account.bank",
+   "fieldname": "bank",
+   "fieldtype": "Link",
+   "label": "Bank",
+   "options": "Bank",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "bank_account.bank_account_no",
+   "fieldname": "bank_account_no",
+   "fieldtype": "Read Only",
+   "label": "Bank Account No"
+  },
+  {
+   "fetch_from": "bank_account.account",
+   "fieldname": "account",
+   "fieldtype": "Read Only",
+   "label": "Account",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_11",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bank_account.iban",
+   "fieldname": "iban",
+   "fieldtype": "Read Only",
+   "label": "IBAN"
+  },
+  {
+   "fetch_from": "bank_account.branch_code",
+   "fetch_if_empty": 1,
+   "fieldname": "branch_code",
+   "fieldtype": "Read Only",
+   "label": "Branch Code"
+  },
+  {
+   "fetch_from": "bank.swift_number",
+   "fieldname": "swift_number",
+   "fieldtype": "Read Only",
+   "label": "SWIFT Number"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "accounting_dimensions_section",
+   "fieldtype": "Section Break",
+   "label": "Accounting Dimensions"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "dimension_col_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project"
+  },
+  {
+   "depends_on": "eval: doc.payment_request_type == 'Inward'",
+   "fieldname": "recipient_and_message",
+   "fieldtype": "Section Break",
+   "label": "Recipient Message And Payment Details"
+  },
+  {
+   "depends_on": "eval: doc.payment_channel != 'Phone'",
+   "fieldname": "print_format",
+   "fieldtype": "Select",
+   "label": "Print Format"
+  },
+  {
+   "fieldname": "email_to",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "label": "To"
+  },
+  {
+   "depends_on": "eval: doc.payment_channel != 'Phone'",
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "label": "Subject"
+  },
+  {
+   "fieldname": "column_break_9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.payment_request_type == 'Inward'",
+   "fieldname": "payment_gateway_account",
+   "fieldtype": "Link",
+   "label": "Payment Gateway Account",
+   "options": "Payment Gateway Account"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "\nDraft\nRequested\nInitiated\nPartially Paid\nPayment Ordered\nPaid\nFailed\nCancelled",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.reference_doctype== 'Sales Order'",
+   "fieldname": "make_sales_invoice",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Make Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: doc.payment_request_type == 'Inward' || doc.payment_channel != 'Phone'",
+   "fieldname": "section_break_10",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "payment_url",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "length": 500,
+   "options": "URL",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval: doc.payment_gateway_account",
+   "depends_on": "eval: doc.payment_request_type == 'Inward'",
+   "fieldname": "section_break_7",
+   "fieldtype": "Section Break",
+   "label": "Payment Gateway Details"
+  },
+  {
+   "fetch_from": "payment_gateway_account.payment_gateway",
+   "fieldname": "payment_gateway",
+   "fieldtype": "Read Only",
+   "label": "Payment Gateway"
+  },
+  {
+   "fetch_from": "payment_gateway_account.payment_account",
+   "fieldname": "payment_account",
+   "fieldtype": "Read Only",
+   "label": "Payment Account",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "payment_gateway_account.payment_channel",
+   "fieldname": "payment_channel",
+   "fieldtype": "Select",
+   "label": "Payment Channel",
+   "options": "\nEmail\nPhone",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_order",
+   "fieldtype": "Link",
+   "label": "Payment Order",
+   "options": "Payment Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_type",
+   "fieldtype": "Link",
+   "label": "Payment Type",
+   "mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer' && doc.reference_doctype != 'Purchase Invoice' && doc.payment_request_type == 'Outward'",
+   "options": "Payment Type"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Bank Payment Request",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "depends_on": "eval:doc.tax_withholding_category",
+   "fieldname": "taxes_deducted",
+   "fieldtype": "Currency",
+   "label": "Taxes Deducted"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.party_type == 'Supplier' && doc.reference_doctype != 'Purchase Invoice' && doc.payment_request_type == 'Outward'",
+   "fieldname": "apply_tax_withholding_amount",
+   "fieldtype": "Check",
+   "label": "Apply Tax Withholding Amount"
+  },
+  {
+   "depends_on": "eval:doc.apply_tax_withholding_amount",
+   "fieldname": "tax_withholding_category",
+   "fieldtype": "Link",
+   "label": "Tax Withholding Category",
+   "options": "Tax Withholding Category"
+  },
+  {
+   "fieldname": "net_total",
+   "fieldtype": "Currency",
+   "label": "Net Total"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.mode_of_payment == 'Wire Transfer' && doc.payment_request_type ==  'Outward'",
+   "fieldname": "is_adhoc",
+   "fieldtype": "Check",
+   "label": "Is AdHoc"
+  },
+  {
+   "fieldname": "column_break_uumn",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2024-05-28 10:24:07.868033",
+ "modified_by": "Administrator",
+ "module": "India Banking",
+ "name": "Bank Payment Request",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

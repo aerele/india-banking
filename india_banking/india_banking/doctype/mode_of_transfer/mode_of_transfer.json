@@ -1,0 +1,132 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:mode",
+ "creation": "2024-04-29 16:49:39.609959",
+ "default_view": "List",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_pcjh",
+  "mode",
+  "minimum_limit",
+  "maximum_limit",
+  "column_break_jifa",
+  "disabled",
+  "is_bank_specific",
+  "bank_account",
+  "bank",
+  "section_break_qg2d",
+  "start_time",
+  "end_time",
+  "column_break_jce8",
+  "priority"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_pcjh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "mode",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mode",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "minimum_limit",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Minimum Limit",
+   "reqd": 1
+  },
+  {
+   "fieldname": "maximum_limit",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Maximum Limit",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_jifa",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_bank_specific",
+   "fieldtype": "Check",
+   "label": "Is Bank Specific"
+  },
+  {
+   "fetch_from": "bank_account.bank",
+   "fetch_if_empty": 1,
+   "fieldname": "bank",
+   "fieldtype": "Link",
+   "label": "Bank",
+   "options": "Bank"
+  },
+  {
+   "fieldname": "bank_account",
+   "fieldtype": "Link",
+   "label": "Bank Account",
+   "options": "Bank Account"
+  },
+  {
+   "fieldname": "section_break_qg2d",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "label": "Start Time"
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "label": "End Time"
+  },
+  {
+   "fieldname": "column_break_jce8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "0\n1\n2\n3\n4\n5\n6"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-06-05 12:02:02.197397",
+ "modified_by": "Administrator",
+ "module": "India Banking",
+ "name": "Mode of Transfer",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

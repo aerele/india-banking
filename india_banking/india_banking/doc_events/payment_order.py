@@ -245,8 +245,8 @@ def get_bulk_payment_status(payment_order_doc):
 		payment_details = response_details.payment_status
 		if response_details.get('server_status') == 'success':
 			frappe.msgprint(response_details.get('server_message'), response_details.get('file_status'))
-
-			if fs:= response_details.get('file_status') in ['FAL', 'REJ', 'REC']:
+			fs = response_details.get('file_status')
+			if response_details.get('file_status') in ['FAL', 'REJ', 'REC']:
 				for row in payment_order_doc.summary:
 					frappe.db.set_value("Payment Order Summary", row.name,
 						"payment_status", 'Failed' if fs == 'FAL' else 'Rejected'

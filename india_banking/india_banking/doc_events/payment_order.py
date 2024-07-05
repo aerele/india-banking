@@ -245,6 +245,17 @@ def get_bulk_payment_status(payment_order_doc):
 		payment_details = response_details.payment_status
 		if response_details.get('server_status') == 'success':
 			frappe.msgprint(response_details.get('server_message'), response_details.get('file_status'))
+
+			if response_details.get('file_status') in ['REJ']:
+				for row in payment_order_doc.summary:
+					frappe.db.set_value("Payment Order Summary", row.name,
+						"payment_status", 'Rejected'
+					)
+					payment_entry_doc = frappe.get_doc("Payment Entry", row.payment_entry)
+					if payment_entry_doc.docstatus == 1:
+						payment_entry_doc.cancel()
+					process_bank_payment_requests(row.name)
+
 			if payment_details:
 				for row in payment_order_doc.summary:
 					row_payment_status = frappe._dict(payment_details.get(row.name, {}))

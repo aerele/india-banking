@@ -277,6 +277,14 @@ def get_bulk_payment_status(payment_order_doc):
 							if payment_entry_doc.docstatus == 1:
 								payment_entry_doc.cancel()
 							process_bank_payment_requests(row.name)
+						elif row_payment_status.transaction_status == 'REJ':
+							frappe.db.set_value("Payment Order Summary", row.name,
+								"payment_status", 'Rejected'
+							)
+							payment_entry_doc = frappe.get_doc("Payment Entry", row.payment_entry)
+							if payment_entry_doc.docstatus == 1:
+								payment_entry_doc.cancel()
+							process_bank_payment_requests(row.name)
 
 			update_payment_status(payment_order_doc)
 		else:

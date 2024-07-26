@@ -428,6 +428,20 @@ def make_payment_entries(docname):
 
 				if filter_condition:
 					reference_amount  = frappe.db.get_value("Bank Payment Request", reference.bank_payment_request, "net_total")
+					try:
+						payment_term = ''
+						if template := frappe.db.get_value(reference.reference_doctype, reference.reference_name, "payment_terms_template"):
+							if frappe.db.get_value(
+								"Payment Terms Template", template, "allocate_payment_based_on_payment_terms"
+							):
+								payment_term_temp_doc = frappe.get_doc("Payment Terms Template", template)
+								if payment_term_temp_doc.terms and payment_term_temp_doc.terms[0].get('payment_term', ''):
+									payment_term = payment_term_temp_doc.terms[0].get('payment_term', '')
+								else:
+									frappe.log_error("Payment Terms is missing", f"{reference.reference_doctype}, {reference.reference_name}")
+					except:
+						frappe.log_error("Error in Payment Terms Template", frappe.get_traceback())
+
 					pe.append(
 						"references",
 						{
@@ -435,6 +449,7 @@ def make_payment_entries(docname):
 							"reference_name": reference.reference_name,
 							"total_amount": reference_amount,
 							"allocated_amount": reference_amount,
+							"payment_term": payment_term
 						},
 					)
 		pe.update(

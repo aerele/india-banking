@@ -347,13 +347,15 @@ def make_payment_order(source_name, target_doc=None, args= None):
 
 	return doclist
 
-def get_existing_payment_request_amount(ref_dt, ref_dn, submitted= True, update=None):
+def get_existing_payment_request_amount(ref_dt, ref_dn, submitted= True, update=None, payment_term= None):
 	"""
 	Get the existing Bank payment request which are unpaid or partially paid for payment channel other than Phone
 	and get the summation of existing paid Bank payment request for Phone payment channel.
 	"""
 
 	docstatus = 1 if submitted else 0
+
+	where_conditions = "AND payment_term = '{0}'".format(payment_term.replace("%", "%%")) if payment_term  else "AND payment_term is null"
 
 	existing_payment_request_amount = frappe.db.sql(
 		"""
@@ -363,11 +365,8 @@ def get_existing_payment_request_amount(ref_dt, ref_dn, submitted= True, update=
 			name != %s
 			and reference_doctype = %s
 			and reference_name = %s
-			and docstatus = %s
-			and (status != 'Paid'
-			or (payment_channel = 'Phone'
-				and status = 'Paid'))
-	""",
+			and docstatus = %s {0}
+	""".format(where_conditions),
 		(update or "", ref_dt, ref_dn, docstatus)
 	)
 	return flt(existing_payment_request_amount[0][0]) if existing_payment_request_amount else 0

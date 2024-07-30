@@ -56,7 +56,8 @@
   "amended_from",
   "column_break_uumn",
   "payment_gateway",
-  "payment_channel"
+  "payment_channel",
+  "payment_term"
  ],
  "fields": [
   {
@@ -403,12 +404,19 @@
   {
    "fieldname": "column_break_uumn",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payment_term",
+   "fieldtype": "Link",
+   "label": "Payment Term",
+   "options": "Payment Term",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-05-28 10:24:07.868033",
+ "modified": "2024-07-30 18:19:35.946606",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

@@ -10,6 +10,8 @@ import random
 from india_banking.india_banking.install import STD_BANK_LIST
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import create_api_log
 
+from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
+
 @frappe.whitelist()
 def generate_payment_otp(docname):
 	payment_order_doc = frappe.get_doc("Payment Order", docname)
@@ -418,7 +420,6 @@ def make_payment_entries(docname):
 			pe.apply_tax_withholding_amount = 1
 			pe.tax_withholding_category = row.tax_withholding_category
 		for reference in payment_order_doc.references:
-
 			if not reference.is_adhoc:
 				filter_condition = ( reference.party_type == row.party_type and reference.party == row.party and reference.cost_center == row.cost_center
 					and reference.project == row.project and reference.bank_account == row.bank_account and reference.account == row.account
@@ -428,30 +429,95 @@ def make_payment_entries(docname):
 
 				if filter_condition:
 					reference_amount  = frappe.db.get_value("Bank Payment Request", reference.bank_payment_request, "net_total")
+					payment_term = ""
 					try:
-						payment_term = ''
-						if template := frappe.db.get_value(reference.reference_doctype, reference.reference_name, "payment_terms_template"):
-							if frappe.db.get_value(
-								"Payment Terms Template", template, "allocate_payment_based_on_payment_terms"
-							):
-								payment_term_temp_doc = frappe.get_doc("Payment Terms Template", template)
-								if payment_term_temp_doc.terms and payment_term_temp_doc.terms[0].get('payment_term', ''):
-									payment_term = payment_term_temp_doc.terms[0].get('payment_term', '')
+						payment_term = frappe.db.get_value("Bank Payment Request", reference.bank_payment_request, "payment_term")
+
+						if not payment_term:
+							if template := frappe.db.get_value(reference.reference_doctype, reference.reference_name, "payment_terms_template"):
+								splited_invoice_rows = get_split_invoice_rows(frappe._dict(
+										{
+											"voucher_no": reference.reference_name
+										}),
+										template,
+										exc_rates=
+											{
+												reference.reference_name: frappe.get_doc("Purchase Invoice", reference.reference_name)
+											}
+									)
+
+								is_term_applied = frappe.db.get_value("Payment Terms Template", template, "allocate_payment_based_on_payment_terms")
+
+								if splited_invoice_rows and is_term_applied:
+									term_row = 0
+									while reference_amount>0:
+										term_paid = frappe.get_value("Payment Entry Reference", {
+											"reference_doctype": reference.reference_doctype,
+											"reference_name": reference.reference_name,
+											"payment_term": splited_invoice_rows[term_row].get('payment_term'),
+											"docstatus": 1
+
+											}, 'sum(allocated_amount)'
+										) or 0
+
+										per = frappe.db.get_value("Payment Term", splited_invoice_rows[term_row].get('payment_term'), "invoice_portion") / 100
+										invoice_amount = frappe.db.get_value(reference.reference_doctype,  reference.reference_name, "grand_total")
+										to_be_pay = per * invoice_amount
+
+										if (reference_amount + term_paid) <= to_be_pay:
+											paid_amount = reference_amount
+											reference_amount -= paid_amount
+										else:
+											paid_amount = (to_be_pay - term_paid)
+											reference_amount -= paid_amount
+
+										if paid_amount:
+											pe.append(
+												"references",
+												{
+													"reference_doctype": reference.reference_doctype,
+													"reference_name": reference.reference_name,
+													"total_amount": invoice_amount,
+													"allocated_amount": paid_amount,
+													"payment_term": splited_invoice_rows[term_row].get('payment_term')
+												},
+											)
+										term_row +=1
 								else:
-									frappe.log_error("Payment Terms is missing", f"{reference.reference_doctype}, {reference.reference_name}")
+									pe.append(
+										"references",
+										{
+											"reference_doctype": reference.reference_doctype,
+											"reference_name": reference.reference_name,
+											"total_amount": reference_amount,
+											"allocated_amount": reference_amount
+										},
+									)
+							else:
+								pe.append(
+									"references",
+									{
+										"reference_doctype": reference.reference_doctype,
+										"reference_name": reference.reference_name,
+										"total_amount": reference_amount,
+										"allocated_amount": reference_amount
+									},
+								)
+						else:
+							pe.append(
+								"references",
+								{
+									"reference_doctype": reference.reference_doctype,
+									"reference_name": reference.reference_name,
+									"total_amount": reference_amount,
+									"allocated_amount": reference_amount,
+									"payment_term": payment_term
+								},
+							)
 					except:
 						frappe.log_error("Error in Payment Terms Template", frappe.get_traceback())
+		print(pe.as_dict())
 
-					pe.append(
-						"references",
-						{
-							"reference_doctype": reference.reference_doctype,
-							"reference_name": reference.reference_name,
-							"total_amount": reference_amount,
-							"allocated_amount": reference_amount,
-							"payment_term": payment_term
-						},
-					)
 		pe.update(
 			{
 				"reference_no": payment_order_doc.name,
@@ -464,9 +530,22 @@ def make_payment_entries(docname):
 		pe.setup_party_account_field()
 		pe.set_missing_values()
 		pe.validate()
+		group_by_invoices(pe)
 		pe.insert(ignore_permissions=True, ignore_mandatory=True)
 		pe.submit()
 		frappe.db.set_value("Payment Order Summary", row.name, "payment_entry", pe.name)
+
+def group_by_invoices(self):
+	grouped_references = {}
+	if self.references:
+		for ref in self.references:
+			key = (ref.reference_name, ref.reference_doctype, ref.payment_term)
+			if key not in grouped_references:
+				grouped_references[key] = ref
+			else:
+				grouped_references[key].allocated_amount += ref.allocated_amount
+
+		self.references = list(grouped_references.values())
 
 def process_payment(payment_info, payment_order_doc):
 	# Fetch the connector information

@@ -2,12 +2,23 @@ import frappe, json
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 
-from frappe.utils import get_datetime
+from frappe.utils import get_datetime, get_link_to_form
 import re
 
 class CustomPaymentOrder(PaymentOrder):
 	def before_submit(self):
 		self.update_unique_and_file_reference_id()
+		self.validate_bank_payment_request()
+	
+	def validate_bank_payment_request(self):
+		if self.references:
+			for ref in self.references:
+				if ref.bank_payment_request:
+					bank_payment_request = frappe.get_doc("Bank Payment Request", ref.bank_payment_request)
+					if bank_payment_request.grand_total != ref.amount:
+						link  = get_link_to_form("Bank Payment Request", ref.bank_payment_request)
+						message = f"The amount in <b>#Row{ref.idx} </b>does not match the amount of the bank payment request -<b>{link}</b>. The Difference is <b>{ref.amount - bank_payment_request.grand_total}</b>"
+						frappe.throw(title="Invalid Amount", msg=message)
 
 	@frappe.whitelist()
 	def update_unique_and_file_reference_id(self, save=False):

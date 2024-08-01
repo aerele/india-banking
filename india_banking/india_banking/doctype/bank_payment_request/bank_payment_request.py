@@ -14,7 +14,7 @@ from erpnext.accounts.party import get_party_bank_account
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
-from frappe.utils.data import flt, today
+from frappe.utils.data import flt, today, cstr
 
 
 class BankPaymentRequest(PaymentRequest):
@@ -22,6 +22,7 @@ class BankPaymentRequest(PaymentRequest):
 		pass
 
 	def validate(self):
+		frappe.log_error(title="India - banking", message=cstr(self.as_dict()))
 		if self.apply_tax_withholding_amount and self.tax_withholding_category and self.payment_request_type == "Outward":
 			if not self.net_total:
 				self.net_total = self.grand_total

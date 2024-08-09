@@ -27,11 +27,42 @@ app_license = "gpl-3.0"
 # include js in page
 # page_js = {"page" : "public/js/file.js"}
 
+fixtures = [
+    {
+		"dt": "Workflow",
+		"filters": [
+			[
+            "name", "in", [
+                "Bank Account Approval"
+            ]
+        ]
+    ]},
+    {
+		"dt": "Workflow State",
+		"filters": [
+        [
+            "name", "in", [
+                "Approved", "Rejected"
+            ]
+        ]
+    ]},
+	{
+		"dt": "Workflow Action Master",
+		"filters": [
+        [
+            "name", "in", [
+                "Pending", "Approve", "Reject"
+            ]
+        ]
+    ]}
+]
+
 doctype_js = {
 	"Payment Order" : "public/js/payment_order.js",
 	"Purchase Order" : "public/js/purchase_order.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Payment Type": "public/js/payment_type.js",
+	"Bank Account": "public/js/bank_account.js"
 
 }
 

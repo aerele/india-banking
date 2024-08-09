@@ -119,6 +119,14 @@ class BankPaymentRequest(PaymentRequest):
 		if self.mode_of_payment == "Wire Transfer" and not self.bank_account:
 			frappe.throw(frappe._("Bank Account is missing for Wire Transfer Payments"))
 
+		try:
+			status = frappe.db.get_value("Bank Account", self.bank_account, "workflow_state")
+
+			if self.mode_of_payment == "Wire Transfer" and status != "Approved":
+				frappe.throw("Cannot proceed with un-approved bank account")
+		except:
+			frappe.throw("Workflow Not Found for Bank Account")
+
 
 @frappe.whitelist()
 def validate_payment_request_status(**args):

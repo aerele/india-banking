@@ -1,0 +1,73 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Workflow",
+  "document_type": "Bank Account",
+  "is_active": 1,
+  "modified": "2024-08-09 12:46:20.698777",
+  "name": "Bank Account Approval",
+  "override_status": 0,
+  "send_email_alert": 0,
+  "states": [
+   {
+    "allow_edit": "All",
+    "avoid_status_override": 0,
+    "doc_status": "0",
+    "is_optional_state": 0,
+    "message": null,
+    "next_action_email_template": null,
+    "parent": "Bank Account Approval",
+    "parentfield": "states",
+    "parenttype": "Workflow",
+    "state": "Pending",
+    "update_field": null,
+    "update_value": "Pending",
+    "workflow_builder_id": null
+   },
+   {
+    "allow_edit": "Accounts Manager",
+    "avoid_status_override": 0,
+    "doc_status": "0",
+    "is_optional_state": 0,
+    "message": null,
+    "next_action_email_template": null,
+    "parent": "Bank Account Approval",
+    "parentfield": "states",
+    "parenttype": "Workflow",
+    "state": "Approved",
+    "update_field": null,
+    "update_value": "Approved",
+    "workflow_builder_id": null
+   }
+  ],
+  "transitions": [
+   {
+    "action": "Approve",
+    "allow_self_approval": 1,
+    "allowed": "Accounts Manager",
+    "condition": null,
+    "next_state": "Approved",
+    "parent": "Bank Account Approval",
+    "parentfield": "transitions",
+    "parenttype": "Workflow",
+    "state": "Pending",
+    "workflow_builder_id": null
+   },
+   {
+    "action": "Reject",
+    "allow_self_approval": 1,
+    "allowed": "Accounts Manager",
+    "condition": null,
+    "next_state": "Pending",
+    "parent": "Bank Account Approval",
+    "parentfield": "transitions",
+    "parenttype": "Workflow",
+    "state": "Approved",
+    "workflow_builder_id": null
+   }
+  ],
+  "workflow_data": null,
+  "workflow_name": "Bank Account Approval",
+  "workflow_state_field": "workflow_state"
+ }
+]

@@ -71,6 +71,10 @@ class BankPaymentRequest(PaymentRequest):
 			else:
 				ref_amount = get_amount(ref_doc, self.payment_account)
 
+			frappe.log_error("existing_payment_request_amount_drafted", existing_payment_request_amount_drafted )
+			frappe.log_error("existing_payment_request_amount", existing_payment_request_amount)
+			frappe.log_error("ref_amount", ref_amount)
+
 			if total_existing_payment_request_amount + flt(self.net_total) > ref_amount:
 				frappe.throw(
 					frappe._("Total Bank Payment Request amount cannot be greater than {0} amount").format(

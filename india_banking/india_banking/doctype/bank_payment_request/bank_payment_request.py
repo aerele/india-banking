@@ -369,7 +369,7 @@ def get_existing_payment_request_amount(ref_dt, ref_dn, submitted= True, update=
 			and docstatus = %s {0}
 	""".format(where_conditions),
 		(update or "", ref_dt, ref_dn, docstatus)
-	)
+	, debug= 1)
 	return flt(existing_payment_request_amount[0][0]) if existing_payment_request_amount else 0
 
 def get_amount(ref_doc, payment_account=None):

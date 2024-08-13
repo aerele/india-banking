@@ -67,13 +67,17 @@ class BankPaymentRequest(PaymentRequest):
 			if self.reference_doctype in ["Purchase Order"]:
 				ref_amount = flt(ref_doc.rounded_total) or flt(ref_doc.grand_total)
 			elif self.reference_doctype in ["Purchase Invoice"]:
-				ref_amount = flt(ref_doc.base_rounded_total)
+				if ref_doc.rounded_total:
+					ref_amount = flt(ref_doc.rounded_total)
+				else:
+					ref_amount = flt(ref_doc.grand_total)
 			else:
 				ref_amount = get_amount(ref_doc, self.payment_account)
 
 			frappe.log_error("existing_payment_request_amount_drafted", existing_payment_request_amount_drafted )
 			frappe.log_error("existing_payment_request_amount", existing_payment_request_amount)
 			frappe.log_error("ref_amount", ref_amount)
+			frappe.log_error("self.net_total", self.net_total)
 
 			if total_existing_payment_request_amount + flt(self.net_total) > ref_amount:
 				frappe.throw(
@@ -159,6 +163,8 @@ def make_bank_payment_request(**args):
 	gateway_account = PR.get_gateway_details(args) or frappe._dict()
 
 	grand_total = get_amount(ref_doc, gateway_account.get("payment_account"))
+
+	print(grand_total, "grand_total")
 
 	bank_account = (
 		get_party_bank_account(args.get("party_type"), args.get("party")) if args.get("party_type") else ""
@@ -392,9 +398,15 @@ def get_amount(ref_doc, payment_account=None):
 	elif dt in ["Sales Invoice", "Purchase Invoice"]:
 		if not ref_doc.get("is_pos"):
 			if ref_doc.party_account_currency == ref_doc.currency:
-				grand_total = flt(ref_doc.grand_total)
+				if ref_doc.rounded_total:
+					grand_total = flt(ref_doc.rounded_total)
+				else:
+					grand_total = flt(ref_doc.grand_total)
 			else:
-				grand_total = flt(ref_doc.base_grand_total) / ref_doc.conversion_rate
+				if ref_doc.base_rounded_total:
+					grand_total = flt(ref_doc.base_rounded_total) / ref_doc.conversion_rate
+				else:
+					grand_total = flt(ref_doc.base_grand_total) / ref_doc.conversion_rate
 		elif dt == "Sales Invoice":
 			for pay in ref_doc.payments:
 				if pay.type == "Phone" and pay.account == payment_account:

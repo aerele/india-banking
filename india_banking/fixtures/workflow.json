@@ -4,7 +4,7 @@
   "doctype": "Workflow",
   "document_type": "Bank Account",
   "is_active": 1,
-  "modified": "2024-08-09 12:46:20.698777",
+  "modified": "2024-08-13 07:38:04.636572",
   "name": "Bank Account Approval",
   "override_status": 0,
   "send_email_alert": 0,

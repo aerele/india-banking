@@ -12,6 +12,51 @@ from india_banking.india_banking.doctype.india_banking_request_log.india_banking
 
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
 
+
+@frappe.whitelist()
+def get_bank_balance(bank_name):
+	bank_doc = frappe.get_doc("Bank Account", bank_name)
+
+	bank_connector_exists = frappe.db.exists("Bank Connector", {"company": bank_doc.company, "bank": bank_doc.bank})
+
+	if not bank_connector_exists:
+		frappe.throw("Bank Connector is not initialized")
+
+	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
+
+	app_name = frappe._dict(get_bank_info(bank_doc.bank)).app_name
+
+	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
+		app_name += "_composite"
+
+	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.get_bank_balance"
+
+	api_key = bank_connector.api_key
+	api_secret = bank_connector.get_password("api_secret")
+	headers = {
+		"Authorization": f"token {api_key}:{api_secret}",
+		"Content-Type": "application/json",
+	}
+
+	payload = json.dumps({
+		"bank_account_number": bank_doc.bank_account_no
+	})
+
+	response = requests.request("POST", url, headers=headers, data= payload)
+
+	#create api request log
+	create_api_log(response, 'Get Bank Balance', "Bank Account", bank_doc.name)
+
+	if response.status_code == 200:
+		response = json.loads(response.text)
+		response_data = frappe._dict((response.get('message') or {}))
+		if response_data.get('server_status') == "Success":
+			if response_data.balance or response_data.balance == 0:
+				frappe.db.set_value("Bank Account", bank_doc.name, "bank_balance", response_data.balance)
+		else:
+			frappe.msgprint(title= "API Failed", msg="Balance Fetch Failed", indicator='red')
+
+
 @frappe.whitelist()
 def generate_payment_otp(docname):
 	payment_order_doc = frappe.get_doc("Payment Order", docname)

@@ -33,17 +33,17 @@
   },
   {
    "fieldname": "header",
-   "fieldtype": "Text",
+   "fieldtype": "Code",
    "label": "Header"
   },
   {
    "fieldname": "payload",
-   "fieldtype": "Text",
+   "fieldtype": "Code",
    "label": "Payload"
   },
   {
    "fieldname": "response",
-   "fieldtype": "Text",
+   "fieldtype": "Code",
    "label": "Response"
   },
   {
@@ -64,7 +64,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-05-27 12:21:34.867745",
+ "modified": "2024-08-13 14:53:20.503589",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Request Log",

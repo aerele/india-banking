@@ -561,7 +561,6 @@ def make_payment_entries(docname):
 							)
 					except:
 						frappe.log_error("Error in Payment Terms Template", frappe.get_traceback())
-		print(pe.as_dict())
 
 		pe.update(
 			{

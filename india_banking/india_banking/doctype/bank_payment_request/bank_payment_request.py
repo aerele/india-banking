@@ -164,8 +164,6 @@ def make_bank_payment_request(**args):
 
 	grand_total = get_amount(ref_doc, gateway_account.get("payment_account"))
 
-	print(grand_total, "grand_total")
-
 	bank_account = (
 		get_party_bank_account(args.get("party_type"), args.get("party")) if args.get("party_type") else ""
 	)
@@ -387,7 +385,7 @@ def get_existing_payment_request_amount(ref_dt, ref_dn, submitted= True, update=
 			and docstatus = %s {0}
 	""".format(where_conditions),
 		(update or "", ref_dt, ref_dn, docstatus)
-	, debug= 1)
+	)
 	return flt(existing_payment_request_amount[0][0]) if existing_payment_request_amount else 0
 
 def get_amount(ref_doc, payment_account=None):

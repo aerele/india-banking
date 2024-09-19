@@ -56,7 +56,6 @@ def get_bank_balance(bank_name):
 		else:
 			frappe.msgprint(title= "API Failed", msg="Balance Fetch Failed", indicator='red')
 
-
 @frappe.whitelist()
 def generate_payment_otp(docname):
 	payment_order_doc = frappe.get_doc("Payment Order", docname)
@@ -618,12 +617,7 @@ def process_payment(payment_info, payment_order_doc):
 	if not payment_order_doc.company_account_number:
 		frappe.throw("Source bank account number is missing")
 
-	app_name = frappe._dict(get_bank_info(payment_order_doc.company_bank)).app_name
-
-	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
-		app_name += "_composite"
-
-	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.make_payment"
+	url = f"{bank_connector.url}/api/method/india_banking_connector.api.connect"
 
 	api_key = bank_connector.api_key
 	api_secret = bank_connector.get_password("api_secret")
@@ -631,8 +625,10 @@ def process_payment(payment_info, payment_order_doc):
 		"Authorization": f"token {api_key}:{api_secret}",
 		"Content-Type": "application/json",
 	}
+	payment_payload.method = 'intiate_payment'
 
-	response = requests.request("POST", url, headers=headers, data=json.dumps({"payload": payment_payload}))
+
+	response = requests.request("POST", url, headers=headers, data=json.dumps(payment_payload))
 
 	#create api request log
 	create_api_log(response, 'Make Payment', payment_info.parenttype, payment_info.parent)
@@ -687,12 +683,7 @@ def get_response(payment_info, company_bank_account, company):
 
 	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
 
-	app_name = frappe._dict(get_bank_info(payment_order_doc.company_bank)).app_name
-
-	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
-		app_name += "_composite"
-
-	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.get_payment_status"
+	url = f"{bank_connector.url}/api/method/india_banking_connector.api.connect"
 
 	api_key = bank_connector.api_key
 	api_secret = bank_connector.get_password("api_secret")
@@ -704,8 +695,9 @@ def get_response(payment_info, company_bank_account, company):
 	payment_info_payload = frappe._dict(payment_info.as_dict(convert_dates_to_str=True))
 
 	payment_info_payload.doc = payment_order_doc.as_dict(convert_dates_to_str=True)
+	payment_info_payload.method = 'get_payment_status'
 
-	response = requests.request("POST", url, headers=headers, data=json.dumps({"payload": payment_info_payload}))
+	response = requests.request("POST", url, headers=headers, data=json.dumps(payment_info_payload))
 
 	#create api request log
 	create_api_log(response, 'Get Payment Status', payment_info.parenttype, payment_info.parent)

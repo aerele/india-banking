@@ -2,7 +2,6 @@ import frappe
 from india_banking.india_banking.default import DEFAULT_MODE_OF_TRANSFERS, STD_BANK_LIST
 
 def execute():
-    print("executing patch command")
     update_payment_order_fields_options()
 
 def after_install():

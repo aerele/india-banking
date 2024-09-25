@@ -308,7 +308,6 @@ def update_payroll_entry(source, target):
 			target.append("references",ref)
 
 def update_bank_entry(source, target):
-	print(source, target, "source target")
 	target.payment_order_type = "Journal Entry"
 	target.docstaus = 0
 	target.status = 'Pending'
@@ -327,7 +326,6 @@ def update_bank_entry(source, target):
 		
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None, args= None):
-	print(source_name, target_doc, args.get('ref_doctype'))
 	from frappe.model.mapper import get_mapped_doc
 
 	def set_missing_values(source, target):

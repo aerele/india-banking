@@ -2,7 +2,7 @@ import frappe, json
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 
-from frappe.utils import get_datetime, get_link_to_form
+from frappe.utils import get_datetime, get_link_to_form, getdate
 import re
 
 class CustomPaymentOrder(PaymentOrder):
@@ -59,7 +59,7 @@ class CustomPaymentOrder(PaymentOrder):
 		summary_total = 0
 		references_total = 0
 		for ref in self.references:
-			party_name_field = 'supplier_name' if ref.party_type == 'Supplier' else 'customer_name'
+			party_name_field = self.get_party_field_name(ref)
 			#update party name
 			ref.party_name = frappe.get_value(ref.party_type, ref.party, party_name_field)
 
@@ -71,16 +71,40 @@ class CustomPaymentOrder(PaymentOrder):
 		if summary_total != references_total:
 			frappe.throw("Summary isn't matching the references")
 
-	def on_submit(self):
-		if self.payment_order_type == "Payment Entry":
-			pass
+	def get_party_field_name(self, party):
+		if party.party_type == 'Supplier':
+			return 'supplier_name'
+		elif party.party_type == 'Employee':
+			return 'employee_name'
 		else:
+			frappe.throw(f"Unsupported party type {party.party_type}")
+
+	def on_submit(self):
+		if self.payment_order_type not in ["Payment Entry", "Payroll Entry"]:
 			make_payment_entries(self.name)
 			frappe.db.set_value("Payment Order", self.name, "status", "Pending")
 
 			for ref in self.references:
 				if hasattr(ref, "bank_payment_request"):
 					frappe.db.set_value("Bank Payment Request", ref.bank_payment_request, "status", "Payment Ordered")
+
+		if self.payment_order_type == "Payroll Entry":
+			self.make_payroll_bank_entry(submit=True)
+	
+	def make_payroll_bank_entry(self, submit=False):
+		self.docstatus = 0
+		payroll_entry = set([ref.payroll_entry for ref in self.references if ref.payroll_entry]) if self.references else []
+		if payroll_entry:
+			for pe in payroll_entry:
+				try:
+					payroll_entry = frappe.get_doc("Payroll Entry", pe)
+					journal = payroll_entry.make_bank_entry(for_withheld_salaries=False)
+					frappe.db.set_value("Journal Entry", journal, {"cheque_no": self.name, 'cheque_date': getdate()})
+					if submit:
+						journal.reload()
+						journal.submit()
+				except:
+					frappe.log_error(title="Error in creating Bank Entry for Payroll Entry", message=frappe.get_traceback())
 
 	def on_update_after_submit(self):
 		frappe.throw("You cannot modify a payment order")
@@ -128,23 +152,24 @@ def get_party_summary(references, company_bank_account):
 		if summarise_payment_based_on == "Party":
 			if summarise_field:
 				return  ("party_type", "party", "bank_account", "account", "cost_center", "project",
-				"tax_withholding_category", "reference_doctype", "payment_entry")
+				"tax_withholding_category", "reference_doctype", "payment_entry", "payroll_entry")
 
 			return (ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project,
-			ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry)
+			ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry, ref.payroll_entry)
 
 		elif summarise_payment_based_on == "Voucher":
 			if summarise_field:
 				return ('party_type', 'party', 'reference_doctype', 'reference_name', 'bank_account',
-				'account', 'cost_center', 'project', 'tax_withholding_category', 'payment_entry')
+				'account', 'cost_center', 'project', 'tax_withholding_category', 'payment_entry', 'payroll_entry')
 
 			return (ref.party_type, ref.party, ref.reference_doctype, ref.reference_name, ref.bank_account,
-			ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.payment_entry)
+			ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.payment_entry, ref.payroll_entry)
 
 	summary = {}
 	for ref in references:
 		ref = frappe._dict(ref)
 		key = _get_unique_key(ref)
+
 		if key in summary:
 			summary[key] += ref.amount
 		else:
@@ -153,6 +178,7 @@ def get_party_summary(references, company_bank_account):
 	result = []
 	for key, val in summary.items():
 		summary_line_item = {k: v for k, v in zip(_get_unique_key(summarise_field=True), key) }
+		print(summary_line_item, "summary_line_item::: ")
 		summary_line_item["amount"] = val
 		summarise_payment_based_on = frappe.get_single("India Banking Settings").summarise_payment_based_on
 		if summarise_payment_based_on == "Party":

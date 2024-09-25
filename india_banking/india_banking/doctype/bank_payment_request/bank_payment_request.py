@@ -152,6 +152,46 @@ def validate_payment_request_status(**args):
 
 	return ""
 
+def get_employee_payemnt_details(payroll_entry):
+	payment_details = []
+
+	salary_slip_details = frappe.db.get_all(
+		'Salary Slip', {
+			'payroll_entry': payroll_entry.name,
+			'docstatus': 1
+		}, 
+		['name', 'employee', 'rounded_total']
+	)
+	employee_bank_account_details = frappe.db.get_all('Bank Account',
+    	{
+        	'party_type': 'Employee',
+        	'disabled': 0,
+			'is_default': 1
+        }, 
+    	['name','party', 'party_type', 'bank', 'branch_code', 'bank_account_no', 'mobile_number', 'email']
+    )
+
+	employee_bank_account_details = {detail.get('party'): detail for detail in employee_bank_account_details}
+	for slip in salary_slip_details:
+		employee_bank_details = employee_bank_account_details.get(slip.get('employee', ''))
+		if not employee_bank_details:
+			frappe.throw('Bank Account not found for Employee {0}'.format(slip.get('employee')))
+
+		slip = frappe._dict(slip)
+		details = {
+			"reference_doctype": "Salary Slip",
+			"reference_name": slip.name,
+			"amount": slip.rounded_total,
+			"payroll_entry": payroll_entry.name,
+			"party_type": "Employee",
+			"party": slip.employee,
+			"mode_of_payment": "",
+			"bank_account": employee_bank_details.name,
+			"account": payroll_entry.payroll_payable_account,
+		}
+		payment_details.append(details)
+
+	return payment_details
 
 @frappe.whitelist(allow_guest=True)
 def make_bank_payment_request(**args):
@@ -232,13 +272,13 @@ def make_bank_payment_request(**args):
 		bpr.update(
 			{
 				"cost_center": ref_doc.get("cost_center") or 
-    				frappe.get_value(ref_doc.get("doctype") + " Item",
-                        {'parent': ref_doc.get("name")}, 'cost_center'
-                    ),
+					frappe.get_value(ref_doc.get("doctype") + " Item",
+						{'parent': ref_doc.get("name")}, 'cost_center'
+					),
 				"project": ref_doc.get("project") or 
-    				frappe.get_value(ref_doc.get("doctype") + " Item",
-                        {'parent': ref_doc.get("name")}, 'project'
-                	)
+					frappe.get_value(ref_doc.get("doctype") + " Item",
+						{'parent': ref_doc.get("name")}, 'project'
+					)
 			}
 		)
 
@@ -254,6 +294,18 @@ def make_bank_payment_request(**args):
 		return bpr
 
 	return bpr.as_dict()
+
+def get_jv_for_payroll_entry(source, target):
+	target.payment_order_type = "Payroll Entry"
+	target.docstaus = 0
+	target.status = 'Pending'
+
+	for dimension in get_accounting_dimensions():
+		target.update({dimension: source.get(dimension, '')})
+
+	if get_employee_payemnt_details(source):
+		for ref in get_employee_payemnt_details(source):
+			target.append("references",ref)
 
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None, args= None):
@@ -293,6 +345,7 @@ def make_payment_order(source_name, target_doc=None, args= None):
 	def update_missing_values(source, target):
 		target.payment_order_type = "Payment Entry"
 		target.company_bank_account = source.bank_account
+		target.party = ''
 
 		account = ""
 		if source.paid_to:
@@ -328,7 +381,7 @@ def make_payment_order(source_name, target_doc=None, args= None):
 					"party_type": source.party_type,
 					"party": source.party,
 					"mode_of_payment": "Wire Transfer",
-					"bank_account": source.party_bank_account,
+					"bank_account": source.party_bank_account or get_party_bank_account(source.get("party_type"), source.get("party")),
 					"account": source.paid_to,
 					"cost_center": source.cost_center,
 					"project": source.project,
@@ -337,7 +390,7 @@ def make_payment_order(source_name, target_doc=None, args= None):
 			)
 		target.status = "Pending"
 
-	if args.get('ref_doctype') != "Payment Entry":
+	if args.get('ref_doctype') not in ["Payment Entry", "Payroll Entry"]:
 		doclist = get_mapped_doc(
 			"Bank Payment Request",
 			source_name,
@@ -349,7 +402,7 @@ def make_payment_order(source_name, target_doc=None, args= None):
 			target_doc,
 			set_missing_values,
 		)
-	else:
+	elif args.get('ref_doctype') == "Payment Entry":
 		doclist = get_mapped_doc(
 			"Payment Entry",
 			source_name,
@@ -361,6 +414,19 @@ def make_payment_order(source_name, target_doc=None, args= None):
 			target_doc,
 			update_missing_values,
 		)
+	elif args.get('ref_doctype') == "Payroll Entry":
+			doclist = get_mapped_doc(
+				"Payroll Entry",
+				source_name,
+				{
+					"Payroll Entry": {
+						"doctype": "Payment Order",
+					}
+				},
+				target_doc,
+				get_jv_for_payroll_entry,
+			)
+	
 
 	return doclist
 
@@ -422,3 +488,21 @@ def get_amount(ref_doc, payment_account=None):
 		return grand_total
 	else:
 		frappe.throw(frappe._("Bank Payment Entry is already created"))
+
+
+@frappe.whitelist()
+def get_existing_bank_entry():
+    payroll_entries= frappe.db.sql("""
+    	SELECT 
+    		DISTINCT jea.reference_name as payroll_entry
+    	FROM 
+    		`tabJournal Entry`je 
+    	JOIN 
+        	`tabJournal Entry Account`jea 
+    	ON
+    		je.name = jea.parent 
+    	WHERE 
+     		je.docstatus != 2 AND jea.reference_type = 'Payroll Entry' AND je.voucher_type = 'Bank Entry'
+     """, as_dict= 1 )
+    return [payroll_entry_.payroll_entry for payroll_entry_ in payroll_entries]
+    

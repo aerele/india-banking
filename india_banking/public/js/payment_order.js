@@ -1,6 +1,6 @@
 frappe.ui.form.on('Payment Order', {
 	onload(frm) {
-		frm.set_df_property("payment_order_type", "options", [""].concat(["Bank Payment Request", "Payment Entry", "Purchase Invoice"]));
+		frm.set_df_property("payment_order_type", "options", [""].concat(["Bank Payment Request", "Payment Entry", "Purchase Invoice", "Payroll Entry"]));
 		frm.refresh_field("payment_order_type");
 
 		frm.set_query("company_bank_account", function (doc) {
@@ -66,6 +66,39 @@ frappe.ui.form.on('Payment Order', {
 						source_doctype: ["!=", "Bank Payment Request"]
 					}
 				});
+			}, __("Get from"));
+			frm.add_custom_button(__('Payroll Entry'), function() {
+				frappe.call({
+						method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.get_existing_bank_entry",
+                        args: {
+                            ref_doctype: "Payroll Entry",
+                            ref_name: frm.doc.name,
+                            grand_total: frm.doc.rounded_total || frm.doc.grand_total
+                        },
+                        callback: (r) => {
+							console.log(r.message);
+							
+                            frm.trigger("remove_row_if_empty");
+				
+							let docs = frm.doc.references?.map((doc)=>{return doc.payroll_entry})
+							let ignore_entry = docs + r.message
+							erpnext.utils.map_current_doc({
+								method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
+								source_doctype: "Payroll Entry",
+								target: frm,
+								args: {"ref_doctype": "Payroll Entry"},
+								setters: {
+									company: frappe.defaults.get_user_default("company"),
+									start_date: '',
+									end_date: ''
+								},
+								get_query_filters: {
+									docstatus: 1,
+									name: ["not in", ignore_entry],
+								}
+							});
+						}
+					})
 			}, __("Get from"));
 		};
 		if (frm.doc.docstatus===1 && frm.doc.payment_order_type==='Bank Payment Request') {
@@ -245,6 +278,8 @@ frappe.ui.form.on('Payment Order', {
 						row.reference_doctype = summary_data[i].reference_doctype;
 						row.reference_name = summary_data[i].reference_name;
 						row.payment_entry = summary_data[i].payment_entry;
+						row.payroll_entry = summary_data[i].payroll_entry;
+
 					}
 					if (is_party_wise) {
 						frm.set_value("is_party_wise", 1);

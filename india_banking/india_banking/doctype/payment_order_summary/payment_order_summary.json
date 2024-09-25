@@ -19,6 +19,8 @@
   "account",
   "tax_withholding_category",
   "payment_entry",
+  "payroll_entry",
+  "journal_entry",
   "reference_doctype",
   "reference_name",
   "accounting_dimensions_section",
@@ -170,12 +172,25 @@
    "label": "Reference Name",
    "options": "reference_doctype",
    "read_only": 1
+  },
+  {
+   "fieldname": "payroll_entry",
+   "fieldtype": "Data",
+   "label": "Payroll Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "journal_entry",
+   "fieldtype": "Link",
+   "label": "Journal Entry",
+   "options": "Journal Entry",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-06-10 15:59:09.755194",
+ "modified": "2024-09-25 08:46:46.800505",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Payment Order Summary",

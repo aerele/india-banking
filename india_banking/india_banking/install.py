@@ -1,5 +1,10 @@
 import frappe
 from india_banking.india_banking.default import DEFAULT_MODE_OF_TRANSFERS, STD_BANK_LIST
+
+def execute():
+    print("executing patch command")
+    update_payment_order_fields_options()
+
 def after_install():
 	# As a part of the integration, for making ad-hoc payments, we are enabling creation of it.
 	disable_reqd_for_reference_in_payment_order()
@@ -24,7 +29,7 @@ def create_default_mode_of_transfers():
 
 def update_payment_order_fields_options():
 	payment_order_type = frappe.db.get_value("DocField", {"parent": "Payment Order", "fieldname": "payment_order_type"})
-	frappe.db.set_value("DocField", payment_order_type, "options", "\nBank Payment Request\nPayment Request\nPayment Entry")
+	frappe.db.set_value("DocField", payment_order_type, "options", "\nBank Payment Request\nPayment Request\nPayment Entry\nPayroll Entry")
 
 def disable_reqd_for_reference_in_payment_order():
 	po_type = frappe.db.get_value("DocField", {"parent": "Payment Order Reference", "fieldname": "reference_doctype"})

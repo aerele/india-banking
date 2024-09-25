@@ -29,7 +29,12 @@ def create_default_mode_of_transfers():
 
 def update_payment_order_fields_options():
 	payment_order_type = frappe.db.get_value("DocField", {"parent": "Payment Order", "fieldname": "payment_order_type"})
-	frappe.db.set_value("DocField", payment_order_type, "options", "\nBank Payment Request\nPayment Request\nPayment Entry\nPayroll Entry")
+	frappe.db.set_value(
+    	"DocField", 
+     	payment_order_type, 
+      	"options", 
+       "\nBank Payment Request\nPayment Request\nPayment Entry\nPayroll Entry\nJournal Entry\n"
+    )
 
 def disable_reqd_for_reference_in_payment_order():
 	po_type = frappe.db.get_value("DocField", {"parent": "Payment Order Reference", "fieldname": "reference_doctype"})

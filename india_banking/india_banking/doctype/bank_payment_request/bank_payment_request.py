@@ -163,13 +163,13 @@ def get_employee_payemnt_details(payroll_entry):
 		['name', 'employee', 'rounded_total']
 	)
 	employee_bank_account_details = frappe.db.get_all('Bank Account',
-    	{
-        	'party_type': 'Employee',
-        	'disabled': 0,
+		{
+			'party_type': 'Employee',
+			'disabled': 0,
 			'is_default': 1
-        }, 
-    	['name','party', 'party_type', 'bank', 'branch_code', 'bank_account_no', 'mobile_number', 'email']
-    )
+		}, 
+		['name','party', 'party_type', 'bank', 'branch_code', 'bank_account_no', 'mobile_number', 'email']
+	)
 
 	employee_bank_account_details = {detail.get('party'): detail for detail in employee_bank_account_details}
 	for slip in salary_slip_details:
@@ -295,7 +295,7 @@ def make_bank_payment_request(**args):
 
 	return bpr.as_dict()
 
-def get_jv_for_payroll_entry(source, target):
+def update_payroll_entry(source, target):
 	target.payment_order_type = "Payroll Entry"
 	target.docstaus = 0
 	target.status = 'Pending'
@@ -307,8 +307,27 @@ def get_jv_for_payroll_entry(source, target):
 		for ref in get_employee_payemnt_details(source):
 			target.append("references",ref)
 
+def update_bank_entry(source, target):
+	print(source, target, "source target")
+	target.payment_order_type = "Journal Entry"
+	target.docstaus = 0
+	target.status = 'Pending'
+
+	payroll_entry = frappe.db.get_value("Journal Entry Account", {'parent': source.name, 'party_type': 'Employee'}, fieldname = "reference_name")
+	if not payroll_entry:
+		frappe.throw("Payroll Entry not found for Bank Entry")
+	
+	payroll_entry_doc = frappe.get_doc("Payroll Entry", payroll_entry)
+	
+	if get_employee_payemnt_details(payroll_entry_doc):
+		for ref in get_employee_payemnt_details(payroll_entry_doc):
+			target.append("references",ref)
+	
+
+		
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None, args= None):
+	print(source_name, target_doc, args.get('ref_doctype'))
 	from frappe.model.mapper import get_mapped_doc
 
 	def set_missing_values(source, target):
@@ -390,7 +409,7 @@ def make_payment_order(source_name, target_doc=None, args= None):
 			)
 		target.status = "Pending"
 
-	if args.get('ref_doctype') not in ["Payment Entry", "Payroll Entry"]:
+	if args.get('ref_doctype') not in ["Payment Entry", "Payroll Entry", "Journal Entry"]:
 		doclist = get_mapped_doc(
 			"Bank Payment Request",
 			source_name,
@@ -415,17 +434,29 @@ def make_payment_order(source_name, target_doc=None, args= None):
 			update_missing_values,
 		)
 	elif args.get('ref_doctype') == "Payroll Entry":
-			doclist = get_mapped_doc(
-				"Payroll Entry",
-				source_name,
-				{
-					"Payroll Entry": {
-						"doctype": "Payment Order",
-					}
-				},
-				target_doc,
-				get_jv_for_payroll_entry,
-			)
+		doclist = get_mapped_doc(
+			"Payroll Entry",
+			source_name,
+			{
+				"Payroll Entry": {
+					"doctype": "Payment Order",
+				}
+			},
+			target_doc,
+			update_payroll_entry,
+		)
+	elif args.get('ref_doctype') == "Journal Entry":
+		doclist = get_mapped_doc(
+			"Journal Entry",
+			source_name,
+			{
+				"Journal Entry": {
+					"doctype": "Payment Order",
+				}
+			},
+			target_doc,
+			update_bank_entry,
+		)
 	
 
 	return doclist
@@ -491,18 +522,48 @@ def get_amount(ref_doc, payment_account=None):
 
 
 @frappe.whitelist()
-def get_existing_bank_entry():
-    payroll_entries= frappe.db.sql("""
-    	SELECT 
-    		DISTINCT jea.reference_name as payroll_entry
-    	FROM 
-    		`tabJournal Entry`je 
-    	JOIN 
-        	`tabJournal Entry Account`jea 
-    	ON
-    		je.name = jea.parent 
-    	WHERE 
-     		je.docstatus != 2 AND jea.reference_type = 'Payroll Entry' AND je.voucher_type = 'Bank Entry'
-     """, as_dict= 1 )
-    return [payroll_entry_.payroll_entry for payroll_entry_ in payroll_entries]
-    
+def get_existing_bank_entry(filters= None):
+	condition = ''
+	if filters and filters.get('refrence_name'):
+		condition += "AND jea.reference_name = '{0}'".format(filters.get('refrence_name'))
+
+	payroll_entries= frappe.db.sql(f"""
+		SELECT 
+			DISTINCT jea.reference_name as payroll_entry
+		FROM 
+			`tabJournal Entry`je 
+		JOIN 
+			`tabJournal Entry Account`jea 
+		ON
+			je.name = jea.parent 
+		WHERE 
+	 		je.docstatus != 2 AND jea.reference_type = 'Payroll Entry' AND je.voucher_type = 'Bank Entry'
+			{condition}
+	 """, as_dict= 1 )
+	return [payroll_entry.payroll_entry for payroll_entry in payroll_entries]
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict):
+	search_condition = ''
+	if filters and filters.get('company'):
+		search_condition += f"AND je.company = '{filters.get('company')}'"
+	if txt:
+		search_condition += f"AND je.name LIKE '%{txt}%'"
+
+	bank_entries = frappe.db.sql(f"""
+		SELECT 
+			DISTINCT je.name,je.company, je.total_debit as total, je.voucher_type
+		FROM 
+			`tabJournal Entry`je 
+		JOIN 
+			`tabJournal Entry Account`jea 
+		ON
+			je.name = jea.parent
+		WHERE
+	 		je.docstatus != 2 AND ISNULL(je.payment_order) AND
+			jea.reference_type = 'Payroll Entry' AND je.voucher_type = 'Bank Entry' AND
+			jea.party_type= "Employee" {search_condition}
+	 """, as_dict= 1)
+
+	return bank_entries

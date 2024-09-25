@@ -4,7 +4,7 @@ from india_banking.india_banking.doc_events.payment_order import make_payment_en
 
 from frappe.utils import get_datetime, get_link_to_form, getdate
 import re
-
+from india_banking.india_banking.doctype.bank_payment_request.bank_payment_request import get_existing_bank_entry
 class CustomPaymentOrder(PaymentOrder):
 	def before_submit(self):
 		self.update_unique_and_file_reference_id()
@@ -80,7 +80,7 @@ class CustomPaymentOrder(PaymentOrder):
 			frappe.throw(f"Unsupported party type {party.party_type}")
 
 	def on_submit(self):
-		if self.payment_order_type not in ["Payment Entry", "Payroll Entry"]:
+		if self.payment_order_type not in ["Payment Entry", "Payroll Entry", "Journal Entry"]:
 			make_payment_entries(self.name)
 			frappe.db.set_value("Payment Order", self.name, "status", "Pending")
 
@@ -88,7 +88,7 @@ class CustomPaymentOrder(PaymentOrder):
 				if hasattr(ref, "bank_payment_request"):
 					frappe.db.set_value("Bank Payment Request", ref.bank_payment_request, "status", "Payment Ordered")
 
-		if self.payment_order_type == "Payroll Entry":
+		if self.payment_order_type in ["Payroll Entry", "Journal Entry"]:
 			self.make_payroll_bank_entry(submit=True)
 	
 	def make_payroll_bank_entry(self, submit=False):
@@ -96,15 +96,21 @@ class CustomPaymentOrder(PaymentOrder):
 		payroll_entry = set([ref.payroll_entry for ref in self.references if ref.payroll_entry]) if self.references else []
 		if payroll_entry:
 			for pe in payroll_entry:
-				try:
-					payroll_entry = frappe.get_doc("Payroll Entry", pe)
+				payroll_entry = frappe.get_doc("Payroll Entry", pe)
+				if not payroll_entry.payment_account:
+					link = frappe.utils.get_link_to_form("Payroll Entry", pe)
+					frappe.throw(f"Payment Account is mandatory for Payroll Entry {link}")
+
+				journal_entry= get_bank_entry_for_payroll({'refrence_name': pe})
+				if not journal_entry:
 					journal = payroll_entry.make_bank_entry(for_withheld_salaries=False)
-					frappe.db.set_value("Journal Entry", journal, {"cheque_no": self.name, 'cheque_date': getdate()})
-					if submit:
-						journal.reload()
-						journal.submit()
-				except:
-					frappe.log_error(title="Error in creating Bank Entry for Payroll Entry", message=frappe.get_traceback())
+				else:
+					journal = frappe.get_doc('Journal Entry', journal_entry)
+
+				frappe.db.set_value("Journal Entry", journal.name, {"payment_order": self.name, "cheque_no": self.name, 'cheque_date': getdate()})
+				if submit and not journal.docstatus:
+					journal.reload()
+					journal.submit()
 
 	def on_update_after_submit(self):
 		frappe.throw("You cannot modify a payment order")
@@ -207,3 +213,23 @@ def get_party_summary(references, company_bank_account):
 				row["mode_of_transfer"] = mot
 
 	return result
+
+def get_bank_entry_for_payroll(filters= None):
+	if filters and filters.get('refrence_name'):
+		condition = "AND jea.reference_name = '{0}'".format(filters.get('refrence_name'))
+
+	journal_entry= frappe.db.sql(f"""
+		SELECT 
+			je.name
+		FROM 
+			`tabJournal Entry`je
+		JOIN 
+			`tabJournal Entry Account`jea
+		ON
+			je.name = jea.parent 
+		WHERE 
+	 		je.docstatus != 2 AND jea.reference_type = 'Payroll Entry' AND je.voucher_type = 'Bank Entry'
+			{condition} LIMIT 1
+	 """, as_dict= 1 )
+
+	return journal_entry if journal_entry else ''

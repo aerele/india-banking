@@ -67,40 +67,83 @@ frappe.ui.form.on('Payment Order', {
 					}
 				});
 			}, __("Get from"));
-			frm.add_custom_button(__('Payroll Entry'), function() {
-				frappe.call({
-						method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.get_existing_bank_entry",
-                        args: {
-                            ref_doctype: "Payroll Entry",
-                            ref_name: frm.doc.name,
-                            grand_total: frm.doc.rounded_total || frm.doc.grand_total
-                        },
-                        callback: (r) => {
-							console.log(r.message);
-							
-                            frm.trigger("remove_row_if_empty");
-				
-							let docs = frm.doc.references?.map((doc)=>{return doc.payroll_entry})
-							let ignore_entry = docs + r.message
-							erpnext.utils.map_current_doc({
-								method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
-								source_doctype: "Payroll Entry",
-								target: frm,
-								args: {"ref_doctype": "Payroll Entry"},
-								setters: {
-									company: frappe.defaults.get_user_default("company"),
-									start_date: '',
-									end_date: ''
+
+			frappe.db.get_value("Payroll Settings", {"name": "Payroll Settings"},
+					["process_payroll_accounting_entry_based_on_employee"]
+				).then((r)=>{
+					if(cint(r.message.process_payroll_accounting_entry_based_on_employee)){
+						frm.add_custom_button(__('Payroll Entry'), function() {
+							frappe.call({
+								method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.get_existing_bank_entry",
+								args: {
+									ref_doctype: "Payroll Entry",
+									ref_name: frm.doc.name,
+									grand_total: frm.doc.rounded_total || frm.doc.grand_total
 								},
-								get_query_filters: {
-									docstatus: 1,
-									name: ["not in", ignore_entry],
+								callback: (r) => {
+									console.log(r.message);
+									
+									frm.trigger("remove_row_if_empty");
+						
+									let docs = frm.doc.references?.map((doc)=>{return doc.payroll_entry})
+									let ignore_entry = docs + r.message
+									erpnext.utils.map_current_doc({
+										method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
+										source_doctype: "Payroll Entry",
+										target: frm,
+										args: {"ref_doctype": "Payroll Entry"},
+										setters: {
+											company: frappe.defaults.get_user_default("company"),
+											start_date: '',
+											end_date: ''
+										},
+										get_query_filters: {
+											docstatus: 1,
+											name: ["not in", ignore_entry],
+										}
+									});
 								}
-							});
-						}
-					})
-			}, __("Get from"));
-		};
+							})
+					}, __("Get from"));
+
+					frm.add_custom_button(__('Bank Entry'), function() {
+						erpnext.utils.map_current_doc({
+							method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
+							source_doctype: "Journal Entry",
+							target: frm,
+							args: {"ref_doctype": "Journal Entry"},
+							setters: [
+								{
+									fieldtype: "Link",
+									label: "Company",
+									fieldname: "company",
+									options: "Company",
+									default: frappe.defaults.get_user_default("company")
+								},
+								{
+									fieldtype: "Currency",
+									label: "Amount",
+									fieldname: "total",
+									hidden: 1
+								},
+								{
+									fieldtype: "Select",
+									label: "Entry Type",
+									fieldname: "voucher_type",
+									options: "Bank Entry",
+									hidden: 1
+								}
+							],
+							get_query: function () {
+								return {
+									query: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.get_bank_entry"
+								};
+							},
+						});
+					}, __("Get from"));
+				}
+			})
+		}
 		if (frm.doc.docstatus===1 && frm.doc.payment_order_type==='Bank Payment Request') {
 			frm.remove_custom_button(__('Create Payment Entries'));
 		}

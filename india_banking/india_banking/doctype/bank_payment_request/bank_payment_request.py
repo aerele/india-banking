@@ -172,7 +172,6 @@ def get_employee_payemnt_details(journal_accounts):
 			frappe.throw('Bank Account not found for Employee {0}'.format(slip.get('employee')))
 
 		journal_account = frappe._dict(journal_account)
-		print(journal_account)
 		details = {
 			"reference_doctype": "Journal Entry",
 			"reference_name": journal_account.journal,
@@ -317,12 +316,10 @@ def update_bank_entry(source, target):
 			parent = %s AND party_type = 'Employee' AND payment_status NOT IN ('Paid', 'Ordered')""", source.name, as_dict=1)
 		
 	if get_employee_payemnt_details(journal_accounts):
-		print(get_employee_payemnt_details(journal_accounts), "get_employee_payemnt_details(journal_accounts) ===================")
 		for ref in get_employee_payemnt_details(journal_accounts):
 			target.append("references",ref)
 	
 
-		
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None, args= None):
 	from frappe.model.mapper import get_mapped_doc

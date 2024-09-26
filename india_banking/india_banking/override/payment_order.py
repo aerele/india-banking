@@ -138,8 +138,8 @@ class CustomPaymentOrder(PaymentOrder):
 				frappe.throw("You cannot cancel a payment order with Initiated/Processed payments")
 				return
 		for account in self.summary:
-			if account.payment_status == "Processed":
-				frappe.throw("Cannot cancel a paid Order")
+			if account.payment_status == "Processed" or account.payment_status == "Initiated":
+				frappe.throw("Cannot cancel a {} Order".format(account.payment_status))
 
 	def on_trash(self):
 		if self.docstatus == 1:
@@ -228,7 +228,7 @@ def get_party_summary(references, company_bank_account):
 				"minimum_limit": ["<=", row["amount"]],
 				"maximum_limit": [">", row["amount"]],
 				"is_bank_specific": 0
-				}, 
+				},
 				order_by = "priority asc")
 			if mot:
 				row["mode_of_transfer"] = mot

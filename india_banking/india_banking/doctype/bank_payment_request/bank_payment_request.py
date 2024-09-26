@@ -159,7 +159,7 @@ def get_employee_payemnt_details(journal_accounts):
 			'disabled': 0,
 			'is_default': 1
 		}, 
-		['name','party', 'party_type', 'bank', 'branch_code', 'bank_account_no', 'mobile_number', 'email']
+		['name','party', 'party_type', 'bank', 'branch_code', 'bank_account_no', 'mobile_number', 'email', 'workflow_state']
 	)
 
 	employee_bank_account_details = {detail.get('party'): detail for detail in employee_bank_account_details}
@@ -169,7 +169,13 @@ def get_employee_payemnt_details(journal_accounts):
 	for journal_account in journal_accounts:
 		employee_bank_details = employee_bank_account_details.get(journal_account.get('employee', ''))
 		if not employee_bank_details:
-			frappe.throw('Bank Account not found for Employee {0}'.format(slip.get('employee')))
+			frappe.throw('Default Bank Account not found for Employee {0}'.format(journal_account.get('employee')))
+		else:
+			if employee_bank_details.get('workflow_state') != 'Approved':
+				link = frappe.utils.get_link_to_form("Bank Account", employee_bank_details.get('name'))
+				frappe.throw("Bank Account<b>({1})</b> for Employee {0} is not approved".format(
+					journal_account.get('employee'), link)
+				)
 
 		journal_account = frappe._dict(journal_account)
 		details = {
@@ -564,6 +570,6 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 			je.voucher_type = 'Bank Entry' AND jea.party_type= "Employee" {search_condition}
 		GROUP BY 
 			je.name, je.company, je.voucher_type
-	 """, as_dict= 1, debug=1)
+	 """, as_dict= 1)
 
 	return bank_entries

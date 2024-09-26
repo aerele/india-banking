@@ -19,6 +19,7 @@
   {
    "fieldname": "action",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Action"
   },
   {
@@ -29,6 +30,7 @@
   {
    "fieldname": "method",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Method"
   },
   {
@@ -44,11 +46,13 @@
   {
    "fieldname": "response",
    "fieldtype": "Code",
+   "in_list_view": 1,
    "label": "Response"
   },
   {
    "fieldname": "status_code",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Status Code"
   },
   {
@@ -64,7 +68,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-08-13 14:53:20.503589",
+ "modified": "2024-09-26 15:44:16.444407",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Request Log",

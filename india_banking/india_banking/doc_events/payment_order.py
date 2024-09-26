@@ -399,7 +399,7 @@ def get_payment_status(docname):
 
 	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
 
-	if payment_order_doc.company_bank == 'ICICI Bank' and bank_connector.bulk_transaction :
+	if payment_order_doc.company_bank == 'ICICI Bank' and bank_connector.bulk_transaction:
 		get_bulk_payment_status(payment_order_doc)
 
 	else:
@@ -710,7 +710,11 @@ def get_response(payment_info, company_bank_account, company):
 			if response_data.status == "Processed":
 				if response_data.reference_number:
 					frappe.db.set_value("Payment Order Summary", payment_info.name, "reference_number", response_data.reference_number)
-					frappe.db.set_value("Payment Entry", payment_info.payment_entry, "reference_no", response_data.reference_number)
+					if payment_info.payment_entry:
+						frappe.db.set_value("Payment Entry", payment_info.payment_entry, "reference_no", response_data.reference_number)
+					if payment_info.payroll_entry:
+						bank_entry_ref, bank_entry_acc_ref  = get_refrence_number_for_bank_entry(payment_info.payroll_entry, response_data.reference_number)
+						frappe.db.set_value("Journal Entry Account", bank_entry_acc_ref , "reference_number", response_data.reference_number)
 
 					notify_party(payment_info, response_data)
 
@@ -721,18 +725,20 @@ def get_response(payment_info, company_bank_account, company):
 			
 			elif response_data.status == "Failed":
 				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", response_data.status)
-				payment_entry_doc = frappe.get_doc("Payment Entry", payment_info.payment_entry)
-				if payment_entry_doc.docstatus == 1:
-					payment_entry_doc.cancel()
-				process_bank_payment_requests(payment_info.name)
+				if payment_info.payment_entry:
+					payment_entry_doc = frappe.get_doc("Payment Entry", payment_info.payment_entry)
+					if payment_entry_doc.docstatus == 1:
+						payment_entry_doc.cancel()
+					process_bank_payment_requests(payment_info.name)
 			
 			elif response_data.status == "Rejected":
 				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", response_data.status)
-				payment_entry_doc = frappe.get_doc("Payment Entry", payment_info.payment_entry)
-				if payment_entry_doc.docstatus == 1:
-					payment_entry_doc.cancel()
+				if payment_info.payment_entry:
+					payment_entry_doc = frappe.get_doc("Payment Entry", payment_info.payment_entry)
+					if payment_entry_doc.docstatus == 1:
+						payment_entry_doc.cancel()
 
-				process_bank_payment_requests(payment_info.name)
+					process_bank_payment_requests(payment_info.name)
 
 def process_bank_payment_requests(payment_order_summary):
 	pos = frappe.get_doc("Payment Order Summary", payment_order_summary)
@@ -760,3 +766,20 @@ def process_bank_payment_requests(payment_order_summary):
 			pr_doc.check_if_payment_entry_exists()
 			pr_doc.set_as_cancelled()
 			pr_doc.db_set("docstatus", 2)
+
+def get_refrence_number_for_bank_entry(payment_info):
+	ref_name = frappe.db.sql(f"""
+		SELECT 
+			je.name, jea.name,
+		FROM
+			`tabJournal Entry`je
+		JOIN 
+			`tabJournal Entry Account`jea
+		ON
+			je.name = jea.parent 
+		WHERE
+			je.docstatus != 2 AND jea.reference_type = 'Payroll Entry' AND jea.reference_name = '{payment_info.payroll_entry}' AND 
+			je.voucher_type = 'Bank Entry' AND jea.party_type = '{payment_info.party_type}' AND jea.party = '{payment_info.party}'
+		LIMIT 1
+	""", as_dict= 1, debug=1)
+	return ref_name

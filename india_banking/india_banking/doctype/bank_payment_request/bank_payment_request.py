@@ -562,6 +562,6 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 	 		je.docstatus != 2 AND ISNULL(je.payment_order) AND
 			jea.reference_type = 'Payroll Entry' AND je.voucher_type = 'Bank Entry' AND
 			jea.party_type= "Employee" {search_condition}
-	 """, as_dict= 1)
+	 """, as_dict= 1, debug=1)
 
 	return bank_entries

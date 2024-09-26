@@ -108,8 +108,8 @@ class CustomPaymentOrder(PaymentOrder):
 					journal = frappe.get_doc('Journal Entry', journal_entry)
 
 				frappe.db.set_value("Journal Entry", journal.name, {"payment_order": self.name, "cheque_no": self.name, 'cheque_date': getdate()})
+				journal.reload()
 				if submit and not journal.docstatus:
-					journal.reload()
 					journal.submit()
 
 	def on_update_after_submit(self):
@@ -139,9 +139,9 @@ class CustomPaymentOrder(PaymentOrder):
 		else:
 			ref_field = "payment_order_status"
 			ref_doc_field = "reference_name"
-
-		for d in self.references:
-			frappe.db.set_value(self.payment_order_type, d.get(ref_doc_field), ref_field, status)
+		if self.payment_order_type not in ["Payment Entry", "Journal Entry", "Payroll Entry"]:
+			for d in self.references:
+				frappe.db.set_value(self.payment_order_type, d.get(ref_doc_field), ref_field, status)
 
 
 @frappe.whitelist()

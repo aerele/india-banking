@@ -2,6 +2,9 @@ frappe.ui.form.on('Payment Order', {
 	onload(frm) {
 		frm.set_df_property("payment_order_type", "options", [""].concat(["Bank Payment Request", "Payment Entry", "Purchase Invoice", "Payroll Entry"]));
 		frm.refresh_field("payment_order_type");
+		if(frm.is_new()){
+			cur_frm.clear_table('references')
+		}
 
 		frm.set_query("company_bank_account", function (doc) {
 			return {
@@ -104,44 +107,44 @@ frappe.ui.form.on('Payment Order', {
 									});
 								}
 							})
-					}, __("Get from"));
+						}, __("Get from"));
 
-					frm.add_custom_button(__('Bank Entry'), function() {
-						erpnext.utils.map_current_doc({
-							method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
-							source_doctype: "Journal Entry",
-							target: frm,
-							args: {"ref_doctype": "Journal Entry"},
-							setters: [
-								{
-									fieldtype: "Link",
-									label: "Company",
-									fieldname: "company",
-									options: "Company",
-									default: frappe.defaults.get_user_default("company")
+						frm.add_custom_button(__('Bank Entry'), function() {
+							erpnext.utils.map_current_doc({
+								method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
+								source_doctype: "Journal Entry",
+								target: frm,
+								args: {"ref_doctype": "Journal Entry"},
+								setters: [
+									{
+										fieldtype: "Link",
+										label: "Company",
+										fieldname: "company",
+										options: "Company",
+										default: frappe.defaults.get_user_default("company")
+									},
+									{
+										fieldtype: "Currency",
+										label: "Amount",
+										fieldname: "total",
+										hidden: 1
+									},
+									{
+										fieldtype: "Select",
+										label: "Entry Type",
+										fieldname: "voucher_type",
+										options: "Bank Entry",
+										hidden: 1
+									}
+								],
+								get_query: function () {
+									return {
+										query: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.get_bank_entry"
+									};
 								},
-								{
-									fieldtype: "Currency",
-									label: "Amount",
-									fieldname: "total",
-									hidden: 1
-								},
-								{
-									fieldtype: "Select",
-									label: "Entry Type",
-									fieldname: "voucher_type",
-									options: "Bank Entry",
-									hidden: 1
-								}
-							],
-							get_query: function () {
-								return {
-									query: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.get_bank_entry"
-								};
-							},
-						});
-					}, __("Get from"));
-				}
+							});
+						}, __("Get from"));
+					}
 			})
 		}
 		if (frm.doc.docstatus===1 && frm.doc.payment_order_type==='Bank Payment Request') {

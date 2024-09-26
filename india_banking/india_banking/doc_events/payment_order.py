@@ -712,9 +712,8 @@ def get_response(payment_info, company_bank_account, company):
 					frappe.db.set_value("Payment Order Summary", payment_info.name, "reference_number", response_data.reference_number)
 					if payment_info.payment_entry:
 						frappe.db.set_value("Payment Entry", payment_info.payment_entry, "reference_no", response_data.reference_number)
-					if payment_info.payroll_entry:
-						bank_entry_ref, bank_entry_acc_ref  = get_refrence_number_for_bank_entry(payment_info.payroll_entry, response_data.reference_number)
-						frappe.db.set_value("Journal Entry Account", bank_entry_acc_ref , "reference_number", response_data.reference_number)
+					if payment_info.journal_entry_account:
+						frappe.db.set_value("Journal Entry Account", payment_info.journal_entry_account , "reference_number", response_data.reference_number)
 
 					notify_party(payment_info, response_data)
 
@@ -724,6 +723,8 @@ def get_response(payment_info, company_bank_account, company):
 				frappe.db.set_value("Payment Order Summary", payment_info.name, "message", "Payment is pending")
 			
 			elif response_data.status == "Failed":
+				if payment_info.journal_entry_account:
+					frappe.db.set_value("Journal Entry Account", payment_info.journal_entry_account , "payment_status", "Failed")
 				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", response_data.status)
 				if payment_info.payment_entry:
 					payment_entry_doc = frappe.get_doc("Payment Entry", payment_info.payment_entry)
@@ -732,7 +733,11 @@ def get_response(payment_info, company_bank_account, company):
 					process_bank_payment_requests(payment_info.name)
 			
 			elif response_data.status == "Rejected":
+				if payment_info.journal_entry_account:
+					frappe.db.set_value("Journal Entry Account", payment_info.journal_entry_account , "payment_status", "Failed")
+
 				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", response_data.status)
+
 				if payment_info.payment_entry:
 					payment_entry_doc = frappe.get_doc("Payment Entry", payment_info.payment_entry)
 					if payment_entry_doc.docstatus == 1:

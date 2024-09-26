@@ -152,16 +152,7 @@ def validate_payment_request_status(**args):
 
 	return ""
 
-def get_employee_payemnt_details(payroll_entry):
-	payment_details = []
-
-	salary_slip_details = frappe.db.get_all(
-		'Salary Slip', {
-			'payroll_entry': payroll_entry.name,
-			'docstatus': 1
-		}, 
-		['name', 'employee', 'rounded_total']
-	)
+def get_employee_payemnt_details(journal_accounts):
 	employee_bank_account_details = frappe.db.get_all('Bank Account',
 		{
 			'party_type': 'Employee',
@@ -172,22 +163,26 @@ def get_employee_payemnt_details(payroll_entry):
 	)
 
 	employee_bank_account_details = {detail.get('party'): detail for detail in employee_bank_account_details}
-	for slip in salary_slip_details:
-		employee_bank_details = employee_bank_account_details.get(slip.get('employee', ''))
+
+	payment_details = []
+
+	for journal_account in journal_accounts:
+		employee_bank_details = employee_bank_account_details.get(journal_account.get('employee', ''))
 		if not employee_bank_details:
 			frappe.throw('Bank Account not found for Employee {0}'.format(slip.get('employee')))
 
-		slip = frappe._dict(slip)
+		journal_account = frappe._dict(journal_account)
+		print(journal_account)
 		details = {
-			"reference_doctype": "Salary Slip",
-			"reference_name": slip.name,
-			"amount": slip.rounded_total,
-			"payroll_entry": payroll_entry.name,
+			"reference_doctype": "Journal Entry",
+			"reference_name": journal_account.journal,
+			"journal_entry_account": journal_account.name,
+			"amount": journal_account.amount,
 			"party_type": "Employee",
-			"party": slip.employee,
+			"party": journal_account.employee,
 			"mode_of_payment": "",
 			"bank_account": employee_bank_details.name,
-			"account": payroll_entry.payroll_payable_account,
+			"account": journal_account.account,
 		}
 		payment_details.append(details)
 
@@ -312,14 +307,18 @@ def update_bank_entry(source, target):
 	target.docstaus = 0
 	target.status = 'Pending'
 
-	payroll_entry = frappe.db.get_value("Journal Entry Account", {'parent': source.name, 'party_type': 'Employee'}, fieldname = "reference_name")
-	if not payroll_entry:
-		frappe.throw("Payroll Entry not found for Bank Entry")
-	
-	payroll_entry_doc = frappe.get_doc("Payroll Entry", payroll_entry)
-	
-	if get_employee_payemnt_details(payroll_entry_doc):
-		for ref in get_employee_payemnt_details(payroll_entry_doc):
+	journal_accounts = frappe.db.sql("""
+		SELECT 
+			name, account, against_account, cost_center, debit as amount, exchange_rate, parent,
+			party as employee, party_type, parent as journal
+		FROM 
+			`tabJournal Entry Account`
+		WHERE
+			parent = %s AND party_type = 'Employee' AND payment_status NOT IN ('Paid', 'Ordered')""", source.name, as_dict=1)
+		
+	if get_employee_payemnt_details(journal_accounts):
+		print(get_employee_payemnt_details(journal_accounts), "get_employee_payemnt_details(journal_accounts) ===================")
+		for ref in get_employee_payemnt_details(journal_accounts):
 			target.append("references",ref)
 	
 
@@ -544,6 +543,11 @@ def get_existing_bank_entry(filters= None):
 @frappe.validate_and_sanitize_search_inputs
 def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict):
 	search_condition = ''
+	if filters and filters.get('docs'):
+		filters.get('docs').append('')
+		exist_account = str(tuple(filters.get('docs')))
+		search_condition += f" AND je.name NOT IN {exist_account} "
+
 	if filters and filters.get('company'):
 		search_condition += f"AND je.company = '{filters.get('company')}'"
 	if txt:
@@ -551,17 +555,18 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 
 	bank_entries = frappe.db.sql(f"""
 		SELECT 
-			DISTINCT je.name,je.company, je.total_debit as total, je.voucher_type
+			DISTINCT je.name, je.company, sum(jea.debit) as total, je.voucher_type
 		FROM 
-			`tabJournal Entry`je 
+			`tabJournal Entry`je
 		JOIN 
-			`tabJournal Entry Account`jea 
+			`tabJournal Entry Account`jea
 		ON
 			je.name = jea.parent
 		WHERE
-	 		je.docstatus != 2 AND ISNULL(je.payment_order) AND
-			jea.reference_type = 'Payroll Entry' AND je.voucher_type = 'Bank Entry' AND
-			jea.party_type= "Employee" {search_condition}
+	 		je.docstatus = 1 AND  jea.payment_status NOT IN ('Paid', 'Ordered') AND
+			je.voucher_type = 'Bank Entry' AND jea.party_type= "Employee" {search_condition}
+		GROUP BY 
+			je.name, je.company, je.voucher_type
 	 """, as_dict= 1, debug=1)
 
 	return bank_entries

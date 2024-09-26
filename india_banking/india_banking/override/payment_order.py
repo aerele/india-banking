@@ -88,8 +88,22 @@ class CustomPaymentOrder(PaymentOrder):
 				if hasattr(ref, "bank_payment_request"):
 					frappe.db.set_value("Bank Payment Request", ref.bank_payment_request, "status", "Payment Ordered")
 
-		if self.payment_order_type in ["Payroll Entry", "Journal Entry"]:
-			self.make_payroll_bank_entry(submit=True)
+		if self.payment_order_type == "Journal Entry":
+			self.update_payemnt_status("submit")
+
+	def update_payemnt_status(self, action=None):
+		order_status = ""
+		if action == "submit":
+			order_status = 'Ordered'
+		elif action == "cancel":
+			order_status = ''
+		elif action == "Paid":
+			order_status = 'Paid'
+		elif action == "Failed":
+			order_status = 'Failed'
+
+		for jea in self.summary:
+			frappe.db.set_value("Journal Entry Account", jea.journal_entry_account, "payment_status", order_status)
 	
 	def make_payroll_bank_entry(self, submit=False):
 		self.docstatus = 0
@@ -118,10 +132,14 @@ class CustomPaymentOrder(PaymentOrder):
 
 
 	def before_cancel(self):
+		self.update_payemnt_status('cancel')
 		for summary_item in self.summary:
 			if summary_item.payment_status in ["Processed", "Initiated"]:
 				frappe.throw("You cannot cancel a payment order with Initiated/Processed payments")
 				return
+		for account in self.summary:
+			if account.payment_status == "Processed":
+				frappe.throw("Cannot cancel a paid Order")
 
 	def on_trash(self):
 		if self.docstatus == 1:
@@ -158,18 +176,22 @@ def get_party_summary(references, company_bank_account):
 		if summarise_payment_based_on == "Party":
 			if summarise_field:
 				return  ("party_type", "party", "bank_account", "account", "cost_center", "project",
-				"tax_withholding_category", "reference_doctype", "payment_entry", "payroll_entry")
+				"tax_withholding_category", "reference_doctype", "payment_entry", "journal_entry",
+				"journal_entry_account")
 
 			return (ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project,
-			ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry, ref.payroll_entry)
+			ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry, ref.journal_entry,
+			ref.journal_entry_account)
 
 		elif summarise_payment_based_on == "Voucher":
 			if summarise_field:
 				return ('party_type', 'party', 'reference_doctype', 'reference_name', 'bank_account',
-				'account', 'cost_center', 'project', 'tax_withholding_category', 'payment_entry', 'payroll_entry')
+				'account', 'cost_center', 'project', 'tax_withholding_category', 'payment_entry', 'journal_entry',
+				'journal_entry_account')
 
 			return (ref.party_type, ref.party, ref.reference_doctype, ref.reference_name, ref.bank_account,
-			ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.payment_entry, ref.payroll_entry)
+			ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.payment_entry,
+			ref.journal_entry, ref.journal_entry_account)
 
 	summary = {}
 	for ref in references:

@@ -28,6 +28,7 @@ class CustomPaymentOrder(PaymentOrder):
 		if save:
 			frappe.db.commit()
 
+
 	def validate(self):
 		self.validate_summary()
 		for payment_info in self.summary:
@@ -35,6 +36,8 @@ class CustomPaymentOrder(PaymentOrder):
 				lei_number = frappe.db.get_value(payment_info.party_type, payment_info.party, "lei_number")
 				if not lei_number:
 					frappe.throw(f"LEI Number required for payment > 50 Cr. For {payment_info.party_type} - {payment_info.party} - {payment_info.amount}")
+			if "A2A" in payment_info.mode_of_transfer and payment_info.bank != self.company_bank:
+				frappe.throw(f"Invalid mode of transfer for {payment_info.party_type} - {payment_info.party} at <b>row #{payment_info.idx}</b>")
 
 	def validate_summary(self):
 		if len(self.summary) <= 0:

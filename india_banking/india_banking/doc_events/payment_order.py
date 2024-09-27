@@ -405,7 +405,7 @@ def get_payment_status(docname):
 	else:
 		for i in payment_order_doc.summary:
 			if i.payment_status == "Initiated":
-				payment_response = get_response(i, payment_order_doc.company_bank_account, payment_order_doc.company)
+				get_response(i, payment_order_doc.company_bank_account, payment_order_doc.company)
 
 		payment_order_doc.reload()
 		update_payment_status(payment_order_doc)
@@ -708,19 +708,25 @@ def get_response(payment_info, company_bank_account, company):
 
 		if response_data:
 			if response_data.status == "Processed":
-				if response_data.reference_number:
-					frappe.db.set_value("Payment Order Summary", payment_info.name, "reference_number", response_data.reference_number)
+				if response_data.utr_number:
+					frappe.db.set_value("Payment Order Summary", payment_info.name, "reference_number", response_data.utr_number)
 					if payment_info.payment_entry:
-						frappe.db.set_value("Payment Entry", payment_info.payment_entry, "reference_no", response_data.reference_number)
+						frappe.db.set_value("Payment Entry", payment_info.payment_entry, "reference_no", response_data.utr_number)
 					if payment_info.journal_entry_account:
-						frappe.db.set_value("Journal Entry Account", payment_info.journal_entry_account , "reference_number", response_data.reference_number)
+						frappe.db.set_value("Journal Entry Account",
+							payment_info.journal_entry_account,
+							{
+								"payment_status": "Paid",
+								"reference_number": response_data.utr_number
+							}
+						)
 
 					notify_party(payment_info, response_data)
 
 				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", "Processed")
 
 			elif response_data.status == "Pending":
-				frappe.db.set_value("Payment Order Summary", payment_info.name, "message", "Payment is pending")
+				frappe.db.set_value("Payment Order Summary", payment_info.name, "message", response_data.message)
 			
 			elif response_data.status == "Failed":
 				if payment_info.journal_entry_account:

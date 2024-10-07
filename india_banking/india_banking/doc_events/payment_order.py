@@ -589,7 +589,6 @@ def group_by_invoices(self):
 				grouped_references[key].allocated_amount += ref.allocated_amount
 
 		self.references = list(grouped_references.values())
-
 def process_payment(payment_info, payment_order_doc):
 	# Fetch the connector information
 	bank_connector_exists = frappe.db.exists("Bank Connector", {
@@ -617,7 +616,12 @@ def process_payment(payment_info, payment_order_doc):
 	if not payment_order_doc.company_account_number:
 		frappe.throw("Source bank account number is missing")
 
-	url = f"{bank_connector.url}/api/method/india_banking_connector.api.connect"
+	app_name = frappe._dict(get_bank_info(payment_order_doc.company_bank)).app_name
+
+	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
+		app_name += "_composite"
+
+	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.make_payment"
 
 	api_key = bank_connector.api_key
 	api_secret = bank_connector.get_password("api_secret")
@@ -625,10 +629,8 @@ def process_payment(payment_info, payment_order_doc):
 		"Authorization": f"token {api_key}:{api_secret}",
 		"Content-Type": "application/json",
 	}
-	payment_payload.method = 'intiate_payment'
 
-
-	response = requests.request("POST", url, headers=headers, data=json.dumps(payment_payload))
+	response = requests.request("POST", url, headers=headers, data=json.dumps({"payload": payment_payload}))
 
 	#create api request log
 	create_api_log(response, 'Make Payment', payment_info.parenttype, payment_info.parent)
@@ -683,7 +685,12 @@ def get_response(payment_info, company_bank_account, company):
 
 	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
 
-	url = f"{bank_connector.url}/api/method/india_banking_connector.api.connect"
+	app_name = frappe._dict(get_bank_info(payment_order_doc.company_bank)).app_name
+
+	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
+		app_name += "_composite"
+
+	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.get_payment_status"
 
 	api_key = bank_connector.api_key
 	api_secret = bank_connector.get_password("api_secret")
@@ -695,9 +702,8 @@ def get_response(payment_info, company_bank_account, company):
 	payment_info_payload = frappe._dict(payment_info.as_dict(convert_dates_to_str=True))
 
 	payment_info_payload.doc = payment_order_doc.as_dict(convert_dates_to_str=True)
-	payment_info_payload.method = 'get_payment_status'
 
-	response = requests.request("POST", url, headers=headers, data=json.dumps(payment_info_payload))
+	response = requests.request("POST", url, headers=headers, data=json.dumps({"payload": payment_info_payload}))
 
 	#create api request log
 	create_api_log(response, 'Get Payment Status', payment_info.parenttype, payment_info.parent)
@@ -708,16 +714,16 @@ def get_response(payment_info, company_bank_account, company):
 
 		if response_data:
 			if response_data.status == "Processed":
-				if response_data.utr_number:
-					frappe.db.set_value("Payment Order Summary", payment_info.name, "reference_number", response_data.utr_number)
+				if response_data.reference_number:
+					frappe.db.set_value("Payment Order Summary", payment_info.name, "reference_number", response_data.reference_number)
 					if payment_info.payment_entry:
-						frappe.db.set_value("Payment Entry", payment_info.payment_entry, "reference_no", response_data.utr_number)
+						frappe.db.set_value("Payment Entry", payment_info.payment_entry, "reference_no", response_data.reference_number)
 					if payment_info.journal_entry_account:
 						frappe.db.set_value("Journal Entry Account",
 							payment_info.journal_entry_account,
 							{
 								"payment_status": "Paid",
-								"reference_number": response_data.utr_number
+								"reference_number": response_data.reference_number
 							}
 						)
 
@@ -726,7 +732,7 @@ def get_response(payment_info, company_bank_account, company):
 				frappe.db.set_value("Payment Order Summary", payment_info.name, "payment_status", "Processed")
 
 			elif response_data.status == "Pending":
-				frappe.db.set_value("Payment Order Summary", payment_info.name, "message", response_data.message)
+				frappe.db.set_value("Payment Order Summary", payment_info.name, "message", "Payment is pending")
 			
 			elif response_data.status == "Failed":
 				if payment_info.journal_entry_account:
@@ -763,7 +769,7 @@ def get_response(payment_info, company_bank_account, company):
 					if payment_entry_doc.docstatus == 1:
 						payment_entry_doc.cancel()
 
-					process_bank_payment_requests(payment_info.name)
+				process_bank_payment_requests(payment_info.name)
 
 def process_bank_payment_requests(payment_order_summary):
 	pos = frappe.get_doc("Payment Order Summary", payment_order_summary)

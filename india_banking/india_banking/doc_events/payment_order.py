@@ -76,7 +76,7 @@ def generate_payment_otp(docname):
   
 	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
 
-	payment_payload = {}
+	payment_payload = frappe._dict()
 
 	#payload reference to this payment.
 	payment_payload['doc'] = payment_order_doc.as_dict(convert_dates_to_str=True)
@@ -84,9 +84,10 @@ def generate_payment_otp(docname):
 	if not payment_order_doc.company_account_number:
 		frappe.throw("Source bank account number is missing")
 
-	app_name =  frappe._dict(get_bank_info(payment_order_doc.company_bank)).app_name
 
-	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.generate_otp"
+	url = f"{bank_connector.url}/api/method/india_banking_connector.api.connect"
+	payment_payload.method = 'generate_otp'
+	payment_payload.bulk_transaction = bank_connector.bulk_transaction
 
 	api_key = bank_connector.api_key
 	api_secret = bank_connector.get_password("api_secret")
@@ -94,17 +95,17 @@ def generate_payment_otp(docname):
 		"Authorization": f"token {api_key}:{api_secret}",
 		"Content-Type": "application/json"
 	}
-	response = requests.request("POST", url, headers=headers,data= json.dumps({'payload': payment_payload}))
+	response = requests.request("POST", url, headers=headers,data= json.dumps(payment_payload))
 
 	#create api response log
 	create_api_log(response, 'Generate Otp' , payment_order_doc.doctype, payment_order_doc.name)
 
 	if response.ok:
 		response_details = response.json().get('message')
-		if response_details.get('server_status') == 'success':
-			frappe.msgprint(response_details.get('server_message'), alert=1, indicator='green')
+		if response_details.get('status') == 'success':
+			frappe.msgprint(response_details.get('message'), alert=1, indicator='green')
 		else:
-			frappe.msgprint(response_details.get('server_message'), alert=1, indicator='red')
+			frappe.msgprint(response_details.get('message'), alert=1, indicator='red')
 	else:
 		frappe.throw('Invalid Request')
 
@@ -134,7 +135,7 @@ def make_bank_payment(docname, otp=None):
 	if payment_order_doc.company_bank == 'ICICI Bank'and bank_connector.bulk_transaction:
 		payment_response = process_bulk_payment(payment_order_doc, otp)
 
-		if payment_response.get('server_status') == 'success':
+		if payment_response.get('status') == 'ACCEPTED':
 			frappe.db.set_value("Payment Order", docname, "status", "Initiated")
 			frappe.db.set_value("Payment Order", docname, "file_sequence_number", payment_response.get('file_sequence_number'))
 
@@ -143,8 +144,8 @@ def make_bank_payment(docname, otp=None):
 				frappe.db.set_value("Payment Order Summary", row.name, "payment_status", "Initiated")
 				frappe.db.set_value("Payment Order Summary", row.name, "payment_date", nowdate())
 
-		if payment_response.get('server_status') == 'failed':
-			return {"message": "Failed - "+ cstr(payment_response.get('server_message'))}
+		elif payment_response.get('status') == 'Failed':
+			return {"message": "Failed - "+ cstr(payment_response.get('message'))}
 
 		return {"message": "Payment Initiated"}
 
@@ -200,11 +201,13 @@ def process_bulk_payment(payment_order_doc, otp):
   
 	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
 	
-	payment_payload = {}
+	payment_payload = frappe._dict()
 
 	#payment payload.
 	payment_payload['doc'] = payment_order_doc.as_dict(convert_dates_to_str=True)
-	payment_payload['otp'] = otp
+	payment_payload['doc']['otp'] = otp
+	payment_payload.method = 'make_payment'
+	payment_payload.bulk_transaction = bank_connector.bulk_transaction
 
 	payment_account_list = []
 
@@ -218,17 +221,12 @@ def process_bulk_payment(payment_order_doc, otp):
 		else:
 			payment_account_list.append(ref.account_name + '-' + ref.bank_account_no)
 
-	payment_payload['desc'] = f"Payment to {comma_and(payment_account_list)} via {payment_order_doc.name}"
+	payment_payload['doc']['desc'] = f"Payment to {comma_and(payment_account_list)} via {payment_order_doc.name}"
 
 	if not payment_order_doc.company_account_number:
 		frappe.throw("Source bank account number is missing")
- 
-	app_name = frappe._dict(get_bank_info(payment_order_doc.company_bank)).app_name
 
-	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
-		app_name += "_composite"
-
-	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.make_payment"
+	url = f"{bank_connector.url}/api/method/india_banking_connector.api.connect"
 
 	api_key = bank_connector.api_key
 	api_secret = bank_connector.get_password("api_secret")
@@ -237,7 +235,7 @@ def process_bulk_payment(payment_order_doc, otp):
 		"Content-Type": "application/json",
 	}
 
-	response = requests.request("POST", url, headers=headers, data=json.dumps({"payload": payment_payload}))
+	response = requests.request("POST", url, headers=headers, data=json.dumps(payment_payload))
 
 	#create api request log
 	create_api_log(response, 'Make Payment', payment_order_doc.doctype, payment_order_doc.name)
@@ -262,17 +260,14 @@ def get_bulk_payment_status(payment_order_doc):
 
 	bank_connector = frappe.get_doc("Bank Connector", bank_connector_exists)
 
-	payment_payload = {}
+	payment_payload = frappe._dict()
 
 	#payload reference to get payment status
 	payment_payload['doc'] = payment_order_doc.as_dict(convert_dates_to_str=True)
+	payment_payload.method = 'payment_status'
+	payment_payload.bulk_transaction = bank_connector.bulk_transaction
 
-	app_name =  frappe._dict(get_bank_info(payment_order_doc.company_bank)).app_name
-
-	if bank_connector.bank == "ICICI Bank" and not bank_connector.bulk_transaction:
-		app_name += "_composite"
-
-	url = f"{bank_connector.url}/api/method/{app_name}.{app_name}.doctype.bank_request_log.bank_request_log.get_payment_status"
+	url = f"{bank_connector.url}/api/method/india_banking_connector.api.connect"
 
 	api_key = bank_connector.api_key
 	api_secret = bank_connector.get_password("api_secret")
@@ -281,16 +276,16 @@ def get_bulk_payment_status(payment_order_doc):
 		"Content-Type": "application/json",
 	}
 
-	response = requests.request("POST", url, headers=headers, data=json.dumps({'payload': payment_payload}))
+	response = requests.request("POST", url, headers=headers, data=json.dumps(payment_payload))
 
 	#create api request log
 	create_api_log(response, 'Get Payment Status', payment_order_doc.doctype, payment_order_doc.name)
 
 	if response.ok:
 		response_details = frappe._dict(response.json().get('message', {}))
-		payment_details = response_details.payment_status
-		if response_details.get('server_status') == 'success':
-			frappe.msgprint(response_details.get('server_message'), response_details.get('file_status'))
+		payment_status_details = response_details.payment_status_details
+		if response_details.get('status') == 'Processed':
+			frappe.msgprint(response_details.get('message'), response_details.get('file_status'))
 			fs = response_details.get('file_status')
 			if response_details.get('file_status') in ['FAL', 'REJ', 'REC']:
 				for row in payment_order_doc.summary:
@@ -302,9 +297,9 @@ def get_bulk_payment_status(payment_order_doc):
 						payment_entry_doc.cancel()
 					process_bank_payment_requests(row.name)
 
-			if payment_details:
+			if payment_status_details:
 				for row in payment_order_doc.summary:
-					row_payment_status = frappe._dict(payment_details.get(row.name, {}))
+					row_payment_status = frappe._dict(payment_status_details.get(row.name, {}))
 					if row.payment_status == "Initiated" and row_payment_status:
 						if row_payment_status.transaction_status == 'SUC':
 							frappe.db.set_value("Payment Order Summary", row.name,

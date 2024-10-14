@@ -264,7 +264,7 @@ def get_bulk_payment_status(payment_order_doc):
 
 	#payload reference to get payment status
 	payment_payload['doc'] = payment_order_doc.as_dict(convert_dates_to_str=True)
-	payment_payload.method = 'payment_status'
+	payment_payload.method = 'get_payment_status'
 	payment_payload.bulk_transaction = bank_connector.bulk_transaction
 
 	url = f"{bank_connector.url}/api/method/india_banking_connector.api.connect"

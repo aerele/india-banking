@@ -8,6 +8,7 @@ import uuid, requests
 import random
 
 from india_banking.india_banking.install import STD_BANK_LIST
+from india_banking.utils import get_bank_address_details
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import create_api_log
 
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
@@ -606,6 +607,13 @@ def process_payment(payment_info, payment_order_doc):
 
 	payment_payload.party_name = party_name
 	payment_payload.desc = f"Payment to {payment_info.party} via {payment_info.parent}"
+
+	party_address = get_bank_address_details(payment_info.bank_account)
+	bank_link = frappe.utils.get_link_to_form("Bank Account", payment_info.bank_account)
+	if not party_address:
+		frappe.throw(f"Address not found for the selected bank account {bank_link} at <b>Row #{payment_info.idx}</b>")
+
+	payment_payload.address = json.dumps(party_address)
 
 	payment_payload.doc = payment_order_doc.as_dict(convert_dates_to_str=True)
 

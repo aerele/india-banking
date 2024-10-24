@@ -28,7 +28,8 @@
   "cost_center",
   "project",
   "payment_initiated",
-  "payment_date"
+  "payment_date",
+  "remarks"
  ],
  "fields": [
   {
@@ -171,7 +172,6 @@
    "fieldname": "reference_name",
    "fieldtype": "Data",
    "label": "Reference Name",
-   "options": "reference_doctype",
    "read_only": 1
   },
   {
@@ -191,12 +191,18 @@
    "fieldtype": "Data",
    "label": "Journal Entry Account",
    "read_only": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks",
+   "max_height": "50px"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-09-26 11:13:44.056821",
+ "modified": "2024-10-24 18:14:26.075488",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Payment Order Summary",

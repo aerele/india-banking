@@ -57,7 +57,8 @@
   "column_break_uumn",
   "payment_gateway",
   "payment_channel",
-  "payment_term"
+  "payment_term",
+  "remarks"
  ],
  "fields": [
   {
@@ -411,12 +412,18 @@
    "label": "Payment Term",
    "options": "Payment Term",
    "read_only": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks",
+   "max_height": "50px"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-30 18:19:35.946606",
+ "modified": "2024-10-24 18:05:52.430587",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

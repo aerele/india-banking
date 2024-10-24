@@ -43,6 +43,9 @@ class BankPaymentRequest(PaymentRequest):
 			if self.reference_doctype or self.reference_name:
 				frappe.throw("Payments with references cannot be marked as ad-hoc")
 
+		if self.remarks:
+			self.remarks = self.remarks[:48]
+
 		self.valdidate_bank_for_wire_transfer()
 
 	def validate_payment_request_amount(self):
@@ -87,6 +90,9 @@ class BankPaymentRequest(PaymentRequest):
 				)
 
 	def on_submit(self):
+		if not self.grand_total:
+			frappe.throw("Amount cannot be zero")
+
 		debit_account = None
 		if self.payment_type:
 			debit_account = frappe.db.get_value("Payment Type", self.payment_type, "account")
@@ -356,7 +362,8 @@ def make_payment_order(source_name, target_doc=None, args= None):
 				"is_adhoc": source.is_adhoc,
 				"cost_center": source.cost_center,
 				"project": source.project,
-				"tax_withholding_category": source.tax_withholding_category
+				"tax_withholding_category": source.tax_withholding_category,
+				"remarks": source.remarks
 			},
 		)
 		target.status = "Pending"

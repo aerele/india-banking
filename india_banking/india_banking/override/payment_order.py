@@ -56,6 +56,10 @@ class CustomPaymentOrder(PaymentOrder):
 				mode_of_transfer = default_mode_of_transfer
 				payment.mode_of_transfer = default_mode_of_transfer.mode
 
+			if payment.remarks:
+				if len(payment.remarks) > 48:
+					frappe.throw(f"Remarks should be less than 50 characters for {payment.party_type} - {payment.party} at <b>row #{payment.idx}</b>")
+
 			if payment.amount < mode_of_transfer.minimum_limit or payment.amount > mode_of_transfer.maximum_limit:
 				frappe.throw(f"Mode of Transfer not suitable for {payment.party} for {payment.amount}. {mode_of_transfer.mode}: {mode_of_transfer.minimum_limit}-{mode_of_transfer.maximum_limit}")
 
@@ -197,19 +201,23 @@ def get_party_summary(references, company_bank_account):
 			ref.journal_entry, ref.journal_entry_account)
 
 	summary = {}
+	remarks_list = {}
 	for ref in references:
 		ref = frappe._dict(ref)
 		key = _get_unique_key(ref)
+		remark = ref.remarks if ref.remarks else ""
 
 		if key in summary:
 			summary[key] += ref.amount
 		else:
 			summary[key] = ref.amount
+			remarks_list[key] = remark
 
 	result = []
 	for key, val in summary.items():
 		summary_line_item = {k: v for k, v in zip(_get_unique_key(summarise_field=True), key) }
 		summary_line_item["amount"] = val
+		summary_line_item["remarks"] = remarks_list[key]
 		summarise_payment_based_on = frappe.get_single("India Banking Settings").summarise_payment_based_on
 		if summarise_payment_based_on == "Party":
 			summary_line_item["is_party_wise"] = 1

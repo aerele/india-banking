@@ -40,6 +40,12 @@ frappe.ui.form.on('Bank Payment Request', {
 		setTimeout(() => {
 			frm.trigger('toggle_custom_button')
 		}, 500);
+
+		if(frm.doc.docstatus == 1){
+			cur_frm.add_custom_button('Goto Payment Order', function(){
+				frappe.set_route('List', 'Payment Order')
+			})
+		}
 	},
 	toggle_custom_button(frm){
 		if(frm.doc.status == "Initiated") {

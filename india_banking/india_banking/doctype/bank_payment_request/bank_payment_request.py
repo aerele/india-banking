@@ -221,6 +221,12 @@ def make_bank_payment_request(**args):
 	if existing_payment_request_amount:
 		grand_total -= existing_payment_request_amount
 
+	party_account_currency = ref_doc.get("party_account_currency")
+
+	if not party_account_currency:
+		party_account = get_party_account(party_type, ref_doc.get(party_type.lower()), ref_doc.company)
+		party_account_currency = get_account_currency(party_account)
+
 	if draft_payment_request:
 		bpr = frappe.get_doc("Bank Payment Request", draft_payment_request)
 		bpr.db_set("net_total", grand_total, update_modified=False)
@@ -253,6 +259,7 @@ def make_bank_payment_request(**args):
 				"payment_request_type": args.get("payment_request_type"),
 				"currency": ref_doc.currency,
 				"company": ref_doc.company,
+				"party_account_currency": party_account_currency,
 				"grand_total": grand_total,
 				"mode_of_payment": "Wire Transfer",
 				"transaction_date": today(),

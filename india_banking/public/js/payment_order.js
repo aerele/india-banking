@@ -131,7 +131,7 @@ frappe.ui.form.on('Payment Order', {
 					frappe.db.get_value(
 						"Bank Connector",
 						{ bank: frm.doc.company_bank},
-						"bulk_transaction"
+						["bulk_transaction", "bank"]
 					,(r)=>{
 						if(r.bulk_transaction){
 							frm.add_custom_button(__('Initiate Payment'), function() {
@@ -173,22 +173,63 @@ frappe.ui.form.on('Payment Order', {
 								})
 							});
 						}else{
-							frm.add_custom_button(__('Initiate Payment'), function() {
-								frappe.call({
-									method: "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
-									freeze: 1,
-									freeze_message: "Initiating Payment...",
-									args: {
-										docname: frm.doc.name
-									},
-									callback: function(r) {
-										if(r.message && !r.exc) {
-											frappe.msgprint(r.message)
+							if(r.bank == "ICICI Bank"){
+								frm.add_custom_button(__('Initiate Payment'), function() {
+									frappe.call({
+										method: "india_banking.india_banking.doc_events.payment_order.send_otp",
+										freeze: true,
+										freeze_message: "Sending OTP...",
+										args: {
+											docname: frm.doc.name
+										},
+										callback: (res)=>{//
+											if(!res.exc && res.message){
+												frappe.prompt(
+													{
+														label: 'Enter OTP',
+														place_holder: 'Enter',
+														fieldname: 'otp',
+														fieldtype: 'Data'
+													}, (values) => {
+													frappe.call({
+														method: "india_banking.india_banking.doc_events.payment_order.verify_otp",
+														freeze: 1,
+														args: {
+															docname: frm.doc.name,
+															otp: values.otp,
+														},
+														callback: function(r) {
+															if(r.message) {
+																frappe.msgprint(r.message)
+															}
+															frm.reload_doc();
+														}
+													});
+												},
+												"Sent an OTP to the registered mobile number",
+												"Verify")
+											}//
 										}
-										frm.reload_doc();
-									}
+									})
 								});
-							});
+							}else{
+								frm.add_custom_button(__('Initiate Payment'), function() {
+									frappe.call({
+										method: "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
+										freeze: 1,
+										freeze_message: "Initiating Payment...",
+										args: {
+											docname: frm.doc.name
+										},
+										callback: function(r) {
+											if(r.message && !r.exc) {
+												frappe.msgprint(r.message)
+											}
+											frm.reload_doc();
+										}
+									});
+								});
+							}
 						}
 					})
 				}

@@ -12,6 +12,95 @@ from india_banking.india_banking.doctype.india_banking_request_log.india_banking
 
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
 
+from random import randint
+from frappe.utils.password import passlibctx
+
+protect_otp = lambda data, otp: data.replace(otp, '*' * len(otp))
+
+@frappe.whitelist()
+def send_otp(docname):
+	ref_doc = frappe.get_doc("Payment Order", docname)
+	otp = str(randint(10000, 99999))
+	otp_settings = frappe.get_doc("OTP Settings")
+	if not otp_settings.enable_otp:
+		frappe.throw("OTP is not enabled for this site")
+	try:
+		url = otp_settings.sms_api_url
+
+		headers = {
+			"Content-Type": "application/json",
+			"apikey": otp_settings.get_password("api_key")
+		}
+
+		payload = get_payload_details(otp, otp_settings, ref_doc)
+
+		otp_log = frappe.get_doc({
+			"doctype": "OTP Log",
+			"otp": passlibctx.hash(otp),
+			"data": protect_otp(json.dumps(payload), otp),
+			"reference_doctype": "Payment Order",
+			"reference__docname": docname
+		})
+
+		otp_log.insert(ignore_permissions=True)
+
+		response = requests.request("POST", url, headers=headers, data=json.dumps(payload))
+
+		if response.ok:
+			return True
+		else:
+			frappe.throw(
+				response.text,
+				title="Failed to send OTP"
+			)
+	except:
+		frappe.throw(
+			frappe.get_traceback(),
+			title= "Failed to send OTP"
+		)
+
+def get_payload_details(otp, otp_settings, ref_doc):
+	return{
+		"sender": otp_settings.sender,
+		"message": get_message_list(otp, otp_settings, ref_doc),
+		"messagetype": otp_settings.messagetype,
+		"dltentityid": otp_settings.entityid,
+		"dlttempid": otp_settings.tempid,
+		"dltheaderid": otp_settings.headerid,
+		"tmid": otp_settings.tmid,
+		"dlttagid": otp_settings.tagid
+	}
+
+def get_message_list(otp, otp_settings, ref_doc):
+	recipients = otp_settings.recipients.split(",")
+	message = []
+
+	if recipients:
+		for recipient in recipients:
+			if recipient.strip():
+				message.append({
+					"number": recipient.strip(),
+					"text": otp_settings.template.format(amount= ref_doc.total, order_no=ref_doc.name,generated_by=frappe.session.user, otp=otp)
+				})
+	else:
+		frappe.throw("Please add atleast one recipient in OTP Settings")
+
+	return message
+
+@frappe.whitelist()
+def verify_otp(docname, otp=None):
+	payment_order_doc = frappe.get_doc("Payment Order", docname)
+
+	if payment_order_doc.company_bank == "ICICI Bank" and not otp:
+		frappe.throw(title='Invalid OTP', msg='Cannot Initiate Payment without OTP')
+
+	last_otp = frappe.db.get_value("OTP Log", {"reference_doctype": "Payment Order", "reference__docname": docname}, "otp")
+
+	if not passlibctx.verify(otp, last_otp):
+		frappe.throw(title='Invalid OTP', msg='OTP Verification Failed')
+		return
+
+	return make_bank_payment(docname)
 
 @frappe.whitelist()
 def get_bank_balance(bank_name):

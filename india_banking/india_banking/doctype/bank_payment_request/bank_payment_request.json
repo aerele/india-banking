@@ -59,6 +59,7 @@
   "payment_gateway",
   "payment_channel",
   "payment_term",
+  "remark_details_section",
   "remarks"
  ],
  "fields": [
@@ -418,7 +419,8 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks",
-   "max_height": "50px"
+   "max_height": "50px",
+   "reqd": 1
   },
   {
    "fieldname": "party_account_currency",
@@ -426,12 +428,16 @@
    "hidden": 1,
    "label": "Party Account Currency",
    "options": "Currency"
+  },
+  {
+   "fieldname": "remark_details_section",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-12-08 10:01:11.077229",
+ "modified": "2024-12-09 17:26:48.151538",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

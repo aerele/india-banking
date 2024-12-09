@@ -334,6 +334,7 @@ frappe.ui.form.on('Payment Order', {
 						row.reference_name = summary_data[i].reference_name;
 						row.payment_entry = summary_data[i].payment_entry;
 						row.journal_entry = summary_data[i].journal_entry;
+						row.remarks = summary_data[i].remarks
 						row.journal_entry_account = summary_data[i].journal_entry_account;
 
 					}

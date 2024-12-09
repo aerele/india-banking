@@ -1,0 +1,91 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:timestamp",
+ "creation": "2024-12-07 16:42:46.138763",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "timestamp",
+  "otp",
+  "data",
+  "response",
+  "references_section",
+  "reference_doctype",
+  "column_break_fncx",
+  "reference__docname"
+ ],
+ "fields": [
+  {
+   "fieldname": "otp",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "OTP",
+   "read_only": 1
+  },
+  {
+   "fieldname": "data",
+   "fieldtype": "Code",
+   "label": "Data",
+   "read_only": 1
+  },
+  {
+   "fieldname": "timestamp",
+   "fieldtype": "Data",
+   "label": "Timestamp",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "references_section",
+   "fieldtype": "Section Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Doctype",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "column_break_fncx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reference__docname",
+   "fieldtype": "Dynamic Link",
+   "label": "Reference  Docname",
+   "options": "reference_doctype"
+  },
+  {
+   "fieldname": "response",
+   "fieldtype": "Code",
+   "label": "Response"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-12-07 17:02:02.541771",
+ "modified_by": "Administrator",
+ "module": "India Banking",
+ "name": "OTP Log",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,186 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-12-07 13:40:07.538207",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enable_otp",
+  "column_break_pklz",
+  "channel",
+  "section_break_thxa",
+  "otp_length",
+  "resend_interval",
+  "column_break_dbur",
+  "otp_expiry",
+  "maximum_attempts",
+  "sms_configuration",
+  "sms_api_url",
+  "column_break_argu",
+  "api_key",
+  "dlt_details_section",
+  "sender",
+  "recipients",
+  "entityid",
+  "headerid",
+  "tmid",
+  "tagid",
+  "column_break_pdzj",
+  "messagetype",
+  "tempid",
+  "template"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "fieldname": "enable_otp",
+   "fieldtype": "Check",
+   "label": "Enable OTP"
+  },
+  {
+   "depends_on": "enable_otp",
+   "fieldname": "section_break_thxa",
+   "fieldtype": "Section Break",
+   "hidden": 1
+  },
+  {
+   "fieldname": "otp_length",
+   "fieldtype": "Int",
+   "label": "OTP Length"
+  },
+  {
+   "fieldname": "resend_interval",
+   "fieldtype": "Int",
+   "label": "Resend Interval"
+  },
+  {
+   "fieldname": "column_break_dbur",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "otp_expiry",
+   "fieldtype": "Time",
+   "label": "OTP Expiry"
+  },
+  {
+   "fieldname": "maximum_attempts",
+   "fieldtype": "Int",
+   "label": "Maximum Attempts"
+  },
+  {
+   "fieldname": "column_break_pklz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "SMS",
+   "fieldname": "channel",
+   "fieldtype": "Select",
+   "label": "Channel",
+   "options": "SMS"
+  },
+  {
+   "depends_on": "eval: doc.channel == \"SMS\";",
+   "fieldname": "sms_configuration",
+   "fieldtype": "Section Break",
+   "label": "SMS API Configuration"
+  },
+  {
+   "description": "Eg. smsgateway.com/api/send_sms.cgi",
+   "fieldname": "sms_api_url",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "SMS API URL",
+   "reqd": 1
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Password",
+   "label": "API Key",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_argu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "dlt_details_section",
+   "fieldtype": "Section Break",
+   "label": "DLT Details"
+  },
+  {
+   "fieldname": "sender",
+   "fieldtype": "Data",
+   "label": "Sender"
+  },
+  {
+   "fieldname": "messagetype",
+   "fieldtype": "Select",
+   "label": "Message Type",
+   "options": "TXT"
+  },
+  {
+   "fieldname": "entityid",
+   "fieldtype": "Data",
+   "label": "Entity ID"
+  },
+  {
+   "fieldname": "headerid",
+   "fieldtype": "Data",
+   "label": "Header ID"
+  },
+  {
+   "fieldname": "tmid",
+   "fieldtype": "Data",
+   "label": "TM ID"
+  },
+  {
+   "fieldname": "tempid",
+   "fieldtype": "Data",
+   "label": "Temp ID"
+  },
+  {
+   "fieldname": "tagid",
+   "fieldtype": "Data",
+   "label": "Tag ID"
+  },
+  {
+   "fieldname": "column_break_pdzj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "template",
+   "fieldtype": "Long Text",
+   "label": "Template"
+  },
+  {
+   "description": "Enter the recipient phone number(s) in given format (e.g., 9092641102). For multiple recipients, separate each number with a comma. Example: 9092641100, 9092641101, 9486580733\"",
+   "fieldname": "recipients",
+   "fieldtype": "Long Text",
+   "label": "Recipient(s)",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2024-12-09 09:54:56.031493",
+ "modified_by": "Administrator",
+ "module": "India Banking",
+ "name": "OTP Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -57,5 +57,11 @@ STD_BANK_LIST = [
 		'swift_number': '',
 		'app_name': 'axis_integration_server',
 		'is_standard': True
+	},
+    {
+		'bank_name': 'Kotak Mahindra Bank',
+		'swift_number': '',
+		'app_name': 'kotak_integration_server',
+		'is_standard': True
 	}
 ]

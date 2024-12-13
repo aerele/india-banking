@@ -661,7 +661,8 @@ def get_bank_info(bank_name):
 	return {}
 
 def notify_party(payment_info, response_data):
-	frappe.log_error("Payment email triggred")
+	if not frappe.get_value("India Banking Settings", "India Banking Settings", "notify_party"):
+		return
 	if payment_info.payment_entry:
 		default_email_format= frappe.get_single("India Banking Settings").default_email_format or "Payment Advice"
 		if default_email_format:

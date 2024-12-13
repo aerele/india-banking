@@ -41,7 +41,6 @@ def send_request(args):
 
 def get_bank_address_details(bank_account):
 	address = frappe.db.get_value("Dynamic Link", {"link_doctype": "Bank Account", "link_name": bank_account}, 'parent')
-
 	if  not address:
 		return {}
 
@@ -53,7 +52,7 @@ def get_bank_address_details(bank_account):
 		building_number = building_number[:10]
 	post_code = party_address_.get('pincode', '')
 	town_name = party_address_.get('state', '')[:3].upper() if  party_address_.get('state', '') else ''
-	country_sub_division = [party_address_.get('state', '')[:2]] if party_address_.get('country', '') else []
+	country_sub_division = [party_address_.get('country', '')[:2]] if party_address_.get('country', '') else []
 	country = party_address_.get('country', '')[:2]
 	return {
 			"AddressLine": address_line,

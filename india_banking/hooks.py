@@ -207,7 +207,7 @@ scheduler_events = {"daily": ["india_banking.tasks.daily"]}
 # }
 
 override_whitelisted_methods = {
-	"erpnext.accounts.doctype.payment_request.payment_request.make_payment_request": "india_banking.india_banking.override.payment_request.make_payment_request"
+	"erpnext.accounts.doctype.payment_request.payment_request.make_payment_request": "india_banking.override.payment_request.make_payment_request"
 }
 
 #

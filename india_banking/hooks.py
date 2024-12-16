@@ -206,10 +206,6 @@ scheduler_events = {"daily": ["india_banking.tasks.daily"]}
 # 	"frappe.desk.doctype.event.event.get_events": "india_banking.event.get_events"
 # }
 
-override_whitelisted_methods = {
-	"erpnext.accounts.doctype.payment_request.payment_request.make_payment_request": "india_banking.override.payment_request.make_payment_request"
-}
-
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,

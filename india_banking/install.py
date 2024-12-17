@@ -320,3 +320,9 @@ def toggle_reqd_for_reference_in_payment_order(reqd=False):
 		{"parent": "Payment Order Reference", "fieldname": "amount"},
 		{"reqd": reqd, "read_only": reqd},
 	)
+	frappe.db.set_value(
+		"DocField",
+		{"parent": "Payment Order", "fieldname": "payment_order_type"},
+		"options",
+		"\nPayment Request\nPayment Entry\nJournal Entry",
+	)

@@ -163,11 +163,6 @@ override_doctype_class = {
 # 	}
 # }
 
-doc_events = {
-	"Bank Account": {
-		"validate": "india_banking.india_banking.doc_events.bank_account.validate_ifsc_code",
-	}
-}
 
 accounting_dimension_doctypes = [
 	"Bank Payment Request",

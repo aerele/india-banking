@@ -71,7 +71,6 @@ class BankPaymentRequest(PaymentRequest):
 
 	def create_payment_entry(self, submit=True):
 		payment_entry = super().create_payment_entry(submit=submit)
-		payment_entry.source_doctype = self.payment_order_type
 		if payment_entry.docstatus != 1 and self.payment_type:
 			payment_entry.paid_to = (
 				frappe.db.get_value("Payment Type", self.payment_type, "account") or ""

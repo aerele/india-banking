@@ -10,7 +10,6 @@ frappe.ui.form.on('Purchase Invoice', {
 			);
 		}
         setTimeout(() => {
-            cur_frm.remove_custom_button("Payment Request", "Create")
             cur_frm.remove_custom_button("Payment", "Create")
         }, 500);
 	}

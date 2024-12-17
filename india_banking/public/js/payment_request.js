@@ -10,6 +10,11 @@ frappe.ui.form.on('Payment Request', {
 				}
 			};
 		});
+		if(frm.doc.docstatus == 1){
+			cur_frm.add_custom_button('Goto Payment Order', function(){
+				frappe.set_route('List', 'Payment Order')
+			})
+		}
 	},
 	company (frm) {
 		frm.set_query("payment_type", function() {

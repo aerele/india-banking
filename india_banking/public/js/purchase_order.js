@@ -29,7 +29,6 @@ frappe.ui.form.on('Purchase Order', {
     },
 
     toggle_custom_button(frm) {
-        cur_frm.remove_custom_button("Payment Request", "Create")
         cur_frm.remove_custom_button("Payment", "Create")
     },
 })

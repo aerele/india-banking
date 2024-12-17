@@ -89,10 +89,7 @@ doctype_list_js = {"Payment Order": "public/js/payment_order_list.js"}
 
 # before_install = "india_banking.install.before_install"
 # after_install = "india_banking.install.after_install"
-after_install = [
-	"india_banking.india_banking.install.after_install",
-	"india_banking.install.after_install",
-]
+after_install = ["india_banking.install.after_install"]
 
 before_uninstall = "india_banking.uninstall.before_uninstall"
 

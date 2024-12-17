@@ -95,6 +95,8 @@ after_install = [
 
 before_uninstall = "india_banking.uninstall.before_uninstall"
 
+accounting_dimension_doctypes = ["Payment Order Reference", "Payment Order Summary"]
+
 # Uninstallation
 # ------------
 
@@ -147,6 +149,7 @@ override_doctype_class = {
 	"Payment Order": "india_banking.india_banking.override.payment_order.CustomPaymentOrder",
 	"Payment Entry": "india_banking.india_banking.override.payment_entry.CustomPaymentEntry",
 	"Bank": "india_banking.india_banking.override.bank.CustomBank",
+	"Payment Request": "india_banking.overrides.payment_request.BankPaymentRequest",
 }
 
 
@@ -168,8 +171,13 @@ doc_events = {
 	}
 }
 
-# accounting_dimension_doctypes = ['Bank Payment Request', 'Payment Order', 'Payment Order Reference', 'Payment Order Summary']
-accounting_dimension_doctypes = ["Bank Payment Request"]
+accounting_dimension_doctypes = [
+	"Bank Payment Request",
+	"Payment Order",
+	"Payment Order Reference",
+	"Payment Order Summary",
+]
+
 
 # Scheduled Tasks
 # ---------------

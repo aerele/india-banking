@@ -1,0 +1,107 @@
+import frappe
+from erpnext.accounts.doctype.payment_request.payment_request import PaymentRequest
+from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
+	get_party_tax_withholding_details,
+)
+
+
+class BankPaymentRequest(PaymentRequest):
+	def validate(self):
+		if not self.net_total:
+			self.net_total = self.grand_total
+		if (
+			self.apply_tax_withholding_amount
+			and self.tax_withholding_category
+			and self.payment_request_type == "Outward"
+		):
+			tds_amount = self.calculate_pr_tds(self.net_total)
+
+			self.taxes_deducted = tds_amount
+			self.grand_total = self.net_total - self.taxes_deducted
+		else:
+			if self.net_total and not self.grand_total:
+				self.grand_total = self.net_total
+			if (
+				self.grand_total
+				and self.net_total != self.grand_total
+				and not self.apply_tax_withholding_amount
+			):
+				self.grand_total = self.net_total
+
+		if not self.is_adhoc:
+			super().validate()
+		else:
+			if self.is_new():
+				self.status = "Draft"
+
+			if self.reference_doctype or self.reference_name:
+				frappe.throw("Payments with references cannot be marked as ad-hoc")
+
+		if self.remarks:
+			self.remarks = self.remarks[:48]
+
+		self.valdidate_bank_for_wire_transfer()
+
+	def on_submit(self):
+		if not self.grand_total:
+			frappe.throw("Amount cannot be zero")
+
+		debit_account = None
+		if self.payment_type:
+			debit_account = frappe.db.get_value(
+				"Payment Type", self.payment_type, "account"
+			)
+		elif self.reference_doctype == "Purchase Invoice":
+			debit_account = frappe.db.get_value(
+				self.reference_doctype, self.reference_name, "credit_to"
+			)
+
+		if not debit_account:
+			frappe.throw(
+				"Debit account for Payment Type <b>{}</b> cannot be determined".format(
+					self.payment_type or ""
+				)
+			)
+		if not self.is_adhoc:
+			super().on_submit()
+		else:
+			if self.payment_request_type == "Outward":
+				self.db_set("status", "Initiated")
+				return
+
+	def create_payment_entry(self, submit=True):
+		payment_entry = super().create_payment_entry(submit=submit)
+		payment_entry.source_doctype = self.payment_order_type
+		if payment_entry.docstatus != 1 and self.payment_type:
+			payment_entry.paid_to = (
+				frappe.db.get_value("Payment Type", self.payment_type, "account") or ""
+			)
+
+		return payment_entry
+
+	def calculate_pr_tds(self, amount):
+		doc = self
+		doc.supplier = self.party
+		doc.company = self.company
+		doc.base_tax_withholding_net_total = amount
+		doc.tax_withholding_net_total = amount
+		doc.taxes = []
+		taxes = get_party_tax_withholding_details(doc, self.tax_withholding_category)
+		if taxes:
+			return taxes["tax_amount"]
+		else:
+			return 0
+
+	def valdidate_bank_for_wire_transfer(self):
+		if self.mode_of_payment == "Wire Transfer" and not self.bank_account:
+			frappe.throw(frappe._("Bank Account is missing for Wire Transfer Payments"))
+
+		try:
+			status = frappe.db.get_value(
+				"Bank Account", self.bank_account, "workflow_state"
+			)
+
+			if self.mode_of_payment == "Wire Transfer" and status != "Approved":
+				frappe.throw("Cannot proceed with un-approved bank account")
+		except Exception:
+			frappe.throw("Workflow Not Found for Bank Account")

@@ -3,7 +3,7 @@ import frappe
 from frappe import make_property_setter
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import delete_property_setter
-
+from india_banking.default import DEFAULT_MODE_OF_TRANSFERS, STD_BANK_LIST
 
 def after_install():
 	toggle_payment_request_creation(True)
@@ -22,6 +22,7 @@ def before_uninstall():
 def make_custom_fields():
 	create_payment_request_custom_fields()
 	create_payment_custom_fields_in_payment_order()
+	create_bank_doc_custom_fields()
 
 
 def create_property_setter():
@@ -40,6 +41,35 @@ def toggle_payment_request_creation(allow=True):
 		"DocType", "Payment Request", {"in_create": not allow, "track_changes": allow}
 	)
 
+def create_bank_doc_custom_fields():
+	click.secho("* Installing Bank DOC Custom Fields...")
+	fields = {
+		"Bank": [
+			{
+				"label": "Standard",
+				"fieldname": "is_standard",
+				"fieldtype": "Check",
+				"read_only": 1,
+				"insert_after": "bank",
+			}]
+		}
+
+	create_custom_fields(fields)
+
+def create_supplier_custom_fields():
+	click.secho("* Installing Supplier Custom Fields...")
+	fields = {
+		"Supplier": [
+			{
+				"label": "LEI Number",
+				"fieldname": "lei_number",
+				"fieldtype": "Data",
+				"owner": "Administrator",
+				"insert_after": "tax_id",
+			}]
+		}
+
+	create_custom_fields(fields)
 
 def create_payment_request_custom_fields():
 	click.secho("* Installing Payment and Tax Custom Fields in Payment Request")
@@ -143,6 +173,12 @@ def delete_custom_fields():
 			"payment_term",
 			"remarks",
 		],
+		"Supplier": [
+			"lei_number"
+		],
+		"Bank": [
+			"is_standard"
+		]
 	}
 
 	for doctype, fieldnames in fieldnames.items():
@@ -326,3 +362,11 @@ def toggle_reqd_for_reference_in_payment_order(reqd=False):
 		"options",
 		"\nPayment Request\nPayment Entry\nJournal Entry",
 	)
+
+def create_default_bank():
+	for bank in STD_BANK_LIST:
+		if not frappe.db.exists("Bank", bank):
+			bank_doc = frappe.new_doc('Bank')
+			bank_doc.bank = bank
+			bank_doc.is_standard = 1
+			bank_doc.save()

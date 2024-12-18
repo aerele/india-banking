@@ -146,7 +146,6 @@ accounting_dimension_doctypes = ["Payment Order Reference", "Payment Order Summa
 override_doctype_class = {
 	"Payment Order": "india_banking.india_banking.override.payment_order.CustomPaymentOrder",
 	"Payment Entry": "india_banking.india_banking.override.payment_entry.CustomPaymentEntry",
-	"Bank": "india_banking.india_banking.override.bank.CustomBank",
 	"Payment Request": "india_banking.overrides.payment_request.BankPaymentRequest",
 }
 
@@ -163,9 +162,17 @@ override_doctype_class = {
 # 	}
 # }
 
+doc_events = {
+	"Bank": {
+		"on_trash": "india_banking.india_banking.doc_events.bank.bank_on_trash"
+	},
+    "Bank Account": {
+		"validate": "india_banking.india_banking.doc_events.bank."
+	}
+}
+
 
 accounting_dimension_doctypes = [
-	"Bank Payment Request",
 	"Payment Order",
 	"Payment Order Reference",
 	"Payment Order Summary",

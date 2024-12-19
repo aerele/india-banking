@@ -327,7 +327,7 @@ def create_default_bank():
 	for bank in STD_BANK_LIST:
 		if not frappe.db.exists("Bank", bank):
 			bank_doc = frappe.new_doc("Bank")
-			bank_doc.bank = bank
+			bank_doc.bank_name = bank
 			bank_doc.is_standard = 1
 			bank_doc.save()
 

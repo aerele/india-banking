@@ -419,8 +419,7 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks",
-   "max_height": "50px",
-   "reqd": 1
+   "max_height": "50px"
   },
   {
    "fieldname": "party_account_currency",
@@ -437,7 +436,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-12-09 17:26:48.151538",
+ "modified": "2024-12-19 15:33:18.102475",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

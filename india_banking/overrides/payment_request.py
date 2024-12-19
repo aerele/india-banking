@@ -6,6 +6,8 @@ from erpnext.accounts.doctype.payment_request.payment_request import PaymentRequ
 from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
 	get_party_tax_withholding_details,
 )
+from erpnext.accounts.party import get_party_bank_account
+from frappe import _
 
 
 class BankPaymentRequest(PaymentRequest):
@@ -48,6 +50,15 @@ class BankPaymentRequest(PaymentRequest):
 	def on_submit(self):
 		if not self.grand_total:
 			frappe.throw("Amount cannot be zero")
+
+		bank_account = get_party_bank_account(self.party_type, self.party)
+
+		if not bank_account:
+			frappe.throw(
+				_("Default Bank Account is missing for {0} - {1}").format(
+					self.party_type, self.party
+				)
+			)
 
 		debit_account = None
 		if self.payment_type:

@@ -63,7 +63,6 @@ frappe.ui.form.on("Payment Order", {
   },
 
   get_payments_from_journal_entry(frm) {
-    console.log("get_payments_from_journal_entry");
     erpnext.utils.map_current_doc({
       method: "india_banking.overrides.journal_entry.make_payment_order",
       source_doctype: "Journal Entry",
@@ -96,8 +95,7 @@ frappe.ui.form.on("Payment Order", {
         });
         let unique_accounts = [...new Set(docs)];
         return {
-          query:
-            "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.get_bank_entry",
+          query: "india_banking.overrides.journal_entry.get_bank_entry",
           filters: {
             docs: unique_accounts,
           },

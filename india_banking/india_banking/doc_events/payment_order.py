@@ -1,6 +1,4 @@
 import json
-import random
-import uuid
 
 import frappe
 import frappe.utils
@@ -9,7 +7,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
-from frappe.utils import getdate, now, nowdate
+from frappe.utils import nowdate
 from frappe.utils.data import comma_and, cstr
 
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
@@ -472,7 +470,7 @@ def update_payment_status(payment_order_doc):
 			frappe.db.set_value(
 				"Payment Order", payment_order_doc.name, "status", "Partially Approved"
 			)
-	except Exception as e:
+	except:
 		frappe.log_error(
 			title="Payment Order Status Update Error", message=frappe.get_traceback()
 		)
@@ -565,8 +563,8 @@ def make_payment_entries(docname):
 					and reference.reference_doctype == row.reference_doctype
 				):
 					net_total += frappe.db.get_value(
-						"Bank Payment Request",
-						reference.bank_payment_request,
+						"Payment Request",
+						reference.payment_request,
 						"net_total",
 					)
 			pe.paid_amount = net_total
@@ -594,15 +592,15 @@ def make_payment_entries(docname):
 
 				if filter_condition:
 					reference_amount = frappe.db.get_value(
-						"Bank Payment Request",
-						reference.bank_payment_request,
+						"Payment Request",
+						reference.payment_request,
 						"net_total",
 					)
 					payment_term = ""
 					try:
 						payment_term = frappe.db.get_value(
-							"Bank Payment Request",
-							reference.bank_payment_request,
+							"Payment Request",
+							reference.payment_request,
 							"payment_term",
 						)
 
@@ -727,7 +725,7 @@ def make_payment_entries(docname):
 			{
 				"reference_no": payment_order_doc.name,
 				"reference_date": nowdate(),
-				"remarks": "Bank Payment Entry from Payment Order - {0}".format(
+				"remarks": "Payment Entry from Payment Order - {0}".format(
 					payment_order_doc.name
 				),
 			}
@@ -1049,10 +1047,10 @@ def process_bank_payment_requests(payment_order_summary):
 			ref.reference_doctype,
 		)
 		if key == ref_key:
-			failed_prs.append(ref.bank_payment_request)
+			failed_prs.append(ref.payment_request)
 
 	for pr in failed_prs:
-		pr_doc = frappe.get_doc("Bank Payment Request", pr)
+		pr_doc = frappe.get_doc("Payment Request", pr)
 		if pr_doc.docstatus == 1:
 			pr_doc.check_if_payment_entry_exists()
 			pr_doc.set_as_cancelled()

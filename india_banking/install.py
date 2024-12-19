@@ -237,6 +237,8 @@ def create_payment_custom_fields_in_payment_order():
 				"fieldname": "party_type",
 				"fieldtype": "Link",
 				"options": "DocType",
+				"in_list_view": 1,
+				"reqd": 1,
 				"insert_after": "column_break_4",
 			},
 			{
@@ -244,6 +246,8 @@ def create_payment_custom_fields_in_payment_order():
 				"fieldname": "party",
 				"fieldtype": "Dynamic Link",
 				"options": "party_type",
+				"in_list_view": 1,
+				"reqd": 1,
 				"insert_after": "party_type",
 			},
 			{

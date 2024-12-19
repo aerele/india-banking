@@ -1,4 +1,7 @@
 import frappe
+from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
+	get_accounting_dimensions,
+)
 from erpnext.accounts.doctype.payment_request.payment_request import PaymentRequest
 from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
 	get_party_tax_withholding_details,
@@ -104,3 +107,57 @@ class BankPaymentRequest(PaymentRequest):
 				frappe.throw("Cannot proceed with un-approved bank account")
 		except Exception:
 			frappe.throw("Workflow Not Found for Bank Account")
+
+
+@frappe.whitelist()
+def make_payment_order(source_name, target_doc=None, args=None):
+	from frappe.model.mapper import get_mapped_doc
+
+	def set_missing_values(source, target):
+		target.payment_order_type = "Payment Request"
+		account = ""
+		if source.payment_type:
+			account = frappe.db.get_value(
+				"Payment Type", source.payment_type, "account"
+			)
+		if source.reference_doctype == "Purchase Invoice":
+			account = frappe.db.get_value(
+				source.reference_doctype, source.reference_name, "credit_to"
+			)
+
+		for dimension in get_accounting_dimensions():
+			target.update({dimension: source.get(dimension, "")})
+
+		target.append(
+			"references",
+			{
+				"reference_doctype": source.reference_doctype,
+				"reference_name": source.reference_name,
+				"amount": source.grand_total,
+				"party_type": source.party_type,
+				"party": source.party,
+				"payment_request": source_name,
+				"mode_of_payment": source.mode_of_payment,
+				"bank_account": source.bank_account,
+				"account": account,
+				"is_adhoc": source.is_adhoc,
+				"cost_center": source.cost_center,
+				"project": source.project,
+				"tax_withholding_category": source.tax_withholding_category,
+			},
+		)
+		target.status = "Pending"
+
+	doclist = get_mapped_doc(
+		"Payment Request",
+		source_name,
+		{
+			"Payment Request": {
+				"doctype": "Payment Order",
+			}
+		},
+		target_doc,
+		set_missing_values,
+	)
+
+	return doclist

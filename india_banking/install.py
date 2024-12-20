@@ -19,7 +19,10 @@ def after_install():
 def make_custom_fields():
 	create_payment_request_custom_fields()
 	create_payment_custom_fields_in_payment_order()
+	create_payment_entry_custom_fields()
 	create_bank_doc_custom_fields()
+	create_bank_account_custom_fields()
+	create_journal_entry_custom_fields()
 
 
 def create_property_setter():
@@ -36,7 +39,7 @@ def toggle_payment_request_creation(allow=True):
 
 
 def create_bank_doc_custom_fields():
-	click.secho("* Installing Bank DOC Custom Fields...")
+	click.secho("* Installing Custom Fields in a Bank...")
 	fields = {
 		"Bank": [
 			{
@@ -45,7 +48,45 @@ def create_bank_doc_custom_fields():
 				"fieldtype": "Check",
 				"read_only": 1,
 				"insert_after": "bank",
-			}
+			},
+		]
+	}
+
+	create_custom_fields(fields)
+
+
+def create_journal_entry_custom_fields():
+	click.secho("* Installing Custom Fields in a Journal Entry...")
+	fields = {
+		"Journal Entry Account": [
+			{
+				"label": "Payment Details",
+				"fieldname": "payment_details",
+				"fieldtype": "Section Break",
+				"insert_after": "against_account",
+			},
+			{
+				"label": "Payment Status",
+				"fieldname": "payment_status",
+				"fieldtype": "Select",
+				"options": "\nOrdered\nPaid\nFailed",
+				"no_copy": 1,
+				"read_only": 1,
+				"insert_after": "payment_details",
+			},
+			{
+				"fieldname": "payment_details_column_break",
+				"fieldtype": "Column Break",
+				"insert_after": "payment_status",
+			},
+			{
+				"label": "Reference Number",
+				"fieldname": "reference_number",
+				"fieldtype": "Data",
+				"no_copy": 1,
+				"read_only": 1,
+				"insert_after": "payment_details_column_break",
+			},
 		]
 	}
 
@@ -170,24 +211,42 @@ def create_payment_request_property_setter():
 		make_property_setter(_property)
 
 
-def delete_payment_request_property_setter():
-	data = [
-		(
-			_property.get("doctype", ""),
-			_property.get("property", ""),
-			_property.get("fieldname", ""),
-		)
-		for _property in properties
-	]
-	for doctype, property, fieldname in data:
-		click.echo(f"* Updating {doctype} Property")
-		delete_property_setter(doctype, property, fieldname)
-
-
 def create_payment_custom_fields_in_payment_order():
 	click.secho("* Installing Payment Fields in Payment Order")
 	fields = {
 		"Payment Order": [
+			{
+				"label": "ICICI Bank Api Info",
+				"fieldname": "icici_bank_api_info",
+				"fieldtype": "Section Break",
+				"insert_after": "account",
+			},
+			{
+				"label": "Unique ID",
+				"fieldname": "unique_id",
+				"fieldtype": "Data",
+				"hidden": 1,
+				"insert_after": "icici_bank_api_info",
+			},
+			{
+				"fieldtype": "Column Break",
+				"fieldname": "bank_api_info_column_break",
+				"insert_after": "unique_id",
+			},
+			{
+				"label": "File Sequence Number",
+				"fieldname": "file_sequence_number",
+				"fieldtype": "Data",
+				"hidden": 1,
+				"insert_after": "bank_api_info_column_break",
+			},
+			{
+				"label": "File Reference Id",
+				"fieldname": "file_reference_id",
+				"hidden": 1,
+				"fieldtype": "Data",
+				"insert_after": "file_sequence_number",
+			},
 			{
 				"label": "Get Summary",
 				"fieldname": "get_summary",
@@ -292,6 +351,73 @@ def create_payment_custom_fields_in_payment_order():
 				"insert_after": "cost_center",
 			},
 		],
+	}
+
+	create_custom_fields(fields)
+
+
+def create_payment_entry_custom_fields():
+	click.secho("* Installing Custom Payment Fields in a Payment Entry...")
+	fields = {
+		"Payment Entry": [
+			{
+				"fieldname": "source_section",
+				"fieldtype": "Section Break",
+				"insert_after": "title",
+			},
+			{
+				"label": "Source Doctype",
+				"fieldname": "source_doctype",
+				"fieldtype": "Link",
+				"options": "DocType",
+				"read_only": 1,
+				"insert_after": "source_section",
+			},
+			{
+				"fieldtype": "Column Break",
+				"fieldname": "source_column",
+				"insert_after": "source_doctype",
+			},
+			{
+				"label": "Source Name",
+				"fieldname": "source_name",
+				"fieldtype": "Dynamic Link",
+				"options": "source_doctype",
+				"read_only": 1,
+				"insert_after": "source_column",
+			},
+		]
+	}
+
+	create_custom_fields(fields)
+
+
+def create_bank_account_custom_fields():
+	click.secho("* Installing Custom Payment Fields in a Bank Account...")
+	fields = {
+		"Bank Account": [
+			{
+				"label": "Mobile Number",
+				"fieldname": "mobile_number",
+				"insert_after": "iban",
+				"fieldtype": "Data",
+			},
+			{
+				"label": "Email",
+				"fieldname": "email",
+				"fieldtype": "Data",
+				"options": "Email",
+				"insert_after": "mobile_number",
+				"reqd": 1,
+			},
+			{
+				"label": "Bank Balance",
+				"fieldname": "bank_balance",
+				"fieldtype": "Currency",
+				"insert_after": "bank_account_no",
+				"read_only": 1,
+			},
+		]
 	}
 
 	create_custom_fields(fields)

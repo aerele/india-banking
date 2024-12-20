@@ -19,15 +19,13 @@ class CustomPaymentOrder(PaymentOrder):
 	def validate_bank_payment_request(self):
 		if self.references:
 			for ref in self.references:
-				if ref.bank_payment_request:
-					bank_payment_request = frappe.get_doc(
-						"Bank Payment Request", ref.bank_payment_request
+				if ref.payment_request:
+					payment_request = frappe.get_doc(
+						"Payment Request", ref.payment_request
 					)
-					if bank_payment_request.grand_total != ref.amount:
-						link = get_link_to_form(
-							"Bank Payment Request", ref.bank_payment_request
-						)
-						message = f"The amount in <b>#Row{ref.idx} </b>does not match the amount of the bank payment request -<b>{link}</b>. The Difference is <b>{ref.amount - bank_payment_request.grand_total}</b>"
+					if payment_request.grand_total != ref.amount:
+						link = get_link_to_form("Payment Request", ref.payment_request)
+						message = f"The amount in <b>#Row{ref.idx} </b>does not match the amount of the Payment Request -<b>{link}</b>. The Difference is <b>{ref.amount - payment_request.grand_total}</b>"
 						frappe.throw(title="Invalid Amount", msg=message)
 
 	@frappe.whitelist()

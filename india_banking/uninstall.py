@@ -18,6 +18,23 @@ def before_uninstall():
 
 def delete_custom_fields():
 	fieldnames = {
+		"Journal Entry Account": [
+			"payment_details",
+			"payment_status",
+			"payment_details_column_break",
+			"reference_number",
+		],
+		"Bank Account": [
+			"mobile_number",
+			"email",
+			"bank_balance",
+		],
+		"Payment Entry": [
+			"source_section",
+			"source_doctype",
+			"source_column",
+			"source_name",
+		],
 		"Payment Request": [
 			"payment_type",
 			"is_adhoc",
@@ -28,6 +45,11 @@ def delete_custom_fields():
 			"payment_term",
 		],
 		"Payment Order": [
+			"icici_bank_api_info",
+			"unique_id",
+			"bank_api_info_column_break",
+			"file_sequence_number",
+			"file_reference_id",
 			"get_summary",
 			"payment_summary",
 			"is_party_wise",

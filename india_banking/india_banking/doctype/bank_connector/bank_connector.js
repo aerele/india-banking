@@ -8,7 +8,8 @@ frappe.ui.form.on("Bank Connector", {
 				filters: {
 					disabled: 0,
 					is_default: 1,
-                    is_company_account: 1
+                    is_company_account: 1,
+					company: doc.company,
 				},
 			};
 		});

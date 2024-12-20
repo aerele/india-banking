@@ -13,6 +13,13 @@ frappe.ui.form.on("Payment Order", {
         },
       };
     });
+    frm.set_query("mode_of_transfer", "summary", function () {
+      return {
+        filters: {
+          disabled: 0,
+        },
+      };
+    });
   },
 
   get_payments_from_payment_request(frm) {
@@ -136,7 +143,6 @@ frappe.ui.form.on("Payment Order", {
         __("Get Payments from")
       );
     }
-    frm.trigger("remove_button");
 
     let is_pending = false;
     if (frm.doc.status == "Pending" && frm.doc.docstatus == 1) {
@@ -151,81 +157,15 @@ frappe.ui.form.on("Payment Order", {
           }
         }
         if (uninitiated_payments > 0 && is_pending) {
-          frappe.db.get_value(
-            "Bank Connector",
-            { bank: frm.doc.company_bank },
-            "bulk_transaction",
-            (r) => {
-              if (r.bulk_transaction) {
-                frm.add_custom_button(__("Initiate Payment"), function () {
-                  frappe.call({
-                    method:
-                      "india_banking.india_banking.doc_events.payment_order.generate_payment_otp",
-                    freeze: true,
-                    freeze_message: "Initiating Payment...",
-                    args: {
-                      docname: frm.doc.name,
-                    },
-                    callback: (res) => {
-                      if (!res.exc) {
-                        frappe.prompt(
-                          {
-                            label: "Enter OTP",
-                            place_holder: "Enter",
-                            fieldname: "otp",
-                            fieldtype: "Data",
-                          },
-                          (values) => {
-                            frappe.call({
-                              method:
-                                "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
-                              freeze: 1,
-                              args: {
-                                docname: frm.doc.name,
-                                otp: values.otp,
-                              },
-                              callback: function (r) {
-                                if (r.message) {
-                                  frappe.msgprint(r.message);
-                                }
-                                frm.reload_doc();
-                              },
-                            });
-                          },
-                          "Sent an OTP to the registered account number",
-                          "Proceed"
-                        );
-                      }
-                    },
-                  });
-                });
-              } else {
-                frm.add_custom_button(__("Initiate Payment"), function () {
-                  frappe.call({
-                    method:
-                      "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
-                    freeze: 1,
-                    freeze_message: "Initiating Payment...",
-                    args: {
-                      docname: frm.doc.name,
-                    },
-                    callback: function (r) {
-                      if (r.message && !r.exc) {
-                        frappe.msgprint(r.message);
-                      }
-                      frm.reload_doc();
-                    },
-                  });
-                });
-              }
-            }
-          );
+          frm.add_custom_button(__("Initiate Payment"), function () {
+            frm.trigger("make_payment")
+          });
         }
       }
     }
 
     if (
-      (frm.doc.status == "Pending" || frm.doc.status == "Initiated") &&
+      ( ["Pending", "Initiated"].includes(frm.doc.status)) &&
       frm.doc.docstatus == 1
     ) {
       if (frm.has_perm("write") && "summary" in frm.doc) {
@@ -235,12 +175,12 @@ frappe.ui.form.on("Payment Order", {
             pending_status_check += 1;
           }
         }
-
+        
         if (pending_status_check > 0) {
           frm.add_custom_button(__("Get Status"), function () {
             frappe.call({
               method:
-                "india_banking.india_banking.doc_events.payment_order.get_payment_status",
+              "india_banking.india_banking.doc_events.payment_order.get_payment_status",
               freeze: 1,
               freeze_message: "Fetching payment status....",
               args: {
@@ -258,17 +198,62 @@ frappe.ui.form.on("Payment Order", {
       }
     }
 
-    frm.set_query("mode_of_transfer", "summary", function () {
-      return {
-        filters: {
-          disabled: 0,
-        },
-      };
+    frm.trigger("remove_button");
+  },
+  
+  make_payment: function (frm) {
+    frappe.call({
+      method:
+      "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
+      freeze: true,
+      freeze_message: "Initiating Payment...",
+      args: {
+        docname: frm.doc.name,
+      },
+      callback: (res) => {
+        if (!res.exc && res.message) {
+          if(res.message.otp_required){
+            this.verify_otp();
+          }else{
+            frappe.msgprint(res.message);
+          }
+        }
+      },
     });
   },
 
+  verify_otp() {
+    frappe.prompt(
+      {
+        label: "Enter OTP",
+        place_holder: "Enter",
+        fieldname: "otp",
+        fieldtype: "Data",
+      },
+      (values) => {
+        frappe.call({
+          method:
+            "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
+          freeze: 1,
+          args: {
+            docname: frm.doc.name,
+            otp: values.otp,
+          },
+          callback: function (r) {
+            if (r.message) {
+              frappe.msgprint(r.message);
+            }
+            frm.reload_doc();
+          },
+        });
+      },
+      "Sent an OTP to the registered Mobile number",
+      "Proceed"
+    );
+  },
+
   remove_button: function (frm) {
-    // remove custom button of order type that is not imported
+    // remove custom button of order type that is not importedz
     frm.remove_custom_button("Create Journal Entries");
     if (
       (frm.doc.references.length > 0 && frm.doc.payment_order_type) ||

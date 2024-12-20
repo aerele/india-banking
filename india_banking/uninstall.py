@@ -17,6 +17,7 @@ def before_uninstall():
 
 
 def delete_custom_fields():
+	click.secho("* Removing India Banking Customizations")
 	fieldnames = {
 		"Journal Entry Account": [
 			"payment_details",
@@ -43,6 +44,8 @@ def delete_custom_fields():
 			"apply_tax_withholding_amount",
 			"tax_withholding_category",
 			"payment_term",
+			"remarks",
+			"remark_section",
 		],
 		"Payment Order": [
 			"icici_bank_api_info",
@@ -52,6 +55,7 @@ def delete_custom_fields():
 			"file_reference_id",
 			"get_summary",
 			"payment_summary",
+			"default_mode_of_transfer",
 			"is_party_wise",
 			"summary",
 			"total",
@@ -64,15 +68,17 @@ def delete_custom_fields():
 			"is_adhoc",
 			"payment_term",
 			"remarks",
+			"cost_center",
+			"project",
 		],
 		"Supplier": ["lei_number"],
 		"Bank": ["is_standard"],
 	}
 
 	for doctype, fieldnames in fieldnames.items():
-		click.secho(f"* Uninstalling Custom Fields from {doctype}")
+		click.secho(f" -> Uninstalling Custom Fields from {doctype}")
 		for fieldname in fieldnames:
-			frappe.db.delete("Custom Field", {"name": f"{doctype}-" + fieldname})
+			frappe.db.delete("Custom Field", {"dt": doctype, "fieldname": fieldname})
 
 		frappe.clear_cache(doctype=doctype)
 
@@ -82,14 +88,16 @@ def delete_propert_setters():
 
 
 def delete_payment_request_property_setter():
-	data = [
-		(
-			_property.get("doctype", ""),
-			_property.get("property", ""),
-			_property.get("fieldname", ""),
-		)
-		for _property in properties
-	]
-	for doctype, property, fieldname in data:
-		click.echo(f"* Updating {doctype} Property")
-		delete_property_setter(doctype, property, fieldname)
+	for doctype in properties.keys():
+		data = [
+			(
+				_property.get("doctype", ""),
+				_property.get("property", ""),
+				_property.get("fieldname", ""),
+			)
+			for _property in properties.get(doctype)
+		]
+
+		click.echo(f" -> Removing {doctype} Properties")
+		for doctype, property, fieldname in data:
+			delete_property_setter(doctype, property, fieldname)

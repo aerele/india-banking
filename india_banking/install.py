@@ -8,6 +8,7 @@ from india_banking.default import DEFAULT_MODE_OF_TRANSFERS, STD_BANK_LIST
 
 
 def after_install():
+	click.secho("* Updating India Banking Customisations")
 	toggle_payment_request_creation(True)
 	make_custom_fields()
 	create_property_setter()
@@ -17,11 +18,11 @@ def after_install():
 
 
 def make_custom_fields():
-	create_payment_request_custom_fields()
-	create_payment_custom_fields_in_payment_order()
-	create_payment_entry_custom_fields()
 	create_bank_doc_custom_fields()
 	create_bank_account_custom_fields()
+	create_payment_request_custom_fields()
+	create_payment_order_custom_fields()
+	create_payment_entry_custom_fields()
 	create_journal_entry_custom_fields()
 
 
@@ -31,7 +32,9 @@ def create_property_setter():
 
 def toggle_payment_request_creation(allow=True):
 	click.secho(
-		"* {} Payment Request Creation...".format("Enabling" if allow else "Disabling")
+		" -> {} Payment Request Creation...".format(
+			"Enabling" if allow else "Disabling"
+		)
 	)
 	frappe.db.set_value(
 		"DocType", "Payment Request", {"in_create": not allow, "track_changes": allow}
@@ -39,7 +42,7 @@ def toggle_payment_request_creation(allow=True):
 
 
 def create_bank_doc_custom_fields():
-	click.secho("* Installing Custom Fields in a Bank...")
+	click.secho(" -> Installing Custom Fields in a Bank...")
 	fields = {
 		"Bank": [
 			{
@@ -56,7 +59,7 @@ def create_bank_doc_custom_fields():
 
 
 def create_journal_entry_custom_fields():
-	click.secho("* Installing Custom Fields in a Journal Entry...")
+	click.secho(" -> Installing Custom Fields in a Journal Entry...")
 	fields = {
 		"Journal Entry Account": [
 			{
@@ -94,7 +97,7 @@ def create_journal_entry_custom_fields():
 
 
 def create_supplier_custom_fields():
-	click.secho("* Installing Supplier Custom Fields...")
+	click.secho(" -> Installing Custom Fields Supplier...")
 	fields = {
 		"Supplier": [
 			{
@@ -111,7 +114,7 @@ def create_supplier_custom_fields():
 
 
 def create_payment_request_custom_fields():
-	click.secho("* Installing Payment and Tax Custom Fields in Payment Request")
+	click.secho(" -> Installing Custom Fields in a Payment Request")
 	fields = {
 		"Payment Request": [
 			{
@@ -185,34 +188,37 @@ def create_payment_request_custom_fields():
 	create_custom_fields(fields)
 
 
-properties = [
-	{
-		"doctype_or_field": "DocField",
-		"doctype": "Payment Request",
-		"fieldname": "grand_total",
-		"property": "read_only",
-		"property_type": "Check",
-		"value": 1,
-	},
-	{
-		"doctype_or_field": "DocField",
-		"doctype": "Payment Request",
-		"fieldname": "grand_total",
-		"property": "reqd",
-		"property_type": "Check",
-		"value": 0,
-	},
-]
+properties = {
+	"Payment Request": [
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Payment Request",
+			"fieldname": "grand_total",
+			"property": "read_only",
+			"property_type": "Check",
+			"value": 1,
+		},
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Payment Request",
+			"fieldname": "grand_total",
+			"property": "reqd",
+			"property_type": "Check",
+			"value": 0,
+		},
+	]
+}
 
 
 def create_payment_request_property_setter():
-	for _property in properties:
-		click.echo(f'* Updating {_property.get("doctype", "")} Property')
-		make_property_setter(_property)
+	for doctype in properties.keys():
+		click.echo(f" -> Updating {doctype} Field Properties")
+		for _property in properties.get(doctype):
+			make_property_setter(_property)
 
 
-def create_payment_custom_fields_in_payment_order():
-	click.secho("* Installing Payment Fields in Payment Order")
+def create_payment_order_custom_fields():
+	click.secho(" -> Installing Custom Fields in a Payment Order")
 	fields = {
 		"Payment Order": [
 			{
@@ -252,6 +258,12 @@ def create_payment_custom_fields_in_payment_order():
 				"fieldname": "get_summary",
 				"fieldtype": "Button",
 				"insert_after": "references",
+			},
+			{
+				"label": "Default Mode of Transfer",
+				"fieldname": "default_mode_of_transfer",
+				"fieldtype": "Link",
+				"options": "Mode of Transfer",
 			},
 			{
 				"label": "Payment Summary",
@@ -357,7 +369,7 @@ def create_payment_custom_fields_in_payment_order():
 
 
 def create_payment_entry_custom_fields():
-	click.secho("* Installing Custom Payment Fields in a Payment Entry...")
+	click.secho(" -> Installing Custom Fields in a Payment Entry...")
 	fields = {
 		"Payment Entry": [
 			{
@@ -393,7 +405,7 @@ def create_payment_entry_custom_fields():
 
 
 def create_bank_account_custom_fields():
-	click.secho("* Installing Custom Payment Fields in a Bank Account...")
+	click.secho(" -> Installing Custom Fields in a Bank Account...")
 	fields = {
 		"Bank Account": [
 			{

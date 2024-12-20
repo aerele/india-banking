@@ -3,12 +3,9 @@ import re
 
 import frappe
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
-from frappe.utils import get_datetime, get_link_to_form, getdate
+from frappe.utils import get_link_to_form, getdate
 
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
-from india_banking.india_banking.doctype.bank_payment_request.bank_payment_request import (
-	get_existing_bank_entry,
-)
 
 
 class CustomPaymentOrder(PaymentOrder):

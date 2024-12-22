@@ -1,6 +1,8 @@
 import frappe
 
-from india_banking.india_banking.doc_events.payment_order import get_payment_status
+from india_banking.india_banking.doctype.bank_connector.bank_connector import (
+	get_payment_status,
+)
 
 
 def daily():
@@ -13,7 +15,7 @@ def daily():
 
 	for order in orders:
 		try:
-			frappe.enqueue(get_payment_status, docname=order, queue="short")
+			frappe.enqueue(get_payment_status, payment_order=order, queue="short")
 		except:
 			frappe.log_error(
 				title="Error in Payment Order Status Cron",

@@ -180,16 +180,13 @@ frappe.ui.form.on("Payment Order", {
           frm.add_custom_button(__("Get Status"), function () {
             frappe.call({
               method:
-                "india_banking.india_banking.doc_events.payment_order.get_payment_status",
+                "india_banking.india_banking.doctype.bank_connector.bank_connector.get_payment_status",
               freeze: 1,
               freeze_message: "Fetching payment status....",
               args: {
-                docname: frm.doc.name,
+                payment_order: frm.doc.name,
               },
               callback: function (r) {
-                if (r.message && !r.exc) {
-                  frappe.msgprint(r.message);
-                }
                 frm.reload_doc();
               },
             });

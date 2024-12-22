@@ -45,7 +45,7 @@ class BankConnector(Document):
 			frappe.throw(_("OTP is required for this transaction"))
 
 	def make_payment(self, payment_order, otp=None):
-		payment_order = frappe.get_doc("Payment Order", payment_order)
+		self.check_user_permission()
 
 		if self.check_otp_enabled(otp):
 			return self.generate_otp(payment_order)
@@ -58,6 +58,230 @@ class BankConnector(Document):
 			return self.make_bulk_payment(payment_order, otp)
 		else:
 			return self.make_single_payment(payment_order)
+
+	def get_payment_status(self, payment_order):
+		self.check_user_permission()
+		if self.bulk_transaction:
+			return self.get_bulk_payment_status(payment_order)
+		else:
+			return self.get_single_payment_status(payment_order)
+
+	def get_single_payment_status(self, payment_order):
+		for summary_row in payment_order.summary:
+			if summary_row.payment_status == "Initiated":
+				self.get_status_response(summary_row, payment_order)
+
+		payment_order.reload()
+		self.update_payment_status(payment_order)
+		frappe.msgprint(_("Payment Status Updated"))
+
+	def get_bulk_payment_status(self, payment_order):
+		response = request.post(
+			self.base_url,
+			headers=self.headers,
+			data=json.dumps(self.get_payload(payment_order, "get_payment_status")),
+		)
+
+		# create api request log
+		create_api_log(
+			response, "Get Payment Status", payment_order.doctype, payment_order.name
+		)
+
+		if response.ok:
+			status_response = self.get_response_details(response)
+			payment_status_details = status_response.payment_status_details
+
+			if status_response.status == "Processed":
+				frappe.msgprint(status_response.message, status_response.file_status)
+				fs = status_response.file_status
+				if status_response.file_status in ["FAL", "REJ", "REC"]:
+					for summary_row in payment_order.summary:
+						frappe.db.set_value(
+							"Payment Order Summary",
+							summary_row.name,
+							"payment_status",
+							"Failed" if fs == "FAL" else "Rejected",
+						)
+						payment_entry_doc = frappe.get_doc(
+							"Payment Entry", summary_row.payment_entry
+						)
+						if payment_entry_doc.docstatus == 1:
+							payment_entry_doc.cancel()
+						self.process_bank_payment_requests(payment_order, summary_row)
+
+				if payment_status_details:
+					for summary_row in payment_order.summary:
+						summary_row_payment_status = frappe._dict(
+							payment_status_details.get(summary_row.name, {})
+						)
+						if (
+							summary_row.payment_status == "Initiated"
+							and summary_row_payment_status
+						):
+							if summary_row_payment_status.transaction_status == "SUC":
+								frappe.db.set_value(
+									"Payment Order Summary",
+									summary_row.name,
+									{
+										"reference_number": summary_row_payment_status.host_reference_number,
+										"payment_status": "Processed",
+										"message": summary_row_payment_status.host_response_message,
+									},
+								)
+								frappe.db.set_value(
+									"Payment Entry",
+									summary_row.payment_entry,
+									"reference_no",
+									summary_row_payment_status.host_reference_number,
+								)
+							elif summary_row_payment_status.transaction_status == "FAL":
+								frappe.db.set_value(
+									"Payment Order Summary",
+									summary_row.name,
+									"payment_status",
+									"Failed",
+								)
+								payment_entry_doc = frappe.get_doc(
+									"Payment Entry", summary_row.payment_entry
+								)
+								if payment_entry_doc.docstatus == 1:
+									payment_entry_doc.cancel()
+								self.process_bank_payment_requests(
+									payment_order, summary_row
+								)
+
+							elif summary_row_payment_status.transaction_status in [
+								"RVS",
+								"REJ",
+							]:
+								frappe.db.set_value(
+									"Payment Order Summary",
+									summary_row.name,
+									"payment_status",
+									"Rejected",
+								)
+								payment_entry_doc = frappe.get_doc(
+									"Payment Entry", summary_row.payment_entry
+								)
+								if payment_entry_doc.docstatus == 1:
+									payment_entry_doc.cancel()
+								self.process_bank_payment_requests(
+									payment_order, summary_row
+								)
+
+				self.update_payment_status(payment_order)
+			else:
+				frappe.throw(msg=status_response.server_message, title="Failed")
+		else:
+			frappe.throw("Invalid Request")
+
+	def get_status_response(self, summary_row, payment_order):
+		response = request.post(
+			self.base_url,
+			headers=self.headers,
+			data=json.dumps(self.get_payload(payment_order, "get_payment_status")),
+		)
+
+		# create api request log
+		create_api_log(
+			response, "Get Payment Status", payment_order.doctype, payment_order.name
+		)
+
+		if response.ok:
+			status_response = self.get_response_details(response)
+			if status_response.status == "Processed":
+				if status_response.utr_number:
+					frappe.db.set_value(
+						"Payment Order Summary",
+						summary_row.name,
+						"reference_number",
+						status_response.utr_number,
+					)
+					if summary_row.payment_entry:
+						frappe.db.set_value(
+							"Payment Entry",
+							summary_row.payment_entry,
+							"reference_no",
+							status_response.utr_number,
+						)
+					if summary_row.journal_entry_account:
+						frappe.db.set_value(
+							"Journal Entry Account",
+							summary_row.journal_entry_account,
+							{
+								"payment_status": "Paid",
+								"reference_number": status_response.utr_number,
+							},
+						)
+
+					self.notify_party(summary_row)
+
+				frappe.db.set_value(
+					"Payment Order Summary",
+					summary_row.name,
+					"payment_status",
+					"Processed",
+				)
+			elif status_response.status == "Pending":
+				frappe.db.set_value(
+					"Payment Order Summary",
+					summary_row.name,
+					"message",
+					status_response.message,
+				)
+
+			elif status_response.status == "Failed":
+				frappe.db.set_value(
+					"Payment Order Summary",
+					summary_row.name,
+					{
+						"payment_status": status_response.status,
+						"message": status_response.message,
+					},
+				)
+
+				if summary_row.payment_entry:
+					payment_entry_doc = frappe.get_doc(
+						"Payment Entry", summary_row.payment_entry
+					)
+					if payment_entry_doc.docstatus == 1:
+						payment_entry_doc.cancel()
+					self.process_bank_payment_requests(payment_order, summary_row)
+
+				if summary_row.journal_entry_account:
+					frappe.db.set_value(
+						"Journal Entry Account",
+						summary_row.journal_entry_account,
+						"payment_status",
+						"Failed",
+					)
+
+			elif status_response.status == "Rejected":
+				frappe.db.set_value(
+					"Payment Order Summary",
+					summary_row.name,
+					{
+						"payment_status": status_response.status,
+						"message": status_response.message,
+					},
+				)
+
+				if summary_row.payment_entry:
+					payment_entry_doc = frappe.get_doc(
+						"Payment Entry", summary_row.payment_entry
+					)
+					if payment_entry_doc.docstatus == 1:
+						payment_entry_doc.cancel()
+
+					self.process_bank_payment_requests(payment_order, summary_row)
+
+				if summary_row.journal_entry_account:
+					frappe.db.set_value(
+						"Journal Entry Account",
+						summary_row.journal_entry_account,
+						"payment_status",
+						"Failed",
+					)
 
 	def make_single_payment(self, payment_order):
 		count = 0
@@ -382,6 +606,49 @@ class BankConnector(Document):
 				title="Payment Order Status Update Error",
 				message=frappe.get_traceback(),
 			)
+
+	def notify_party(self, summary_row):
+		if not frappe.get_value(
+			"India Banking Settings", "India Banking Settings", "notify_party"
+		):
+			return
+		if summary_row.payment_entry:
+			default_email_format = (
+				frappe.get_single("India Banking Settings").default_email_format
+				or "Payment Advice"
+			)
+			if default_email_format:
+				try:
+					payment_entry = frappe.get_doc(
+						"Payment Entry", summary_row.payment_entry
+					)
+					frappe.sendmail(
+						recipients=[
+							summary_row.email
+							or frappe.db.get_value(
+								"Bank Account", summary_row.bank_account, "email"
+							)
+						],
+						subject="Payment Notification",
+						message="Payment for {0} is completed. Please check the attachment for details".format(
+							summary_row.party
+						),
+						attachments=[
+							{
+								"fname": "payment_details.pdf",
+								"fcontent": frappe.get_print(
+									"Payment Entry",
+									payment_entry.name,
+									default_email_format,
+									as_pdf=True,
+								),
+							}
+						],
+					)
+				except Exception as e:
+					frappe.log_error(
+						"Payment Email Notification Failed", frappe.get_traceback()
+					)
 
 
 def get_bank_connector(bank_account, company):

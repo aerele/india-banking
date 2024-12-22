@@ -158,14 +158,14 @@ frappe.ui.form.on("Payment Order", {
         }
         if (uninitiated_payments > 0 && is_pending) {
           frm.add_custom_button(__("Initiate Payment"), function () {
-            frm.trigger("make_payment")
+            frm.trigger("make_payment");
           });
         }
       }
     }
 
     if (
-      ( ["Pending", "Initiated"].includes(frm.doc.status)) &&
+      ["Pending", "Initiated"].includes(frm.doc.status) &&
       frm.doc.docstatus == 1
     ) {
       if (frm.has_perm("write") && "summary" in frm.doc) {
@@ -175,12 +175,12 @@ frappe.ui.form.on("Payment Order", {
             pending_status_check += 1;
           }
         }
-        
+
         if (pending_status_check > 0) {
           frm.add_custom_button(__("Get Status"), function () {
             frappe.call({
               method:
-              "india_banking.india_banking.doc_events.payment_order.get_payment_status",
+                "india_banking.india_banking.doc_events.payment_order.get_payment_status",
               freeze: 1,
               freeze_message: "Fetching payment status....",
               args: {
@@ -200,29 +200,27 @@ frappe.ui.form.on("Payment Order", {
 
     frm.trigger("remove_button");
   },
-  
+
   make_payment: function (frm) {
     frappe.call({
       method:
-      "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
+        "india_banking.india_banking.doctype.bank_connector.bank_connector.make_payment",
       freeze: true,
       freeze_message: "Initiating Payment...",
       args: {
-        docname: frm.doc.name,
+        payment_order: frm.doc.name,
       },
       callback: (res) => {
         if (!res.exc && res.message) {
-          if(res.message.otp_required){
-            this.verify_otp();
-          }else{
-            frappe.msgprint(res.message);
+          if (res.message.otp_required) {
+            frm.trigger("verify_otp");
           }
         }
       },
     });
   },
 
-  verify_otp() {
+  verify_otp(frm) {
     frappe.prompt(
       {
         label: "Enter OTP",
@@ -233,17 +231,14 @@ frappe.ui.form.on("Payment Order", {
       (values) => {
         frappe.call({
           method:
-            "india_banking.india_banking.doc_events.payment_order.make_bank_payment",
+            "india_banking.india_banking.doctype.bank_connector.bank_connector.make_payment",
           freeze: 1,
           args: {
-            docname: frm.doc.name,
-            otp: values.otp,
+            payment_order: frm.doc.name,
+            otp: values.otp || "",
           },
           callback: function (r) {
-            if (r.message) {
-              frappe.msgprint(r.message);
-            }
-            frm.reload_doc();
+            // frm.reload_doc();
           },
         });
       },

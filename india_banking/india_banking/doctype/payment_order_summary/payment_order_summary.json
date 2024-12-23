@@ -15,6 +15,11 @@
   "message",
   "reference_number",
   "bank_account",
+  "email",
+  "branch_code",
+  "account_name",
+  "bank_account_no",
+  "bank",
   "accounting_section",
   "account",
   "tax_withholding_category",
@@ -169,7 +174,7 @@
   },
   {
    "fieldname": "reference_name",
-   "fieldtype": "Data",
+   "fieldtype": "Dynamic Link",
    "label": "Reference Name",
    "options": "reference_doctype",
    "read_only": 1
@@ -191,12 +196,48 @@
    "fieldtype": "Data",
    "label": "Journal Entry Account",
    "read_only": 1
+  },
+  {
+   "fetch_from": "bank_account.email",
+   "fetch_if_empty": 1,
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email"
+  },
+  {
+   "fetch_from": "bank_account.branch_code",
+   "fetch_if_empty": 1,
+   "fieldname": "branch_code",
+   "fieldtype": "Data",
+   "label": "Branch Code"
+  },
+  {
+   "fetch_from": "bank_account.account_name",
+   "fetch_if_empty": 1,
+   "fieldname": "account_name",
+   "fieldtype": "Data",
+   "label": "Account Name"
+  },
+  {
+   "fetch_from": "account.account_number",
+   "fetch_if_empty": 1,
+   "fieldname": "bank_account_no",
+   "fieldtype": "Data",
+   "label": "Bank Account No"
+  },
+  {
+   "fetch_from": "bank_account.bank",
+   "fetch_if_empty": 1,
+   "fieldname": "bank",
+   "fieldtype": "Data",
+   "label": "Bank"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-09-26 11:13:44.056821",
+ "modified": "2024-12-23 15:36:49.167883",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Payment Order Summary",

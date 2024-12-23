@@ -212,6 +212,7 @@ frappe.ui.form.on("Payment Order", {
           if (res.message.otp_required) {
             frm.trigger("verify_otp");
           }
+          frm.reload_doc();
         }
       },
     });
@@ -235,7 +236,7 @@ frappe.ui.form.on("Payment Order", {
             otp: values.otp || "",
           },
           callback: function (r) {
-            // frm.reload_doc();
+            frm.reload_doc();
           },
         });
       },

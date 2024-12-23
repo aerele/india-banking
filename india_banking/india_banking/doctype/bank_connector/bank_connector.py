@@ -4,10 +4,10 @@
 import json
 
 import frappe
+import requests as request
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import comma_and, cstr, get_link_to_form, getdate
-import requests as request
 
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
@@ -294,7 +294,6 @@ class BankConnector(Document):
 				payment_response = self.process_payment_and_response(
 					payment_row, payment_order
 				)
-
 				if (
 					payment_response
 					and "payment_status" in payment_response
@@ -360,7 +359,7 @@ class BankConnector(Document):
 		return {"message": f"{count} payments initiated"}
 
 	def process_payment_and_response(self, payment_row, payment_order):
-		payment_payload = self.get_payload(payment_order, "make_payment")
+		payment_payload = self.get_payload(payment_order, "intiate_payment")
 		payment_payload.update(payment_row.as_dict(convert_dates_to_str=True))
 		party_field_name = (
 			"supplier_name" if payment_row.party_type == "Supplier" else "employee_name"
@@ -397,19 +396,30 @@ class BankConnector(Document):
 			payment_response = self.get_response_details(response)
 
 			if not payment_response.status:
-				return frappe._dict({"payment_status": "", "message": str(response)})
+				return frappe._dict(
+					{"payment_status": "", "message": str(response.text)}
+				)
 
 			elif payment_response.status == "ACCEPTED":
-				return frappe._dict({
-					"payment_status": "Initiated",
-					"message": payment_response.message,
-				})
+				return frappe._dict(
+					{
+						"payment_status": "Initiated",
+						"message": payment_response.message,
+					}
+				)
 
 			elif payment_response.status == "Request Failure":
-				return frappe._dict({"payment_status": "", "message": "Request Failure"})
+				return frappe._dict(
+					{
+						"payment_status": "",
+						"message": payment_response.message or "Request Failure",
+					}
+				)
 
 			else:
-				return frappe._dict({"payment_status": "Failed", "message": payment_response.message})
+				return frappe._dict(
+					{"payment_status": "Failed", "message": payment_response.message}
+				)
 		else:
 			return frappe._dict({"payment_status": "", "message": "Bad Request"})
 
@@ -448,23 +458,26 @@ class BankConnector(Document):
 				pr_doc.db_set("docstatus", 2)
 
 	def make_bulk_payment(self, payment_order, otp):
-		payment_payload = self.get_payload(payment_order, "make_payment")
+		payment_payload = self.get_payload(payment_order, "intiate_payment")
 		payment_payload.doc.update({"otp": otp})
 
 		payment_account_list = []
 
 		# Lei number validation
-		for ref in payment_order.summary:
-			if ref.mode_of_transfer == "RTGS" and ref.amount >= 500000000:
+		for summary_row in payment_order.summary:
+			if (
+				summary_row.mode_of_transfer == "RTGS"
+				and summary_row.amount >= 500000000
+			):
 				lei_number = frappe.db.get_value(
-					ref.party_type, ref.party, "lei_number"
+					summary_row.party_type, summary_row.party, "lei_number"
 				)
-				payment_account_list.append(ref.account_name + "-" + lei_number)
+				payment_account_list.append(summary_row.account_name + "-" + lei_number)
 				if not lei_number:
 					frappe.throw("LEI Number required for payment > 50 Cr")
 			else:
 				payment_account_list.append(
-					ref.account_name + "-" + ref.bank_account_no
+					summary_row.account_name + "-" + summary_row.bank_account_no
 				)
 
 		payment_payload.doc.update(
@@ -521,6 +534,7 @@ class BankConnector(Document):
 		pass
 
 	def generate_otp(self, payment_order):
+		return {"otp_required": True}
 		payment_order.update_unique_and_file_reference_id(save=True)
 		payment_order.reload()
 
@@ -545,12 +559,16 @@ class BankConnector(Document):
 			frappe.throw(_("Invalid Response: Check API Log"))
 
 	def handle_otp_response(self, response):
+		# return {"otp_required": True}
 		if response.ok:
 			response_details = self.get_response_details(response)
 			if response_details.status == "success":
 				return {"otp_required": True}
 			else:
-				frappe.throw(msg=_(cstr(response_details.message)), title=_("Failed"))
+				frappe.throw(
+					title=_("Invalid Request"),
+					msg=_("OTP Initiation Failed: Check API Log"),
+				)
 		else:
 			frappe.throw(
 				title=cstr(response.status_code),
@@ -558,14 +576,20 @@ class BankConnector(Document):
 			)
 
 	def get_payload(self, payment_order, action):
-		bank_account = frappe.get_doc("Bank Account", payment_order.company_bank_account)
+		bank_account = frappe.get_doc(
+			"Bank Account", payment_order.company_bank_account
+		)
 		payment_payload = frappe._dict()
 		payment_payload.doc = payment_order.as_dict(convert_dates_to_str=True)
+		payment_payload.doc.update(
+			{
+				"company_account_number": bank_account.bank_account_no,
+				"company_bank_account_name": bank_account.account_name,
+				"company_ifsc": bank_account.branch_code,
+				"mobile_number": bank_account.mobile_number,
+			}
+		)
 		payment_payload.method = action
-		payment_payload.company_account_number = bank_account.bank_account_no
-		payment_payload.company_ifsc = bank_account.branch_code
-		payment_payload.company_bank_account_name = bank_account.account_name
-		payment_payload.mobile_number = bank_account.mobile_number
 		payment_payload.bulk_transaction = self.bulk_transaction
 		return payment_payload
 

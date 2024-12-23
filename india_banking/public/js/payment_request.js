@@ -19,6 +19,18 @@ frappe.ui.form.on("Payment Request", {
         },
       };
     });
+    frm.set_query("bank_account", function () {
+      return {
+        filters: {
+          company: frm.doc.company,
+          is_default: 1,
+          disabled: 0,
+          workflow_state: "Approved",
+          party_type: frm.doc.party_type,
+          party: frm.doc.party,
+        },
+      };
+    });
   },
   company(frm) {
     frm.set_query("payment_type", function () {

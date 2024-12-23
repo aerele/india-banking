@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import comma_and, cstr, get_link_to_form, getdate
-from requests import request
+import requests as request
 
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
@@ -397,21 +397,21 @@ class BankConnector(Document):
 			payment_response = self.get_response_details(response)
 
 			if not payment_response.status:
-				return {"payment_status": "", "message": str(response)}
+				return frappe._dict({"payment_status": "", "message": str(response)})
 
 			elif payment_response.status == "ACCEPTED":
-				return {
+				return frappe._dict({
 					"payment_status": "Initiated",
 					"message": payment_response.message,
-				}
+				})
 
 			elif payment_response.status == "Request Failure":
-				return {"payment_status": "", "message": "Request Failure"}
+				return frappe._dict({"payment_status": "", "message": "Request Failure"})
 
 			else:
-				return {"payment_status": "Failed", "message": payment_response.message}
+				return frappe._dict({"payment_status": "Failed", "message": payment_response.message})
 		else:
-			return {"payment_status": "", "message": "Bad Request"}
+			return frappe._dict({"payment_status": "", "message": "Bad Request"})
 
 	def process_bank_payment_requests(self, payment_order, payment_row):
 		key = (
@@ -558,9 +558,14 @@ class BankConnector(Document):
 			)
 
 	def get_payload(self, payment_order, action):
+		bank_account = frappe.get_doc("Bank Account", payment_order.company_bank_account)
 		payment_payload = frappe._dict()
 		payment_payload.doc = payment_order.as_dict(convert_dates_to_str=True)
 		payment_payload.method = action
+		payment_payload.company_account_number = bank_account.bank_account_no
+		payment_payload.company_ifsc = bank_account.branch_code
+		payment_payload.company_bank_account_name = bank_account.account_name
+		payment_payload.mobile_number = bank_account.mobile_number
 		payment_payload.bulk_transaction = self.bulk_transaction
 		return payment_payload
 

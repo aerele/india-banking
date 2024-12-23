@@ -260,12 +260,6 @@ def create_payment_order_custom_fields():
 				"insert_after": "references",
 			},
 			{
-				"label": "Default Mode of Transfer",
-				"fieldname": "default_mode_of_transfer",
-				"fieldtype": "Link",
-				"options": "Mode of Transfer",
-			},
-			{
 				"label": "Payment Summary",
 				"fieldname": "payment_summary",
 				"fieldtype": "Section Break",
@@ -275,8 +269,14 @@ def create_payment_order_custom_fields():
 				"label": "Is Party Wise",
 				"fieldname": "is_party_wise",
 				"fieldtype": "Check",
-				"read_only": 1,
 				"hidden": 1,
+				"insert_after": "payment_summary",
+			},
+			{
+				"label": "Default Mode of Transfer",
+				"fieldname": "default_mode_of_transfer",
+				"fieldtype": "Link",
+				"options": "Mode of Transfer",
 				"insert_after": "payment_summary",
 			},
 			{
@@ -412,6 +412,7 @@ def create_bank_account_custom_fields():
 				"label": "Mobile Number",
 				"fieldname": "mobile_number",
 				"insert_after": "iban",
+				"mandatory_depends_on": "is_company_account",
 				"fieldtype": "Data",
 			},
 			{

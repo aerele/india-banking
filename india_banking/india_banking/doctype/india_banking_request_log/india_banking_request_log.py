@@ -5,9 +5,18 @@ import frappe
 import json
 from frappe.model.document import Document
 from requests.models import Response
+import requests
 
 class IndiaBankingRequestLog(Document):
 	pass
+
+def format_with_indent(data):
+	if isinstance(data, dict):
+		return json.dumps(data, indent=4)
+	elif isinstance(data, requests.structures.CaseInsensitiveDict):
+		return json.dumps(dict(data), indent=4)
+	else:
+		return format_with_indent(json.loads(data))
 
 
 @frappe.whitelist()
@@ -25,9 +34,9 @@ def create_api_log(res, action= None, ref_doctype= None, ref_docname= None):
 		log_doc.action = action
 		log_doc.url = res.request.url
 		log_doc.method = res.request.method
-		log_doc.header = json.dumps(dict(res.request.headers), indent=4)
-		log_doc.payload =json.dumps(res.request.body, indent=4)
-		log_doc.response = json.dumps(res.json(), indent=4)
+		log_doc.header = format_with_indent(res.request.headers)
+		log_doc.payload =format_with_indent(res.request.body)
+		log_doc.response = format_with_indent(res.text)
 		log_doc.status_code = res.status_code
 		log_doc.reference_doctype = ref_doctype
 		log_doc.reference_docname = ref_docname

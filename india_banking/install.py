@@ -2,7 +2,6 @@ import click
 import frappe
 from frappe import make_property_setter
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
-from frappe.custom.doctype.property_setter.property_setter import delete_property_setter
 
 from india_banking.default import DEFAULT_MODE_OF_TRANSFERS, STD_BANK_LIST
 
@@ -269,7 +268,8 @@ def create_payment_order_custom_fields():
 				"label": "Is Party Wise",
 				"fieldname": "is_party_wise",
 				"fieldtype": "Check",
-				"hidden": 1,
+				"hidden": 0,
+				"no_copy": 1,
 				"insert_after": "payment_summary",
 			},
 			{

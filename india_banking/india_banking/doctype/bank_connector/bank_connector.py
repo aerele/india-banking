@@ -294,6 +294,7 @@ class BankConnector(Document):
 				payment_response = self.process_payment_and_response(
 					payment_row, payment_order
 				)
+
 				if (
 					payment_response
 					and "payment_status" in payment_response
@@ -500,6 +501,7 @@ class BankConnector(Document):
 
 	def process_bulk_payment_response(self, response, payment_order):
 		payment_response = self.get_response_details(response)
+
 		if payment_response.get("status", "") == "ACCEPTED":
 			frappe.db.set_value(
 				"Payment Order", payment_order.name, "status", "Initiated"
@@ -522,10 +524,10 @@ class BankConnector(Document):
 					},
 				)
 
-			return {"message": "Payment Initiated"}
+			frappe.msgprint(_("Payment Initiated"))
 
 		elif payment_response.get("status", "") == "Failed":
-			return {"message": "Failed - " + cstr(payment_response.get("message"))}
+			frappe.msgprint(_("Failed - " + cstr(payment_response.get("message"))))
 
 		else:
 			frappe.throw(_("Invalid Response: Check API Log"))
@@ -534,9 +536,10 @@ class BankConnector(Document):
 		pass
 
 	def generate_otp(self, payment_order):
-		return {"otp_required": True}
 		payment_order.update_unique_and_file_reference_id(save=True)
 		payment_order.reload()
+
+		# return {"otp_required": True} # For testing response
 
 		# Generate OTP using POST request
 		response = request.post(

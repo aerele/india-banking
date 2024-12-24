@@ -38,7 +38,6 @@ class CustomPaymentOrder(PaymentOrder):
 			frappe.db.commit()
 
 	def validate(self):
-		frappe.throw("validate")
 		self.validate_summary()
 		for payment_info in self.summary:
 			if (

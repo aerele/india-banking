@@ -142,26 +142,32 @@ def make_payment_order(source_name, target_doc=None, args=None):
 				source.reference_doctype, source.reference_name, "credit_to"
 			)
 
-		for dimension in get_accounting_dimensions():
-			target.update({dimension: source.get(dimension, "")})
+		def _update_dimensions(source):
+			return {
+				dimension: source.get(dimension, "")
+				for dimension in get_accounting_dimensions()
+			}
+
+		reference = {
+			"reference_doctype": source.reference_doctype,
+			"reference_name": source.reference_name,
+			"amount": source.grand_total,
+			"party_type": source.party_type,
+			"party": source.party,
+			"payment_request": source_name,
+			"mode_of_payment": source.mode_of_payment,
+			"bank_account": source.bank_account,
+			"account": account,
+			"is_adhoc": source.is_adhoc,
+			"cost_center": source.cost_center,
+			"project": source.project,
+			"tax_withholding_category": source.tax_withholding_category,
+		}
+		reference.update(_update_dimensions(source))
 
 		target.append(
 			"references",
-			{
-				"reference_doctype": source.reference_doctype,
-				"reference_name": source.reference_name,
-				"amount": source.grand_total,
-				"party_type": source.party_type,
-				"party": source.party,
-				"payment_request": source_name,
-				"mode_of_payment": source.mode_of_payment,
-				"bank_account": source.bank_account,
-				"account": account,
-				"is_adhoc": source.is_adhoc,
-				"cost_center": source.cost_center,
-				"project": source.project,
-				"tax_withholding_category": source.tax_withholding_category,
-			},
+			reference,
 		)
 		target.status = "Pending"
 

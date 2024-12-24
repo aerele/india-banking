@@ -149,41 +149,6 @@ class CustomPaymentOrder(PaymentOrder):
 				order_status,
 			)
 
-	def make_payroll_bank_entry(self, submit=False):
-		self.docstatus = 0
-		payroll_entry = (
-			set([ref.payroll_entry for ref in self.references if ref.payroll_entry])
-			if self.references
-			else []
-		)
-		if payroll_entry:
-			for pe in payroll_entry:
-				payroll_entry = frappe.get_doc("Payroll Entry", pe)
-				if not payroll_entry.payment_account:
-					link = frappe.utils.get_link_to_form("Payroll Entry", pe)
-					frappe.throw(
-						f"Payment Account is mandatory for Payroll Entry {link}"
-					)
-
-				journal_entry = get_bank_entry_for_payroll({"refrence_name": pe})
-				if not journal_entry:
-					journal = payroll_entry.make_bank_entry(for_withheld_salaries=False)
-				else:
-					journal = frappe.get_doc("Journal Entry", journal_entry)
-
-				frappe.db.set_value(
-					"Journal Entry",
-					journal.name,
-					{
-						"payment_order": self.name,
-						"cheque_no": self.name,
-						"cheque_date": getdate(),
-					},
-				)
-				journal.reload()
-				if submit and not journal.docstatus:
-					journal.submit()
-
 	def on_update_after_submit(self):
 		frappe.throw("You cannot modify a payment order")
 		return

@@ -8,7 +8,8 @@
   "summarise_payment_based_on",
   "notify_party",
   "column_break_wjye",
-  "default_email_format"
+  "default_email_format",
+  "activate_workflow_on_bank_account"
  ],
  "fields": [
   {
@@ -32,12 +33,18 @@
    "fieldname": "notify_party",
    "fieldtype": "Check",
    "label": "Notify Party"
+  },
+  {
+   "default": "1",
+   "fieldname": "activate_workflow_on_bank_account",
+   "fieldtype": "Check",
+   "label": "Activate Workflow on Bank Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-12-09 16:07:39.909616",
+ "modified": "2024-12-24 13:59:21.431509",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

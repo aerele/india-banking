@@ -114,7 +114,13 @@ class BankPaymentRequest(PaymentRequest):
 				"Bank Account", self.bank_account, "workflow_state"
 			)
 
-			if self.mode_of_payment == "Wire Transfer" and status != "Approved":
+			if (
+				self.mode_of_payment == "Wire Transfer"
+				and status != "Approved"
+				and frappe.get_single(
+					"India Banking Settings"
+				).activate_workflow_on_bank_account
+			):
 				frappe.throw("Cannot proceed with un-approved bank account")
 		except Exception:
 			frappe.throw("Workflow Not Found for Bank Account")

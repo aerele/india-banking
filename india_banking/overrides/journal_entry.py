@@ -43,20 +43,25 @@ def make_payment_order(source_name, target_doc=None, args=None):
 
 
 def get_employee_payemnt_details(journal_accounts):
+	fields = [
+		"name",
+		"party",
+		"party_type",
+		"bank",
+		"branch_code",
+		"bank_account_no",
+		"mobile_number",
+		"email",
+	]
+	activate_workflow_on_bank_account = frappe.get_single(
+		"India Banking Settings"
+	).activate_workflow_on_bank_account
+	if activate_workflow_on_bank_account:
+		fields.append("workflow_state")
+
 	employee_bank_account_details = frappe.db.get_all(
 		"Bank Account",
 		{"party_type": "Employee", "disabled": 0, "is_default": 1},
-		[
-			"name",
-			"party",
-			"party_type",
-			"bank",
-			"branch_code",
-			"bank_account_no",
-			"mobile_number",
-			"email",
-			"workflow_state",
-		],
 	)
 
 	employee_bank_account_details = {
@@ -76,7 +81,10 @@ def get_employee_payemnt_details(journal_accounts):
 				)
 			)
 		else:
-			if employee_bank_details.get("workflow_state") != "Approved":
+			if (
+				employee_bank_details.get("workflow_state") != "Approved"
+				and activate_workflow_on_bank_account
+			):
 				link = frappe.utils.get_link_to_form(
 					"Bank Account", employee_bank_details.get("name")
 				)

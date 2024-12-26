@@ -231,14 +231,15 @@ def get_party_summary(references, company_bank_account):
 		company_bank = frappe.db.get_value("Bank Account", company_bank_account, "bank")
 		row["mode_of_transfer"] = None
 		if party_bank == company_bank:
-			mode_of_transfer = frappe.db.get_value("Mode of Transfer", {"is_bank_specific": 1, "bank": party_bank})
+			mode_of_transfer = frappe.db.get_value("Mode of Transfer", {"is_bank_specific": 1, "bank": party_bank, "disabled": 0,})
 			if mode_of_transfer:
 				row["mode_of_transfer"] = mode_of_transfer
 		else:
 			mot = frappe.db.get_value("Mode of Transfer", {
 				"minimum_limit": ["<=", row["amount"]],
 				"maximum_limit": [">", row["amount"]],
-				"is_bank_specific": 0
+				"is_bank_specific": 0,
+				"disabled": 0,
 				},
 				order_by = "priority asc")
 			if mot:

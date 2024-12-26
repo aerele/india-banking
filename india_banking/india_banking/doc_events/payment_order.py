@@ -14,6 +14,7 @@ from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoi
 
 from random import randint
 from frappe.utils.password import passlibctx
+import re
 
 protect_otp = lambda data, otp: data.replace(otp, '*' * len(otp))
 
@@ -697,7 +698,7 @@ def process_payment(payment_info, payment_order_doc):
 
 	party_name = frappe.db.get_value(payment_info.party_type, payment_info.party, party_field_name)
 
-	payment_payload.party_name = party_name
+	payment_payload.party_name = re.sub(r"[^a-zA-Z0-9\s]", " ", party_name or "")
 	payment_payload.desc = f"Payment to {payment_info.party} via {payment_info.parent}"
 
 	payment_payload.doc = payment_order_doc.as_dict(convert_dates_to_str=True)

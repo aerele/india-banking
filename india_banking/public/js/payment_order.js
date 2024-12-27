@@ -5,7 +5,7 @@ frappe.ui.form.on("Payment Order", {
       .get_single_value("India Banking Settings", "summarise_payment_based_on")
       .then((res) => {
         if (res === "Party") {
-          frm.set_value("is_party_wise", 1);
+          frm.set_value("summarise_payment_based_on", res);
         }
       });
 
@@ -343,7 +343,7 @@ frappe.ui.form.on("Payment Order", {
       args: {
         references: frm.doc.references,
         company_bank_account: frm.doc.company_bank_account,
-        is_party_wise: frm.doc.is_party_wise,
+        summarise_payment_based_on: frm.doc.summarise_payment_based_on,
       },
       freeze: true,
       callback: function (r) {

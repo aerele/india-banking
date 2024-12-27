@@ -584,7 +584,7 @@ def make_payment_entries(docname):
 					== row.tax_withholding_category
 					and reference.reference_doctype == row.reference_doctype
 				)
-				if not payment_order_doc.is_party_wise:
+				if payment_order_doc.summarise_payment_based_on != "Party":
 					filter_condition = filter_condition and (
 						reference.reference_doctype == row.reference_doctype
 						and reference.reference_name == row.reference_name

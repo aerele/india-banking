@@ -196,7 +196,7 @@ class CustomPaymentOrder(PaymentOrder):
 
 
 @frappe.whitelist()
-def get_party_summary(references, company_bank_account, is_party_wise=None):
+def get_party_summary(references, company_bank_account, summarise_payment_based_on=None):
 	references = json.loads(references)
 	if not len(references) or not company_bank_account:
 		return
@@ -218,7 +218,7 @@ def get_party_summary(references, company_bank_account, is_party_wise=None):
 			"journal_entry",
 			"journal_entry_account",
 		]
-		if is_party_wise:
+		if summarise_payment_based_on == "Party":
 			summarise_field.remove("reference_name")
 
 		if summarise_field_only:

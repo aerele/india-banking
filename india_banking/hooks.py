@@ -159,7 +159,6 @@ doc_events = {
 
 
 accounting_dimension_doctypes = [
-	"Payment Order",
 	"Payment Order Reference",
 	"Payment Order Summary",
 ]

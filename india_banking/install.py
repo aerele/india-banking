@@ -3,7 +3,13 @@ import frappe
 from frappe import make_property_setter
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
-from india_banking.default import DEFAULT_MODE_OF_TRANSFERS, STD_BANK_LIST
+from india_banking.default import (
+	DEFAULT_MODE_OF_TRANSFERS,
+	DEFAULT_WORKFLOW_ACTIONS,
+	DEFAULT_WORKFLOW_LIST,
+	DEFAULT_WORKFLOW_STATE,
+	STD_BANK_LIST,
+)
 
 
 def after_install():
@@ -14,6 +20,7 @@ def after_install():
 	toggle_reqd_for_reference_in_payment_order(False)
 	create_default_mode_of_transfers()
 	create_default_payment_type()
+	create_default_workflow()
 
 
 def make_custom_fields():
@@ -483,3 +490,42 @@ def create_default_payment_type():
 		frappe.get_doc({"doctype": "Payment Type", "payment_type": "Pay"}).insert(
 			ignore_permissions=True, ignore_mandatory=True
 		)
+
+
+def create_default_workflow():
+	click.echo(" -> Updating workflow")
+
+	create_default_workflow_state()
+	create_default_workflow_actions()
+
+	for workflow in DEFAULT_WORKFLOW_LIST:
+		workflow = frappe._dict(workflow)
+		if not frappe.db.exists(
+			"Workflow",
+			{
+				"document_type": workflow.document_type,
+				"workflow_name": workflow.workflow_name,
+			},
+		):
+			click.echo(
+				f"    |-> Creating workflow for the {workflow.document_type} Doctype."
+			)
+			frappe.get_doc(workflow).insert(ignore_permissions=True, ignore_links=True)
+
+
+def create_default_workflow_state():
+	click.echo("    |-> Creating Workflow state")
+
+	for state in DEFAULT_WORKFLOW_STATE:
+		if not frappe.db.exists("Workflow Document State", state):
+			workflow_state_doc = frappe.new_doc("Workflow Document State")
+			workflow_state_doc.workflow_state_name = state
+
+
+def create_default_workflow_actions():
+	click.echo("    |-> Creating Workflow action")
+
+	for action in DEFAULT_WORKFLOW_ACTIONS:
+		if not frappe.db.exists("Workflow Action Master", action):
+			workflow_state_doc = frappe.new_doc("Workflow Action Master")
+			workflow_state_doc.workflow_action_name = action

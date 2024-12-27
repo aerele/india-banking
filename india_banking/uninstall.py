@@ -2,6 +2,7 @@ import click
 import frappe
 from frappe.custom.doctype.property_setter.property_setter import delete_property_setter
 
+from india_banking.default import DEFAULT_WORKFLOW_LIST
 from india_banking.install import (
 	properties,
 	toggle_payment_request_creation,
@@ -14,6 +15,25 @@ def before_uninstall():
 	toggle_payment_request_creation(False)
 	delete_propert_setters()
 	toggle_reqd_for_reference_in_payment_order(True)
+	delete_default_workflow()
+
+
+def delete_default_workflow():
+	click.echo("* Removing Default workflow")
+
+	for workflow in DEFAULT_WORKFLOW_LIST:
+		workflow = frappe._dict(workflow)
+		if workflow_name := frappe.db.exists(
+			"Workflow",
+			{
+				"document_type": workflow.document_type,
+				"workflow_name": workflow.workflow_name,
+			},
+		):
+			click.echo(
+				f"-> Deleting workflow for the {workflow.document_type} Doctype."
+			)
+			frappe.delete_doc("Workflow", workflow_name)
 
 
 def delete_custom_fields():

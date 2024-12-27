@@ -44,3 +44,62 @@ STD_BANK_LIST = [
 	"Axis Bank",
 	"Kotak Mahindra Bank",
 ]
+
+DEFAULT_WORKFLOW_STATE = [
+	"Pending",
+	"Approved",
+]
+
+DEFAULT_WORKFLOW_ACTIONS = ["Approve", "Reject"]
+
+DEFAULT_WORKFLOW_LIST = [
+	{
+		"doctype": "Workflow",
+		"document_type": "Bank Account",
+		"workflow_name": "Bank Account Approval",
+		"workflow_state_field": "workflow_state",
+		"is_active": 1,
+		"states": [
+			{
+				"allow_edit": "All",
+				"doc_status": "0",
+				"parent": "Bank Account Approval",
+				"parentfield": "states",
+				"parenttype": "Workflow",
+				"state": "Pending",
+				"update_value": "Pending",
+			},
+			{
+				"allow_edit": "Accounts Manager",
+				"doc_status": "0",
+				"parent": "Bank Account Approval",
+				"parentfield": "states",
+				"parenttype": "Workflow",
+				"state": "Approved",
+				"update_value": "Approved",
+			},
+		],
+		"transitions": [
+			{
+				"state": "Pending",
+				"action": "Approve",
+				"next_state": "Approved",
+				"allowed": "Accounts Manager",
+				"allow_self_approval": 1,
+				"parent": "Bank Account Approval",
+				"parentfield": "transitions",
+				"parenttype": "Workflow",
+			},
+			{
+				"action": "Reject",
+				"next_state": "Pending",
+				"allowed": "Accounts Manager",
+				"allow_self_approval": 1,
+				"parent": "Bank Account Approval",
+				"parentfield": "transitions",
+				"parenttype": "Workflow",
+				"state": "Approved",
+			},
+		],
+	}
+]

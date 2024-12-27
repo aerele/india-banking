@@ -27,15 +27,6 @@ app_license = "gpl-3.0"
 # include js in page
 # page_js = {"page" : "public/js/file.js"}
 
-fixtures = [
-	{"dt": "Workflow", "filters": [["name", "in", ["Bank Account Approval"]]]},
-	{"dt": "Workflow State", "filters": [["name", "in", ["Approved", "Rejected"]]]},
-	{
-		"dt": "Workflow Action Master",
-		"filters": [["name", "in", ["Pending", "Approve", "Reject"]]],
-	},
-]
-
 doctype_js = {
 	"Payment Order": "public/js/payment_order.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",

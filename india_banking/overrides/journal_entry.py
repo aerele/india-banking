@@ -5,6 +5,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 from frappe.query_builder import DocType
 from frappe.query_builder.functions import Sum
 
+
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None, args=None):
 	from frappe.model.mapper import get_mapped_doc
@@ -50,11 +51,17 @@ def make_payment_order(source_name, target_doc=None, args=None):
 			)
 		)
 
-		journal_accounts = query.run(as_dict=True)
+		journal_accounts = query.run(as_dict=True, debug=1)
 
 		target.payment_order_type = "Journal Entry"
 		target.docstaus = 0
 		target.status = "Pending"
+
+		def _update_dimensions(source):
+			return {
+				dimension: source.get(dimension, "")
+				for dimension in get_accounting_dimensions()
+			}
 
 		for journal_account in journal_accounts:
 			journal_account = frappe._dict(journal_account)
@@ -68,7 +75,11 @@ def make_payment_order(source_name, target_doc=None, args=None):
 				"mode_of_payment": "",
 				"bank_account": journal_account.party_bank_account,
 				"account": journal_account.account,
+				"project": journal_account.project,
+				"cost_center": journal_account.cost_center,
 			}
+			details.update(_update_dimensions(journal_account))
+
 			target.append("references", details)
 
 	doclist = get_mapped_doc(
@@ -102,6 +113,7 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 			& (JournalEntryAccount.payment_status.notin(["Paid", "Ordered"]))
 			& (JournalEntry.voucher_type == "Bank Entry")
 			& (JournalEntryAccount.party_type == "Employee")
+			& (JournalEntryAccount.against_account == filters.company_account)
 		)
 		.groupby(JournalEntry.name, JournalEntry.company, JournalEntry.voucher_type)
 		.select(

@@ -181,11 +181,11 @@ frappe.ui.form.on("Payment Order", {
             )
           ),
         ];
-
         return {
           query: "india_banking.overrides.journal_entry.get_bank_entry",
           filters: {
             docs: existing_journal_entries,
+            company_account: frm.doc.account,
           },
         };
       },

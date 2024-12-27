@@ -265,10 +265,10 @@ def create_payment_order_custom_fields():
 				"insert_after": "get_summary",
 			},
 			{
-				"label": "Is Party Wise",
-				"fieldname": "is_party_wise",
-				"fieldtype": "Check",
-				"hidden": 0,
+				"label": "Summarise Payment Based On",
+				"fieldname": "summarise_payment_based_on",
+				"fieldtype": "Select",
+				"options": "Party\nVoucher",
 				"no_copy": 1,
 				"insert_after": "payment_summary",
 			},
@@ -284,7 +284,7 @@ def create_payment_order_custom_fields():
 				"fieldname": "summary",
 				"fieldtype": "Table",
 				"options": "Payment Order Summary",
-				"insert_after": "is_party_wise",
+				"insert_after": "summarise_payment_based_on",
 				"no_copy": 1,
 			},
 			{

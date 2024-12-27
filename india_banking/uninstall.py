@@ -56,7 +56,6 @@ def delete_custom_fields():
 			"get_summary",
 			"payment_summary",
 			"default_mode_of_transfer",
-			"is_party_wise",
 			"summary",
 			"total",
 			"status",

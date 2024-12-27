@@ -34,11 +34,18 @@ frappe.ui.form.on("Payment Order", {
         },
       };
     });
+    frm.set_query("default_mode_of_transfer", () => {
+      return {
+        filters: {
+          disabled: 0,
+        },
+      };
+    });
 
     // Set properties for the summary table
-    const summaryField = "summary";
-    frm.set_df_property(summaryField, "cannot_delete_rows", true);
-    frm.set_df_property(summaryField, "cannot_add_rows", true);
+    const summary_field = "summary";
+    frm.set_df_property(summary_field, "cannot_delete_rows", true);
+    frm.set_df_property(summary_field, "cannot_add_rows", true);
   },
 
   refresh(frm) {
@@ -57,7 +64,7 @@ frappe.ui.form.on("Payment Order", {
     frm.trigger("remove_row_if_empty");
 
     // Collect existing payment requests from references table, if any
-    const existingPaymentRequests = (frm.doc.references || []).map(
+    const existing_payment_requests = (frm.doc.references || []).map(
       (reference) => reference.payment_request
     );
 
@@ -75,7 +82,7 @@ frappe.ui.form.on("Payment Order", {
         docstatus: 1,
         status: ["=", "Initiated"],
         bank: frm.doc.bank,
-        name: ["not in", existingPaymentRequests],
+        name: ["not in", existing_payment_requests],
         company: frm.doc.company,
       },
     });
@@ -86,7 +93,7 @@ frappe.ui.form.on("Payment Order", {
     frm.trigger("remove_row_if_empty");
 
     // Collect existing payment entries from the references table, if any
-    const existingPaymentEntries = (frm.doc.references || []).map(
+    const existing_payment_entries = (frm.doc.references || []).map(
       (reference) => reference.payment_entry
     );
 
@@ -101,8 +108,9 @@ frappe.ui.form.on("Payment Order", {
       },
       get_query_filters: {
         docstatus: 1,
-        name: ["not in", existingPaymentEntries],
+        name: ["not in", existing_payment_entries],
         source_doctype: ["!=", "Payment Request"],
+        payment_type: "Pay",
       },
     });
   },
@@ -136,7 +144,7 @@ frappe.ui.form.on("Payment Order", {
       ],
       get_query: function () {
         // Extract unique reference names from the references table
-        const uniqueAccounts = [
+        const unique_accounts = [
           ...new Set(
             (frm.doc.references || []).map(
               (reference) => reference.reference_name
@@ -147,7 +155,7 @@ frappe.ui.form.on("Payment Order", {
         return {
           query: "india_banking.overrides.journal_entry.get_bank_entry",
           filters: {
-            docs: uniqueAccounts,
+            docs: unique_accounts,
           },
         };
       },
@@ -157,7 +165,7 @@ frappe.ui.form.on("Payment Order", {
   set_get_payments_from_buttons(frm) {
     if (frm.doc.docstatus === 0) {
       // Define an array of payment sources and their respective triggers
-      const paymentSources = [
+      const payment_sources = [
         {
           label: __("Payment Request"),
           trigger: "get_payments_from_payment_request",
@@ -173,7 +181,7 @@ frappe.ui.form.on("Payment Order", {
       ];
 
       // Add custom buttons for each payment source
-      paymentSources.forEach((source) => {
+      payment_sources.forEach((source) => {
         frm.add_custom_button(
           source.label,
           () => frm.trigger(source.trigger),
@@ -191,11 +199,11 @@ frappe.ui.form.on("Payment Order", {
       frm.has_perm("write")
     ) {
       // Check if any summary item has a payment status of "Pending"
-      const hasPendingPayments = frm.doc.summary.some(
+      const has_pending_payments = frm.doc.summary.some(
         (item) => item.payment_status === "Pending"
       );
 
-      if (hasPendingPayments) {
+      if (has_pending_payments) {
         // Add a custom button to initiate payment
         frm.add_custom_button(__("Initiate Payment"), () => {
           frm.trigger("make_payment");
@@ -209,11 +217,11 @@ frappe.ui.form.on("Payment Order", {
       frm.has_perm("write")
     ) {
       // Check if any summary item has a payment status of "Initiated"
-      const hasInitiatedStatus = frm.doc.summary.some(
+      const has_initiated_status = frm.doc.summary.some(
         (item) => item.payment_status === "Initiated"
       );
 
-      if (hasInitiatedStatus) {
+      if (has_initiated_status) {
         frm.add_custom_button(__("Get Status"), () => {
           frappe.call({
             method:
@@ -305,17 +313,17 @@ frappe.ui.form.on("Payment Order", {
       frm.doc.docstatus != 0
     ) {
       // Define the mapping of payment_order_type to buttons
-      const buttonMapping = {
+      const button_mapping = {
         "Payment Request": ["Bank Entry(JV)", "Payment Entry"],
         "Payment Entry": ["Bank Entry(JV)", "Payment Request"],
         "Journal Entry": ["Payment Request", "Payment Entry"],
       };
 
       // Get the relevant buttons based on the payment_order_type
-      const buttonsToRemove = buttonMapping[frm.doc.payment_order_type] || [];
+      const buttons_to_remove = button_mapping[frm.doc.payment_order_type] || [];
 
       // Iterate over the buttons and remove them
-      buttonsToRemove.forEach((button) => {
+      buttons_to_remove.forEach((button) => {
         frm.remove_custom_button(button, "Get Payments from");
       });
     }

@@ -127,7 +127,7 @@ class BankPaymentRequest(PaymentRequest):
 
 
 @frappe.whitelist()
-def make_payment_order(source_name, target_doc=None, args=None):
+def make_payment_order(source_name, target_doc=None):
 	from frappe.model.mapper import get_mapped_doc
 
 	def set_missing_values(source, target):

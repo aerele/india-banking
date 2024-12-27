@@ -2,8 +2,11 @@ import json
 import re
 
 import frappe
+from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
+	get_accounting_dimensions,
+)
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
-from frappe.utils import get_link_to_form, getdate
+from frappe.utils import get_link_to_form
 
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 
@@ -196,7 +199,9 @@ class CustomPaymentOrder(PaymentOrder):
 
 
 @frappe.whitelist()
-def get_party_summary(references, company_bank_account, summarise_payment_based_on=None):
+def get_party_summary(
+	references, company_bank_account, summarise_payment_based_on=None
+):
 	references = json.loads(references)
 	if not len(references) or not company_bank_account:
 		return
@@ -218,6 +223,7 @@ def get_party_summary(references, company_bank_account, summarise_payment_based_
 			"journal_entry",
 			"journal_entry_account",
 		]
+		summarise_field.extend(get_accounting_dimensions())
 		if summarise_payment_based_on == "Party":
 			summarise_field.remove("reference_name")
 

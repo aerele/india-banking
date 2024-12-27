@@ -3,8 +3,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
 from frappe.query_builder import DocType
-from frappe.utils import comma_sep
-
+from frappe.query_builder.functions import Sum
 
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None, args=None):
@@ -90,34 +89,39 @@ def make_payment_order(source_name, target_doc=None, args=None):
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
 def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict):
-	search_condition = ""
-	if filters and filters.get("docs"):
-		filters.get("docs").append("")
-		exist_account = str(tuple(filters.get("docs")))
-		search_condition += f" AND je.name NOT IN {exist_account} "
+	filters = frappe._dict(filters)
+	JournalEntry = DocType("Journal Entry")
+	JournalEntryAccount = DocType("Journal Entry Account")
 
-	if filters and filters.get("company"):
-		search_condition += f"AND je.company = '{filters.get('company')}'"
-	if txt:
-		search_condition += f"AND je.name LIKE '%{txt}%'"
-
-	bank_entries = frappe.db.sql(
-		f"""
-		SELECT
-			DISTINCT je.name, je.company, sum(jea.debit) as total, je.voucher_type
-		FROM
-			`tabJournal Entry`je
-		JOIN
-			`tabJournal Entry Account`jea
-		ON
-			je.name = jea.parent
-		WHERE
-	 		je.docstatus = 1 AND  jea.payment_status NOT IN ('Paid', 'Ordered') AND
-			je.voucher_type = 'Bank Entry' AND jea.party_type= "Employee" {search_condition}
-		GROUP BY
-			je.name, je.company, je.voucher_type
-	 """,
-		as_dict=1,
+	query = (
+		frappe.qb.from_(JournalEntry)
+		.join(JournalEntryAccount)
+		.on(JournalEntry.name == JournalEntryAccount.parent)
+		.where(
+			(JournalEntry.docstatus == 1)
+			& (JournalEntryAccount.payment_status.notin(["Paid", "Ordered"]))
+			& (JournalEntry.voucher_type == "Bank Entry")
+			& (JournalEntryAccount.party_type == "Employee")
+		)
+		.groupby(JournalEntry.name, JournalEntry.company, JournalEntry.voucher_type)
+		.select(
+			JournalEntry.name,
+			JournalEntry.company,
+			Sum(JournalEntryAccount.debit).as_("total"),
+			JournalEntry.voucher_type,
+		)
 	)
+
+	if filters:
+		if filters.docs:
+			existing_entries = tuple(filters.docs or [])
+			query = query.where(JournalEntry.name.notin(existing_entries))
+		if filters.company:
+			query = query.where(JournalEntry.company == filters.company)
+
+	if txt:
+		query = query.where(JournalEntry.name.like(f"%{txt}%"))
+
+	bank_entries = query.run(as_dict=as_dict)
 
 	return bank_entries

@@ -12,74 +12,35 @@ frappe.ui.form.on("Payment Request", {
         .addClass("btn-primary");
     }
 
-    frm.set_query("payment_type", function () {
-      return {
-        filters: {
-          company: frm.doc.company,
-        },
-      };
-    });
-    frm.set_query("bank_account", function () {
-      return {
-        filters: {
-          company: frm.doc.company,
-          is_default: 1,
-          disabled: 0,
-          party_type: frm.doc.party_type,
-          party: frm.doc.party,
-        },
-      };
-    });
+    set_payment_type_query(frm);
+    set_bank_account_query(frm);
   },
   company(frm) {
-    frm.set_query("payment_type", function () {
-      return {
-        filters: {
-          company: frm.doc.company,
-        },
-      };
-    });
+    set_payment_type_query(frm);
   },
   mode_of_payment(frm) {
-    let conditions = get_bank_query_conditions(frm);
-    if (frm.doc.mode_of_payment == "Wire Transfer") {
-      frm.set_query("bank_account", function () {
-        return {
-          filters: conditions,
-        };
-      });
-    }
+    set_bank_account_query(frm);
   },
   party_type(frm) {
-    let conditions = get_bank_query_conditions(frm);
-    if (frm.doc.mode_of_payment == "Wire Transfer") {
-      frm.set_query("bank_account", function () {
-        return {
-          filters: conditions,
-        };
-      });
-    }
+    set_bank_account_query(frm);
   },
   party(frm) {
-    let conditions = get_bank_query_conditions(frm);
-    if (frm.doc.mode_of_payment == "Wire Transfer") {
-      frm.set_query("bank_account", function () {
-        return {
-          filters: conditions,
-        };
-      });
-    }
+    set_bank_account_query(frm);
   },
 });
 
-const get_bank_query_conditions = function (frm) {
-  let conditions = {};
-  if (frm.doc.party_type) {
-    conditions["party_type"] = frm.doc.party_type;
-  }
-  if (frm.doc.party) {
-    conditions["party"] = frm.doc.party;
-  }
+function set_payment_type_query(frm) {
+  frm.set_query("payment_type", function () {
+    return {
+      filters: {
+        company: frm.doc.company,
+      },
+    };
+  });
+}
+
+function set_bank_account_query(frm) {
+  let conditions = get_bank_query_conditions(frm);
   if (frm.doc.mode_of_payment == "Wire Transfer") {
     frm.set_query("bank_account", function () {
       return {
@@ -87,5 +48,19 @@ const get_bank_query_conditions = function (frm) {
       };
     });
   }
+}
+
+function get_bank_query_conditions(frm) {
+  let conditions = {
+    company: frm.doc.company,
+    is_default: 1,
+    disabled: 0,
+  };
+  if (frm.doc.party_type) {
+    conditions["party_type"] = frm.doc.party_type;
+  }
+  if (frm.doc.party) {
+    conditions["party"] = frm.doc.party;
+  }
   return conditions;
-};
+}

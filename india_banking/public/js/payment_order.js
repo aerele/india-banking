@@ -139,6 +139,8 @@ frappe.ui.form.on("Payment Order", {
         name: ["not in", existing_payment_entries],
         source_doctype: ["!=", "Payment Request"],
         payment_type: "Pay",
+        mode_of_payment: "Wire Transfer",
+        bank_account: frm.doc.company_bank_account,
       },
     });
   },

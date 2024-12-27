@@ -253,16 +253,10 @@ def create_payment_order_custom_fields():
 				"insert_after": "file_sequence_number",
 			},
 			{
-				"label": "Get Summary",
-				"fieldname": "get_summary",
-				"fieldtype": "Button",
-				"insert_after": "references",
-			},
-			{
 				"label": "Payment Summary",
 				"fieldname": "payment_summary",
 				"fieldtype": "Section Break",
-				"insert_after": "get_summary",
+				"insert_after": "references",
 			},
 			{
 				"label": "Summarise Payment Based On",
@@ -271,6 +265,12 @@ def create_payment_order_custom_fields():
 				"options": "Party\nVoucher",
 				"no_copy": 1,
 				"insert_after": "payment_summary",
+			},
+			{
+				"label": "Get Summary",
+				"fieldname": "get_summary",
+				"fieldtype": "Button",
+				"insert_after": "summarise_payment_based_on",
 			},
 			{
 				"label": "Default Mode of Transfer",
@@ -284,7 +284,7 @@ def create_payment_order_custom_fields():
 				"fieldname": "summary",
 				"fieldtype": "Table",
 				"options": "Payment Order Summary",
-				"insert_after": "summarise_payment_based_on",
+				"insert_after": "default_mode_of_transfer",
 				"no_copy": 1,
 			},
 			{

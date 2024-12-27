@@ -28,49 +28,58 @@ def make_payment_order(source_name, target_doc=None, args=None):
 		if source.paid_to:
 			account = source.paid_to
 
-		for dimension in get_accounting_dimensions():
-			target.update({dimension: source.get(dimension, "")})
+		def _update_dimensions(source):
+			return {
+				dimension: source.get(dimension, "")
+				for dimension in get_accounting_dimensions()
+			}
 
 		if source.references:
+			reference = {
+				"reference_doctype": source.references[0].reference_doctype,
+				"reference_name": source.references[0].reference_name,
+				"amount": source.references[0].total_amount,
+				"party_type": source.party_type,
+				"party": source.party,
+				"mode_of_payment": source.mode_of_payment,
+				"bank_account": get_party_bank_account(
+					source.get("party_type"), source.get("party")
+				)
+				if source.get("party_type")
+				else "",
+				"account": account,
+				"cost_center": source.cost_center,
+				"project": source.project,
+				"payment_entry": source.name,
+			}
+			reference.update(_update_dimensions(source))
+
 			target.append(
 				"references",
-				{
-					"reference_doctype": source.references[0].reference_doctype,
-					"reference_name": source.references[0].reference_name,
-					"amount": source.references[0].total_amount,
-					"party_type": source.party_type,
-					"party": source.party,
-					"mode_of_payment": source.mode_of_payment,
-					"bank_account": get_party_bank_account(
-						source.get("party_type"), source.get("party")
-					)
-					if source.get("party_type")
-					else "",
-					"account": account,
-					"cost_center": source.cost_center,
-					"project": source.project,
-					"payment_entry": source.name,
-				},
+				reference,
 			)
 		else:
+			reference = {
+				"reference_doctype": "Payment Entry",
+				"reference_name": source.name,
+				"amount": source.paid_amount,
+				"party_type": source.party_type,
+				"party": source.party,
+				"mode_of_payment": "Wire Transfer",
+				"bank_account": source.party_bank_account
+				or get_party_bank_account(
+					source.get("party_type"), source.get("party")
+				),
+				"account": source.paid_to,
+				"cost_center": source.cost_center,
+				"project": source.project,
+				"payment_entry": source.name,
+			}
+			reference.update(_update_dimensions(source))
+
 			target.append(
 				"references",
-				{
-					"reference_doctype": "Payment Entry",
-					"reference_name": source.name,
-					"amount": source.paid_amount,
-					"party_type": source.party_type,
-					"party": source.party,
-					"mode_of_payment": "Wire Transfer",
-					"bank_account": source.party_bank_account
-					or get_party_bank_account(
-						source.get("party_type"), source.get("party")
-					),
-					"account": source.paid_to,
-					"cost_center": source.cost_center,
-					"project": source.project,
-					"payment_entry": source.name,
-				},
+				reference,
 			)
 		target.status = "Pending"
 

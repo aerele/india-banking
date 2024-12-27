@@ -1,4 +1,9 @@
 import frappe
+from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
+	get_accounting_dimensions,
+)
+from frappe.query_builder import DocType
+from frappe.utils import comma_sep
 
 
 @frappe.whitelist()
@@ -6,26 +11,66 @@ def make_payment_order(source_name, target_doc=None, args=None):
 	from frappe.model.mapper import get_mapped_doc
 
 	def update_bank_entry(source, target):
+		JournalEntryAccount = DocType("Journal Entry Account")
+		BankAccount = DocType("Bank Account")
+
+		select_field = [
+			"name",
+			"account",
+			"cost_center",
+			"project",
+			"debit as amount",
+			"party as employee",
+			"party_type",
+			"parent as journal",
+		]
+		select_field.extend(get_accounting_dimensions())
+
+		# Build the query
+		query = (
+			frappe.qb.from_(JournalEntryAccount)
+			.join(BankAccount)
+			.on(JournalEntryAccount.party == BankAccount.party)
+			.select(
+				*[
+					getattr(JournalEntryAccount, field.split(" as ")[0]).as_(
+						field.split(" as ")[1]
+					)
+					if " as " in field
+					else getattr(JournalEntryAccount, field)
+					for field in select_field
+				],
+				BankAccount.name.as_("party_bank_account"),
+			)
+			.where(
+				(JournalEntryAccount.parent == source.name)
+				& (JournalEntryAccount.party_type == "Employee")
+				& (JournalEntryAccount.payment_status.notin(["Paid", "Ordered"]))
+				& (BankAccount.disabled == 0)
+				& (BankAccount.is_default == 1)
+			)
+		)
+
+		journal_accounts = query.run(as_dict=True)
+
 		target.payment_order_type = "Journal Entry"
 		target.docstaus = 0
 		target.status = "Pending"
 
-		journal_accounts = frappe.db.sql(
-			"""
-			SELECT
-				name, account, against_account, cost_center, debit as amount, exchange_rate, parent,
-				party as employee, party_type, parent as journal
-			FROM
-				`tabJournal Entry Account`
-			WHERE
-				parent = %s AND party_type = 'Employee' AND payment_status NOT IN ('Paid', 'Ordered')""",
-			source.name,
-			as_dict=1,
-		)
-
-		if employee_payemnt_details := get_employee_payemnt_details(journal_accounts):
-			for ref in employee_payemnt_details:
-				target.append("references", ref)
+		for journal_account in journal_accounts:
+			journal_account = frappe._dict(journal_account)
+			details = {
+				"reference_doctype": "Journal Entry",
+				"reference_name": journal_account.journal,
+				"journal_entry_account": journal_account.name,
+				"amount": journal_account.amount,
+				"party_type": "Employee",
+				"party": journal_account.employee,
+				"mode_of_payment": "",
+				"bank_account": journal_account.party_bank_account,
+				"account": journal_account.account,
+			}
+			target.append("references", details)
 
 	doclist = get_mapped_doc(
 		"Journal Entry",
@@ -40,75 +85,6 @@ def make_payment_order(source_name, target_doc=None, args=None):
 	)
 
 	return doclist
-
-
-def get_employee_payemnt_details(journal_accounts):
-	fields = [
-		"name",
-		"party",
-		"party_type",
-		"bank",
-		"branch_code",
-		"bank_account_no",
-		"mobile_number",
-		"email",
-	]
-	activate_workflow_on_bank_account = frappe.get_single(
-		"India Banking Settings"
-	).activate_workflow_on_bank_account
-	if activate_workflow_on_bank_account:
-		fields.append("workflow_state")
-
-	employee_bank_account_details = frappe.db.get_all(
-		"Bank Account",
-		{"party_type": "Employee", "disabled": 0, "is_default": 1},
-	)
-
-	employee_bank_account_details = {
-		detail.get("party"): detail for detail in employee_bank_account_details
-	}
-
-	payment_details = []
-
-	for journal_account in journal_accounts:
-		employee_bank_details = employee_bank_account_details.get(
-			journal_account.get("employee", "")
-		)
-		if not employee_bank_details:
-			frappe.throw(
-				"Default Bank Account not found for Employee {0}".format(
-					journal_account.get("employee")
-				)
-			)
-		else:
-			if (
-				employee_bank_details.get("workflow_state") != "Approved"
-				and activate_workflow_on_bank_account
-			):
-				link = frappe.utils.get_link_to_form(
-					"Bank Account", employee_bank_details.get("name")
-				)
-				frappe.throw(
-					"Bank Account<b>({1})</b> for Employee {0} is not approved".format(
-						journal_account.get("employee"), link
-					)
-				)
-
-		journal_account = frappe._dict(journal_account)
-		details = {
-			"reference_doctype": "Journal Entry",
-			"reference_name": journal_account.journal,
-			"journal_entry_account": journal_account.name,
-			"amount": journal_account.amount,
-			"party_type": "Employee",
-			"party": journal_account.employee,
-			"mode_of_payment": "",
-			"bank_account": employee_bank_details.name,
-			"account": journal_account.account,
-		}
-		payment_details.append(details)
-
-	return payment_details
 
 
 @frappe.whitelist()

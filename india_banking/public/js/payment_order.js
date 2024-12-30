@@ -238,10 +238,14 @@ frappe.ui.form.on('Payment Order', {
 
 		if ((frm.doc.status == "Pending" || frm.doc.status == "Initiated") && frm.doc.docstatus == 1) {
 			if (frm.has_perm('write') && 'summary' in frm.doc) {
-				var pending_status_check = 0
+				let pending_status_check = 0
+				let has_pending_payments = false
 				for (var j = 0; j < frm.doc.summary.length; j++) {
 					if(frm.doc.summary[j].payment_status == "Initiated") {
 						pending_status_check += 1
+					}
+					if(frm.doc.summary[j].payment_status == "Pending") {
+						has_pending_payments = true;
 					}
 				}
 
@@ -261,6 +265,12 @@ frappe.ui.form.on('Payment Order', {
 								frm.reload_doc();
 							}
 						});
+					});
+				}
+
+				if (has_pending_payments) {
+					frm.add_custom_button(__('Cancel Pending Payments'), function() {
+						show_payment_update_dialog(frm)
 					});
 				}
 			}
@@ -403,3 +413,129 @@ frappe.ui.form.on('Payment Order Summary', {
 		});
 	}
 })
+
+
+function show_payment_update_dialog(frm) {
+	frm.data = [];
+	const dialog = new frappe.ui.Dialog({
+		title: __("Pending Payments"),
+		size: "extra-large",
+		fields: [
+		{
+			fieldname: "summary",
+			fieldtype: "Table",
+			label: __("Summary"),
+			data: frm.data,
+			in_place_edit: true,
+			cannot_add_rows: true,
+			cannot_delete_rows: true,
+			get_data: () => {
+			return frm.data;
+			},
+			fields: [
+			{
+				label: __("Row Name"),
+				fieldname: "row_name",
+				fieldtype: "data",
+				read_only: 1,
+			},
+			{
+				label: __("payment_order"),
+				fieldname: "payment_order",
+				fieldtype: "data",
+				hidden: 1
+				},
+			{
+				label: __("Party Type"),
+				fieldname: "party_type",
+				fieldtype: "Link",
+				options: "DocType",
+				in_list_view: 1,
+				columns: 1,
+				read_only: 1,
+				get_query: () => {
+				return {
+					filters: {
+					company: frm.doc.company,
+					name: ["in", ["Supplier", "Employee"]],
+					},
+				};
+				},
+			},
+			{
+				label: __("Party"),
+				fieldname: "party",
+				fieldtype: "Dynamic Link",
+				options: "party_type",
+				columns: 2,
+				in_list_view: 1,
+				read_only: 1,
+			},
+			{
+				label: __("Amount"),
+				fieldname: "amount",
+				fieldtype: "Currency",
+				in_list_view: 1,
+				columns: 1,
+				read_only: 1,
+			},
+			{
+				label: __("Status"),
+				fieldname: "status",
+				fieldtype: "Select",
+				options: "\nPending\nFailed",
+				columns: 1,
+				in_list_view: 1,
+			},
+			{
+				label: __("Payment Entry"),
+				fieldname: "payment_entry",
+				fieldtype: "Data",
+				hidden: 1,
+				},
+			],
+		},
+		{
+			fieldtype: "HTML",
+			options: `<p>Cancel any pending payments by updating the payment status to Failed.</p>`,
+		},
+		],
+		primary_action: () => {
+		frm.call({
+			method:
+			"india_banking.india_banking.doc_events.payment_order.cancel_pending_payments",
+			args: {
+			data: dialog.get_values()["summary"],
+			},
+			freeze: true,
+			freeze_message: __("Cancelling..."),
+			callback: function (r) {
+			dialog.hide();
+			frm.reload_doc();
+			},
+		});
+		},
+		primary_action_label: __("Update"),
+	});
+
+	var row = 0;
+	frm.doc.summary.forEach((d) => {
+		if (["Pending", "Initiated"].includes(d.payment_status)) {
+		row += 1;
+		dialog.fields_dict.summary.df.data.push({
+			payment_order: frm.doc.name,
+			row: row,
+			row_name: d.name,
+			party_type: d.party_type,
+			party: d.party,
+			amount: d.amount,
+			payment_entry: d.payment_entry
+		});
+		}
+	});
+
+	frm.data = [];
+	dialog.show();
+	dialog.fields_dict.summary.grid.refresh();
+	dialog.$wrapper.find(".grid-row-check").prop("disabled", 1);
+}

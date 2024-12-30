@@ -1,6 +1,6 @@
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import get_accounting_dimensions
 import frappe
-from frappe.utils import nowdate, getdate, now
+from frappe.utils import nowdate, getdate, now, parse_json
 import json
 import frappe.utils
 from frappe.utils.data import comma_and, cstr
@@ -15,6 +15,7 @@ from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoi
 from random import randint
 from frappe.utils.password import passlibctx
 import re
+from frappe import _
 
 protect_otp = lambda data, otp: data.replace(otp, '*' * len(otp))
 
@@ -904,3 +905,59 @@ def get_refrence_number_for_bank_entry(payment_info):
 		LIMIT 1
 	""", as_dict= 1, debug=1)
 	return ref_name
+
+
+@frappe.whitelist()
+def cancel_pending_payments(data):
+	if isinstance(data, str) or isinstance(data, dict):
+		data = parse_json(data)
+
+	success_count = 0
+	for i, d in enumerate(data, start=1):
+		d = parse_json(d)
+		if d.row_name:
+			if d.status == "Failed":
+				frappe.db.set_value(
+					"Payment Order Summary",
+					d.row_name,
+					{"payment_status": "Failed", "payment_initiated": 1},
+				)
+
+				if d.payment_entry:
+					payment_entry_doc = frappe.get_doc("Payment Entry", d.payment_entry)
+					if payment_entry_doc.docstatus == 1:
+						payment_entry_doc.cancel()
+
+				process_payment_requests(d.row_name)
+
+				success_count += 1
+	if success_count:
+		frappe.msgprint(_(f"{success_count} payment(s) updated"))
+
+def process_payment_requests(payment_order_summary):
+	pos = frappe.get_doc("Payment Order Summary", payment_order_summary)
+	payment_order_doc = frappe.get_doc("Payment Order", pos.parent)
+
+	key = (
+		pos.party_type, pos.party, pos.bank_account, pos.account, 
+		pos.cost_center, pos.project, pos.tax_withholding_category, 
+		pos.reference_doctype
+	)
+
+	failed_prs = []
+	for ref in payment_order_doc.references:
+		ref_key = (
+			ref.party_type, ref.party, ref.bank_account, ref.account,
+			ref.cost_center, ref.project, ref.tax_withholding_category, 
+			ref.reference_doctype
+		)
+
+		if key == ref_key:
+			failed_prs.append(ref.bank_payment_request)
+	
+	for pr in failed_prs:
+		pr_doc = frappe.get_doc("Bank Payment Request", pr)
+		if pr_doc.docstatus == 1:
+			pr_doc.check_if_payment_entry_exists()
+			pr_doc.set_as_cancelled()
+			pr_doc.db_set("docstatus", 2)

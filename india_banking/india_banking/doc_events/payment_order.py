@@ -240,6 +240,8 @@ def make_bank_payment(docname, otp=None):
 		return {"message": "Payment Initiated"}
 
 	else:
+		get_payment_status(docname)
+		payment_order_doc.reload()
 		count = 0
 		for i in payment_order_doc.summary:
 			if not i.payment_initiated and i.payment_status == "Pending":
@@ -495,7 +497,7 @@ def get_payment_status(docname):
 
 	else:
 		for i in payment_order_doc.summary:
-			if i.payment_status == "Initiated":
+			if i.payment_status in ["Initiated", "Pending"]:
 				get_response(i, payment_order_doc.company_bank_account, payment_order_doc.company)
 
 		payment_order_doc.reload()

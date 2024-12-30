@@ -863,6 +863,8 @@ def get_response(payment_info, company_bank_account, company):
 						payment_entry_doc.cancel()
 
 				process_bank_payment_requests(payment_info.name)
+			else:
+				frappe.db.set_value("Payment Order Summary", payment_info.name, "message", response_data.message or "Invalid Status")
 
 def process_bank_payment_requests(payment_order_summary):
 	pos = frappe.get_doc("Payment Order Summary", payment_order_summary)

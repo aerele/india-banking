@@ -195,6 +195,7 @@ frappe.ui.form.on('Payment Order', {
 													frappe.call({
 														method: "india_banking.india_banking.doc_events.payment_order.verify_otp",
 														freeze: 1,
+														freeze_message: "Initiating Payment...",
 														args: {
 															docname: frm.doc.name,
 															otp: values.otp,

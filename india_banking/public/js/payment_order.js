@@ -212,33 +212,33 @@ frappe.ui.form.on("Payment Order", {
       }
     }
 
-    if (
-      ["Pending", "Initiated"].includes(frm.doc.status) &&
-      frm.doc.docstatus === 1 &&
-      frm.has_perm("write")
-    ) {
-      // Check if any summary item has a payment status of "Initiated"
-      const has_initiated_status = frm.doc.summary.some(
-        (item) => item.payment_status === "Initiated"
-      );
+	if (
+	  ["Pending", "Initiated"].includes(frm.doc.status) &&
+	  frm.doc.docstatus === 1 &&
+	  frm.has_perm("write")
+	) {
+	  const has_initiated_or_non_pending = frm.doc.summary.some(
+		(item) => item.payment_status === "Initiated" || item.payment_status !== "Pending"
+	  );
 
-      if (has_initiated_status) {
-        frm.add_custom_button(__("Get Status"), () => {
-          frappe.call({
-            method:
-              "india_banking.india_banking.doctype.bank_connector.bank_connector.get_payment_status",
-            freeze: true,
-            freeze_message: __("Fetching payment status..."),
-            args: {
-              payment_order: frm.doc.name,
-            },
-            callback: function (response) {
-              frm.reload_doc();
-            },
-          });
-        });
-      }
-    }
+	  if (has_initiated_or_non_pending) {
+		frm.dashboard.add_comment("Payment is already initiated. Check the status using the 'Get Status' button before trying again.", permanent=false);
+		frm.add_custom_button(__("Get Status"), () => {
+		  frappe.call({
+			method:
+			  "india_banking.india_banking.doctype.bank_connector.bank_connector.get_payment_status",
+			freeze: true,
+			freeze_message: __("Fetching payment status..."),
+			args: {
+			  payment_order: frm.doc.name,
+			},
+			callback: function () {
+			  frm.reload_doc();
+			},
+		  });
+		});
+	  }
+	}
   },
 
   make_payment: function (frm) {

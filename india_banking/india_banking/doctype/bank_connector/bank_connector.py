@@ -53,6 +53,8 @@ class BankConnector(Document):
 		if otp:
 			self.verify_otp(payment_order, otp)
 
+		self.get_payment_status(payment_order)
+
 		# Make the payment
 		if self.bulk_transaction:
 			return self.make_bulk_payment(payment_order, otp)
@@ -68,7 +70,7 @@ class BankConnector(Document):
 
 	def get_single_payment_status(self, payment_order):
 		for summary_row in payment_order.summary:
-			if summary_row.payment_status == "Initiated":
+			if summary_row.payment_status in ["Initiated", "Pending"]:
 				self.get_status_response(summary_row, payment_order)
 
 		payment_order.reload()

@@ -21,6 +21,7 @@ def after_install():
 	create_default_mode_of_transfers()
 	create_default_payment_type()
 	create_default_workflow()
+	create_default_bank()
 
 
 def make_custom_fields():
@@ -470,6 +471,7 @@ def toggle_reqd_for_reference_in_payment_order(reqd=False):
 
 
 def create_default_bank():
+	click.echo(" -> Creating Default Banks")
 	for bank in STD_BANK_LIST:
 		if not frappe.db.exists("Bank", bank):
 			bank_doc = frappe.new_doc("Bank")

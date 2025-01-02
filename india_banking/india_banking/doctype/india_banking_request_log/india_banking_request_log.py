@@ -57,3 +57,4 @@ def create_api_log(res, action=None, ref_doctype=None, ref_docname=None):
 		)
 	else:
 		frappe.db.commit()
+		return log_doc.name

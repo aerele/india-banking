@@ -69,7 +69,7 @@ def process_payment_requests(payment_order_summary):
 
 	failed_prs = []
 	for ref in payment_order_doc.references:
-		ref_key = tuple([ref.get(field, "") for field in summarise_field])
+		ref_key = tuple([(ref.get(field, "") or "") for field in summarise_field])
 
 		if key == ref_key and ref.payment_request:
 			failed_prs.append(ref.payment_request)
@@ -638,24 +638,28 @@ def make_payment_entries(docname):
 			pe.tax_withholding_category = row.tax_withholding_category
 		for reference in payment_order_doc.references:
 			if not reference.is_adhoc:
-				filter_condition = (
-					reference.party_type == row.party_type
-					and reference.party == row.party
-					and reference.cost_center == row.cost_center
-					and reference.project == row.project
-					and reference.bank_account == row.bank_account
-					and reference.account == row.account
-					and reference.tax_withholding_category
-					== row.tax_withholding_category
-					and reference.reference_doctype == row.reference_doctype
-				)
-				if payment_order_doc.summarise_payment_based_on != "Party":
-					filter_condition = filter_condition and (
-						reference.reference_doctype == row.reference_doctype
-						and reference.reference_name == row.reference_name
-					)
+				filter_fields = [
+					"party_type",
+					"party",
+					"bank_account",
+					"account",
+					"cost_center",
+					"project",
+					"tax_withholding_category",
+					"reference_doctype",
+					"reference_name",
+				]
+				if payment_order_doc.summarise_payment_based_on == "Party":
+					filter_fields.remove("reference_name")
 
-				if filter_condition:
+				filter_fields.extend(get_accounting_dimensions())
+
+				match_condition = [
+					(reference.get(field, "") or "") == row.get(field, "")
+					for field in filter_fields
+				]
+
+				if all(match_condition):
 					reference_amount = frappe.db.get_value(
 						"Payment Request",
 						reference.payment_request,

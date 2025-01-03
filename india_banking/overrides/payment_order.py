@@ -181,7 +181,7 @@ class CustomPaymentOrder(PaymentOrder):
 		if cancel:
 			status = "Initiated"
 
-		if self.payment_order_type == "Bank Payment Request":
+		if self.payment_order_type == "Payment Request":
 			ref_field = "status"
 			ref_doc_field = frappe.scrub(self.payment_order_type)
 		else:

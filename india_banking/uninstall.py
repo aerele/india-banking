@@ -89,6 +89,8 @@ def delete_custom_fields():
 			"remarks",
 			"cost_center",
 			"project",
+			"payment_entry",
+			"journal_entry_account",
 		],
 		"Supplier": ["lei_number"],
 		"Bank": ["is_standard"],

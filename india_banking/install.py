@@ -229,6 +229,14 @@ def create_payment_order_custom_fields():
 	fields = {
 		"Payment Order": [
 			{
+				"label": "Status",
+				"fieldname": "status",
+				"fieldtype": "Select",
+				"options": "\nPending\nPending Approval\nPartially Approved\nApproved\nPartially Initiated\nInitiated\nRejected\nFailed",
+				"read_only": 1,
+				"insert_after": "posting_date",
+			},
+			{
 				"label": "ICICI Bank Api Info",
 				"fieldname": "icici_bank_api_info",
 				"fieldtype": "Section Break",
@@ -242,23 +250,23 @@ def create_payment_order_custom_fields():
 				"insert_after": "icici_bank_api_info",
 			},
 			{
+				"label": "File Reference Id",
+				"fieldname": "file_reference_id",
+				"hidden": 1,
+				"fieldtype": "Data",
+				"insert_after": "unique_id",
+			},
+			{
 				"fieldtype": "Column Break",
 				"fieldname": "bank_api_info_column_break",
-				"insert_after": "unique_id",
+				"insert_after": "file_reference_id",
 			},
 			{
 				"label": "File Sequence Number",
 				"fieldname": "file_sequence_number",
 				"fieldtype": "Data",
-				"hidden": 1,
+				"read_only": 1,
 				"insert_after": "bank_api_info_column_break",
-			},
-			{
-				"label": "File Reference Id",
-				"fieldname": "file_reference_id",
-				"hidden": 1,
-				"fieldtype": "Data",
-				"insert_after": "file_sequence_number",
 			},
 			{
 				"label": "Payment Summary",
@@ -281,18 +289,28 @@ def create_payment_order_custom_fields():
 				"insert_after": "summarise_payment_based_on",
 			},
 			{
+				"fieldname": "payment_summary_column_break",
+				"fieldtype": "Column Break",
+				"insert_after": "get_summary",
+			},
+			{
 				"label": "Default Mode of Transfer",
 				"fieldname": "default_mode_of_transfer",
 				"fieldtype": "Link",
 				"options": "Mode of Transfer",
-				"insert_after": "get_summary",
+				"insert_after": "payment_summary_column_break",
+			},
+			{
+				"fieldname": "payment_summary2",
+				"fieldtype": "Section Break",
+				"insert_after": "default_mode_of_transfer",
 			},
 			{
 				"label": "Summary",
 				"fieldname": "summary",
 				"fieldtype": "Table",
 				"options": "Payment Order Summary",
-				"insert_after": "default_mode_of_transfer",
+				"insert_after": "payment_summary2",
 				"no_copy": 1,
 			},
 			{
@@ -300,14 +318,6 @@ def create_payment_order_custom_fields():
 				"fieldname": "total",
 				"fieldtype": "Currency",
 				"insert_after": "summary",
-			},
-			{
-				"label": "Status",
-				"fieldname": "status",
-				"fieldtype": "Select",
-				"options": "\nPending\nPending Approval\nPartially Approved\nApproved\nPartially Initiated\nInitiated\nRejected\nFailed",
-				"read_only": 1,
-				"insert_after": "posting_date",
 			},
 		],
 		"Payment Order Reference": [
@@ -385,18 +395,11 @@ def create_payment_order_custom_fields():
 				"insert_after": "payment_entry",
 			},
 			{
-				"label": "Payment Request",
-				"fieldname": "payment_request",
-				"fieldtype": "Data",
-				"read_only": 1,
-				"insert_after": "journal_entry_account",
-			},
-			{
 				"label": "Bank",
 				"fieldname": "bank",
 				"fieldtype": "Data",
 				"read_only": 1,
-				"insert_after": "payment_request",
+				"insert_after": "journal_entry_account",
 				"fetch_from": "bank_account.bank",
 			},
 			{

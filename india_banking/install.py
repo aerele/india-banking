@@ -285,7 +285,7 @@ def create_payment_order_custom_fields():
 				"fieldname": "default_mode_of_transfer",
 				"fieldtype": "Link",
 				"options": "Mode of Transfer",
-				"insert_after": "payment_summary",
+				"insert_after": "get_summary",
 			},
 			{
 				"label": "Summary",

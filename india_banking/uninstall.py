@@ -19,7 +19,7 @@ def before_uninstall():
 
 
 def delete_default_workflow():
-	click.echo("* Removing Default workflow")
+	click.echo(" -> Removing Default workflow")
 
 	for workflow in DEFAULT_WORKFLOW_LIST:
 		workflow = frappe._dict(workflow)
@@ -31,7 +31,7 @@ def delete_default_workflow():
 			},
 		):
 			click.echo(
-				f"-> Deleting workflow for the {workflow.document_type} Doctype."
+				f" -> Deleting workflow for the {workflow.document_type} Doctype."
 			)
 			frappe.delete_doc("Workflow", workflow_name)
 

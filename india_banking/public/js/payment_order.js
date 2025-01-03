@@ -1,13 +1,15 @@
 frappe.ui.form.on("Payment Order", {
   onload(frm) {
     // Set summary based on party or voucher
-    frappe.db
-      .get_single_value("India Banking Settings", "summarise_payment_based_on")
-      .then((res) => {
-        if (res === "Party") {
-          frm.set_value("summarise_payment_based_on", res);
-        }
-      });
+    if(frm.doc.docstatus==0){
+      frappe.db
+        .get_single_value("India Banking Settings", "summarise_payment_based_on")
+        .then((res) => {
+          if (res === "Party") {
+            frm.set_value("summarise_payment_based_on", res);
+          }
+        });
+    }
 
     // Clear the references table for new documents
     if (frm.is_new()) {

@@ -14,31 +14,23 @@ class BankPaymentRequest(PaymentRequest):
 	def validate(self):
 		if not self.net_total:
 			self.net_total = self.grand_total
+
 		if (
 			self.apply_tax_withholding_amount
 			and self.tax_withholding_category
 			and self.payment_request_type == "Outward"
 		):
 			tds_amount = self.calculate_pr_tds(self.net_total)
-
 			self.taxes_deducted = tds_amount
 			self.grand_total = self.net_total - self.taxes_deducted
 		else:
-			if self.net_total and not self.grand_total:
-				self.grand_total = self.net_total
-			if (
-				self.grand_total
-				and self.net_total != self.grand_total
-				and not self.apply_tax_withholding_amount
-			):
-				self.grand_total = self.net_total
+			self.grand_total = self.net_total or self.grand_total
 
 		if not self.is_adhoc:
 			super().validate()
 		else:
 			if self.is_new():
 				self.status = "Draft"
-
 			if self.reference_doctype or self.reference_name:
 				frappe.throw("Payments with references cannot be marked as ad-hoc")
 

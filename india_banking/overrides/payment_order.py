@@ -13,8 +13,8 @@ from india_banking.india_banking.doc_events.payment_order import make_payment_en
 
 class CustomPaymentOrder(PaymentOrder):
 	def before_submit(self):
-		self.update_unique_and_file_reference_id()
 		self.validate_bank_payment_request()
+		self.update_unique_and_file_reference_id()
 
 	def validate_bank_payment_request(self):
 		if self.references:
@@ -29,16 +29,14 @@ class CustomPaymentOrder(PaymentOrder):
 						frappe.throw(title="Invalid Amount", msg=message)
 
 	@frappe.whitelist()
-	def update_unique_and_file_reference_id(self, save=False):
-		unique_id = "".join(re.findall(r"[0-9a-zA-Z]", self.name))
-		unique_id = unique_id[-10:]
+	def update_unique_and_file_reference_id(self):
+		unique_id = "".join(re.findall(r"[0-9a-zA-Z]", self.name))[-10:]
 		frappe.db.set_value(
 			"Payment Order",
 			self.name,
 			{"unique_id": unique_id, "file_reference_id": unique_id},
 		)
-		if save:
-			frappe.db.commit()
+		self.reload()
 
 	def validate(self):
 		self.validate_summary()

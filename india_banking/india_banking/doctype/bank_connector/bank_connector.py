@@ -541,8 +541,6 @@ class BankConnector(Document):
 		payment_order.update_unique_and_file_reference_id(save=True)
 		payment_order.reload()
 
-		# return {"otp_required": True} # For testing response
-
 		# Generate OTP using POST request
 		response = request.post(
 			self.base_url,

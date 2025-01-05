@@ -79,7 +79,7 @@ def create_journal_entry_custom_fields():
 				"label": "Payment Status",
 				"fieldname": "payment_status",
 				"fieldtype": "Select",
-				"options": "\nOrdered\nPaid\nFailed",
+				"options": "\nOrdered\nPayment Ordered\nPaid\nFailed",
 				"no_copy": 1,
 				"read_only": 1,
 				"insert_after": "payment_details",

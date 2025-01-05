@@ -45,7 +45,11 @@ def make_payment_order(source_name, target_doc=None, args=None):
 			.where(
 				(JournalEntryAccount.parent == source.name)
 				& (JournalEntryAccount.party_type == "Employee")
-				& (JournalEntryAccount.payment_status.notin(["Paid", "Ordered"]))
+				& (
+					JournalEntryAccount.payment_status.notin(
+						["Paid", "Ordered", "Payment Ordered"]
+					)
+				)
 				& (BankAccount.disabled == 0)
 				& (BankAccount.is_default == 1)
 			)
@@ -110,7 +114,11 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 		.on(JournalEntry.name == JournalEntryAccount.parent)
 		.where(
 			(JournalEntry.docstatus == 1)
-			& (JournalEntryAccount.payment_status.notin(["Paid", "Ordered"]))
+			& (
+				JournalEntryAccount.payment_status.notin(
+					["Paid", "Ordered", "Payment Ordered"]
+				)
+			)
 			& (JournalEntry.voucher_type == "Bank Entry")
 			& (JournalEntryAccount.party_type == "Employee")
 			& (JournalEntryAccount.against_account == filters.company_account)

@@ -113,84 +113,61 @@ class CustomPaymentOrder(PaymentOrder):
 			frappe.throw(f"Unsupported party type {party.party_type}")
 
 	def on_submit(self):
-		if self.payment_order_type == "Payment Request":
-			make_payment_entries(self.name)
-			frappe.db.set_value("Payment Order", self.name, "status", "Pending")
+		if self.payment_order_type in [
+			"Payment Request",
+			"Payment Entry",
+			"Journal Entry",
+		]:
+			if self.payment_order_type == "Payment Request":
+				make_payment_entries(self.name)
 
-			for ref in self.references:
-				if hasattr(ref, "payment_request"):
-					frappe.db.set_value(
-						"Payment Request",
-						ref.payment_request,
-						"status",
-						"Payment Ordered",
-					)
+			self.update_payment_status()
 
-		if self.payment_order_type == "Journal Entry":
-			self.update_payemnt_status("submit")
-
-	def update_payemnt_status(self, action=None):
-		order_status = ""
-		if action == "submit":
-			order_status = "Ordered"
-		elif action == "cancel":
-			order_status = ""
-		elif action == "Paid":
-			order_status = "Paid"
-		elif action == "Failed":
-			order_status = "Failed"
-
-		for jea in self.summary:
-			frappe.db.set_value(
-				"Journal Entry Account",
-				jea.journal_entry_account,
-				"payment_status",
-				order_status,
-			)
+		self.reload()
 
 	def on_update_after_submit(self):
 		frappe.throw("You cannot modify a payment order")
-		return
 
-	def before_cancel(self):
-		self.update_payemnt_status("cancel")
-		for summary_item in self.summary:
-			if summary_item.payment_status in ["Processed", "Initiated"]:
+	def on_cancel(self):
+		for summary in self.summary:
+			if summary.payment_status in ["Processed", "Initiated"]:
 				frappe.throw(
 					"You cannot cancel a payment order with Initiated/Processed payments"
 				)
-				return
-		for account in self.summary:
-			if (
-				account.payment_status == "Processed"
-				or account.payment_status == "Initiated"
-			):
-				frappe.throw("Cannot cancel a {} Order".format(account.payment_status))
+		super().on_cancel()
 
 	def on_trash(self):
 		if self.docstatus == 1:
 			frappe.throw("You cannot delete a payment order")
-			return
 
 	def update_payment_status(self, cancel=False):
-		status = "Payment Ordered"
-		if cancel:
-			status = "Initiated"
+		self.db_set("status", "Pending")
 
-		if self.payment_order_type == "Payment Request":
-			ref_field = "status"
-			ref_doc_field = frappe.scrub(self.payment_order_type)
-		else:
-			ref_field = "payment_order_status"
-			ref_doc_field = "reference_name"
-		if self.payment_order_type not in [
-			"Payment Entry",
-			"Journal Entry",
-			"Payroll Entry",
-		]:
+		status = "Initiated" if cancel else "Payment Ordered"
+
+		ref_field_map = {
+			"Payment Request": ("status", frappe.scrub(self.payment_order_type)),
+			"Payment Entry": (
+				"payment_order_status",
+				frappe.scrub(self.payment_order_type),
+			),
+			"Journal Entry": (
+				"payment_status",
+				frappe.scrub(self.payment_order_type) + "_account",
+			),
+		}
+
+		ref_field, ref_doc_field = ref_field_map.get(
+			self.payment_order_type, (None, None)
+		)
+
+		if ref_field and ref_doc_field:
 			for d in self.references:
 				frappe.db.set_value(
-					self.payment_order_type, d.get(ref_doc_field), ref_field, status
+					self.payment_order_type + " Account",
+					d.get(ref_doc_field),
+					ref_field,
+					status,
 				)
 
 
@@ -278,29 +255,3 @@ def get_mode_of_transfer(amount, party_bank, company_bank):
 		)
 
 	return mode_of_transfer
-
-
-def get_bank_entry_for_payroll(filters=None):
-	if filters and filters.get("refrence_name"):
-		condition = "AND jea.reference_name = '{0}'".format(
-			filters.get("refrence_name")
-		)
-
-	journal_entry = frappe.db.sql(
-		f"""
-		SELECT
-			je.name
-		FROM
-			`tabJournal Entry`je
-		JOIN
-			`tabJournal Entry Account`jea
-		ON
-			je.name = jea.parent
-		WHERE
-	 		je.docstatus != 2 AND jea.reference_type = 'Payroll Entry' AND je.voucher_type = 'Bank Entry'
-			{condition} LIMIT 1
-	 """,
-		as_dict=1,
-	)
-
-	return journal_entry if journal_entry else ""

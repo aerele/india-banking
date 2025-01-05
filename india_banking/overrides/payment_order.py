@@ -40,68 +40,62 @@ class CustomPaymentOrder(PaymentOrder):
 
 	def validate(self):
 		self.validate_summary()
-		for payment_info in self.summary:
-			if (
-				payment_info.mode_of_transfer == "RTGS"
-				and payment_info.amount >= 500000000
-			):
+
+	def validate_summary(self):
+		if not self.summary:
+			frappe.throw("Please validate the summary")
+
+		default_mode_of_transfer = (
+			frappe.get_doc("Mode of Transfer", self.default_mode_of_transfer)
+			if self.default_mode_of_transfer
+			else None
+		)
+
+		summary_total = 0
+		for payment in self.summary:
+			mode_of_transfer = (
+				frappe.get_doc("Mode of Transfer", payment.mode_of_transfer)
+				if payment.mode_of_transfer
+				else default_mode_of_transfer
+			)
+
+			if mode_of_transfer.mode == "RTGS" and payment.amount >= 500000000:
 				lei_number = frappe.db.get_value(
-					payment_info.party_type, payment_info.party, "lei_number"
+					payment.party_type, payment.party, "lei_number"
 				)
 				if not lei_number:
 					frappe.throw(
-						f"LEI Number required for payment > 50 Cr. For {payment_info.party_type} - {payment_info.party} - {payment_info.amount}"
+						f"LEI Number required for payment > 50 Cr. For {payment.party_type} - {payment.party} - {payment.amount}"
 					)
-			if (
-				"A2A" in payment_info.mode_of_transfer
-				and payment_info.bank != self.company_bank
-			):
+
+			if "A2A" in mode_of_transfer.mode and payment.bank != self.company_bank:
 				frappe.throw(
-					f"Invalid mode of transfer for {payment_info.party_type} - {payment_info.party} at <b>row #{payment_info.idx}</b>"
+					f"Invalid mode of transfer for {payment.party_type} - {payment.party} at <b>row #{payment.idx}</b>"
 				)
 
-	def validate_summary(self):
-		if len(self.summary) <= 0:
-			frappe.throw("Please validate the summary")
+			if not mode_of_transfer:
+				frappe.throw("Define a specific mode of transfer or a default one")
 
-		default_mode_of_transfer = None
-		if self.default_mode_of_transfer:
-			default_mode_of_transfer = frappe.get_doc(
-				"Mode of Transfer", self.default_mode_of_transfer
-			)
-
-		for payment in self.summary:
-			if payment.mode_of_transfer:
-				mode_of_transfer = frappe.get_doc(
-					"Mode of Transfer", payment.mode_of_transfer
-				)
-			else:
-				if not default_mode_of_transfer:
-					frappe.throw("Define a specific mode of transfer or a default one")
-				mode_of_transfer = default_mode_of_transfer
-				payment.mode_of_transfer = default_mode_of_transfer.mode
-
-			if (
-				payment.amount < mode_of_transfer.minimum_limit
-				or payment.amount > mode_of_transfer.maximum_limit
+			if not (
+				mode_of_transfer.minimum_limit
+				<= payment.amount
+				<= mode_of_transfer.maximum_limit
 			):
 				frappe.throw(
 					f"Mode of Transfer not suitable for {payment.party} for {payment.amount}. {mode_of_transfer.mode}: {mode_of_transfer.minimum_limit}-{mode_of_transfer.maximum_limit}"
 				)
 
-		summary_total = 0
+			payment.mode_of_transfer = mode_of_transfer.mode
+			summary_total += payment.amount
+
 		references_total = 0
-		for ref in self.references:
-			party_name_field = self.get_party_field_name(ref)
-			# update party name
-			ref.party_name = frappe.get_value(
-				ref.party_type, ref.party, party_name_field
+		for reference in self.references:
+			reference.party_name = frappe.get_value(
+				reference.party_type,
+				reference.party,
+				self.get_party_field_name(reference),
 			)
-
-			references_total += ref.amount
-
-		for sum in self.summary:
-			summary_total += sum.amount
+			references_total += reference.amount
 
 		if summary_total != references_total:
 			frappe.throw("Summary isn't matching the references")

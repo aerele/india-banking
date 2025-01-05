@@ -113,6 +113,10 @@ class CustomPaymentOrder(PaymentOrder):
 			return "supplier_name"
 		elif party.party_type == "Employee":
 			return "employee_name"
+		elif party.party_type == "Shareholder":
+			return "name"
+		elif party.part_type == "Customer":
+			return "customer_name"
 		else:
 			frappe.throw(f"Unsupported party type {party.party_type}")
 

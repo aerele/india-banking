@@ -8,12 +8,7 @@ from frappe import _
 
 
 class CustomPaymentEntry(PaymentEntry):
-	def validate_duplicate_entry(self):
-		reference_names = []
-		for d in self.get("references"):
-			reference_names.append(
-				(d.reference_doctype, d.reference_name, d.payment_term)
-			)
+	pass
 
 
 @frappe.whitelist()
@@ -25,9 +20,7 @@ def make_payment_order(source_name, target_doc=None):
 		target.company_bank_account = source.bank_account
 		target.party = ""
 
-		account = ""
-		if source.paid_to:
-			account = source.paid_to
+		account = source.paid_to if source.paid_to else ""
 
 		def _update_dimensions(source):
 			return {
@@ -45,52 +38,38 @@ def make_payment_order(source_name, target_doc=None):
 				)
 			return party_bank_account
 
-		for count, reference in enumerate(source.references, 1):
-			reference = {
-				"reference_doctype": reference.reference_doctype,
-				"reference_name": reference.reference_name,
-				"amount": reference.allocated_amount,
+		def _get_reference_data(reference=None):
+			return {
+				"reference_doctype": reference.reference_doctype
+				if reference
+				else "Payment Entry",
+				"reference_name": reference.reference_name
+				if reference
+				else source.name,
+				"amount": reference.allocated_amount
+				if reference
+				else source.paid_amount,
 				"party_type": source.party_type,
 				"party": source.party,
-				"mode_of_payment": source.mode_of_payment,
+				"mode_of_payment": source.mode_of_payment
+				if reference
+				else "Wire Transfer",
 				"bank_account": _get_default_bank_account(
 					source.party_type, source.party
 				),
-				"account": account,
+				"account": account if reference else source.paid_to,
 				"cost_center": source.cost_center,
 				"project": source.project,
 				"payment_entry": source.name,
+				**_update_dimensions(source),
 			}
-			reference.update(_update_dimensions(source))
 
-			target.append(
-				"references",
-				reference,
-			)
-			if count == len(source.references):
-				break
-		else:
-			reference = {
-				"reference_doctype": "Payment Entry",
-				"reference_name": source.name,
-				"amount": source.paid_amount,
-				"party_type": source.party_type,
-				"party": source.party,
-				"mode_of_payment": "Wire Transfer",
-				"bank_account": _get_default_bank_account(
-					source.party_type, source.party
-				),
-				"account": source.paid_to,
-				"cost_center": source.cost_center,
-				"project": source.project,
-				"payment_entry": source.name,
-			}
-			reference.update(_update_dimensions(source))
+		for reference in source.references:
+			target.append("references", _get_reference_data(reference))
 
-			target.append(
-				"references",
-				reference,
-			)
+		if not source.references:
+			target.append("references", _get_reference_data())
+
 		target.status = "Pending"
 
 	doclist = get_mapped_doc(

@@ -31,12 +31,8 @@ class CustomPaymentOrder(PaymentOrder):
 	@frappe.whitelist()
 	def update_unique_and_file_reference_id(self):
 		unique_id = "".join(re.findall(r"[0-9a-zA-Z]", self.name))[-10:]
-		frappe.db.set_value(
-			"Payment Order",
-			self.name,
-			{"unique_id": unique_id, "file_reference_id": unique_id},
-		)
-		self.reload()
+		self.unique_id= unique_id
+		self.file_reference_id= unique_id
 
 	def validate(self):
 		self.validate_summary()
@@ -123,8 +119,6 @@ class CustomPaymentOrder(PaymentOrder):
 
 			self.update_payment_status()
 
-		self.reload()
-
 	def on_update_after_submit(self):
 		frappe.throw("You cannot modify a payment order")
 
@@ -163,8 +157,9 @@ class CustomPaymentOrder(PaymentOrder):
 
 		if ref_field and ref_doc_field:
 			for d in self.references:
+				doctype = self.payment_order_type + " Account" if self.payment_order_type == "Journal Entry" else self.payment_order_type
 				frappe.db.set_value(
-					self.payment_order_type + " Account",
+					doctype,
 					d.get(ref_doc_field),
 					ref_field,
 					status,

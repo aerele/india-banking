@@ -5,11 +5,11 @@
 
 frappe.ui.form.on('Bank Payment Request', {
 	refresh(frm) {
-		cur_frm.disable_form()
+		frm.disable_form()
 	}
 })
 //purpose fully comman this doc-event to prevent getting errors
-`
+/*
 frappe.ui.form.on('Bank Payment Request', {
 	setup: function (frm) {
 		frm.set_query("party_type", function () {
@@ -114,4 +114,4 @@ const get_bank_query_conditions = function(frm) {
 	}
 	return conditions;
 };
-`
+*/

@@ -32,7 +32,7 @@ class BankPaymentRequest(PaymentRequest):
 			if self.is_new():
 				self.status = "Draft"
 			if self.reference_doctype or self.reference_name:
-				frappe.throw("Payments with references cannot be marked as ad-hoc")
+				frappe.throw(_("Payments with references cannot be marked as ad-hoc"))
 
 		if self.remarks:
 			self.remarks = self.remarks[:48]
@@ -41,10 +41,9 @@ class BankPaymentRequest(PaymentRequest):
 
 	def on_submit(self):
 		if not self.grand_total:
-			frappe.throw("Amount cannot be zero")
+			frappe.throw(_("Amount cannot be zero"))
 
 		bank_account = get_party_bank_account(self.party_type, self.party)
-
 		if not bank_account:
 			frappe.throw(
 				_("Default Bank Account is missing for {0} - {1}").format(
@@ -52,35 +51,29 @@ class BankPaymentRequest(PaymentRequest):
 				)
 			)
 
-		debit_account = None
-		if self.payment_type:
-			debit_account = frappe.db.get_value(
-				"Payment Type", self.payment_type, "account"
-			)
-		elif self.reference_doctype == "Purchase Invoice":
-			debit_account = frappe.db.get_value(
-				self.reference_doctype, self.reference_name, "credit_to"
-			)
+		debit_account = frappe.db.get_value(
+			"Payment Type", self.payment_type, "account"
+		) or frappe.db.get_value(
+			self.reference_doctype, self.reference_name, "credit_to"
+		)
 
 		if not debit_account:
 			frappe.throw(
-				"Debit account for Payment Type <b>{}</b> cannot be determined".format(
+				_("Debit account for Payment Type <b>{}</b> cannot be determined").format(
 					self.payment_type or ""
 				)
 			)
+
 		if not self.is_adhoc:
 			super().on_submit()
 		else:
 			if self.payment_request_type == "Outward":
 				self.db_set("status", "Initiated")
-				return
 
 	def create_payment_entry(self, submit=True):
 		payment_entry = super().create_payment_entry(submit=submit)
 		if payment_entry.docstatus != 1 and self.payment_type:
-			payment_entry.paid_to = (
-				frappe.db.get_value("Payment Type", self.payment_type, "account") or ""
-			)
+			payment_entry.paid_to = frappe.db.get_value("Payment Type", self.payment_type, "account") or ""
 
 		return payment_entry
 
@@ -113,9 +106,9 @@ class BankPaymentRequest(PaymentRequest):
 					"India Banking Settings"
 				).activate_workflow_on_bank_account
 			):
-				frappe.throw("Cannot proceed with un-approved bank account")
+				frappe.throw(_("Cannot proceed with un-approved bank account"))
 		except Exception:
-			frappe.throw("Workflow Not Found for Bank Account")
+			frappe.throw(_("Workflow Not Found for Bank Account"))
 
 
 @frappe.whitelist()

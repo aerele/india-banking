@@ -7,6 +7,7 @@
  "field_order": [
   "summarise_payment_based_on",
   "notify_party",
+  "enable_payment_in_the_background",
   "column_break_wjye",
   "default_email_format",
   "activate_workflow_on_bank_account"
@@ -39,12 +40,18 @@
    "fieldname": "activate_workflow_on_bank_account",
    "fieldtype": "Check",
    "label": "Activate Workflow on Bank Account"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_payment_in_the_background",
+   "fieldtype": "Check",
+   "label": "Enable Payment in the Background"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-12-24 13:59:21.431509",
+ "modified": "2025-01-06 12:03:12.849508",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

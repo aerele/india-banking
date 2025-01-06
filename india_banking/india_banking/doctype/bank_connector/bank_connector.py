@@ -2,12 +2,14 @@
 # For license information, please see license.txt
 
 import json
+import re
 
 import frappe
 import requests as request
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import comma_and, cstr, get_link_to_form, getdate
+from frappe.utils.background_jobs import is_job_enqueued
 
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
@@ -53,7 +55,9 @@ class BankConnector(Document):
 		if otp:
 			self.verify_otp(payment_order, otp)
 
+		frappe.flags.ignore_message = True
 		self.get_payment_status(payment_order)
+		frappe.flags.ignore_message = False
 
 		# Make the payment
 		if self.bulk_transaction:
@@ -75,7 +79,8 @@ class BankConnector(Document):
 
 		payment_order.reload()
 		self.update_payment_status(payment_order)
-		frappe.msgprint(_("Payment Status Updated"))
+		if not frappe.flags.ignore_message:
+			frappe.msgprint(_("Payment Status Updated"))
 
 	def get_bulk_payment_status(self, payment_order):
 		response = request.post(
@@ -285,68 +290,112 @@ class BankConnector(Document):
 						"Failed",
 					)
 
-	def make_single_payment(self, payment_order):
-		count = 0
-		for payment_row in payment_order.summary:
+	def process_single_payment(self, payment_order, payment_row):
+		if (
+			not payment_row.payment_initiated
+			and payment_row.payment_status == "Pending"
+		):
+			# handle failed or success response
+			payment_response = self.process_payment_and_response(
+				payment_row, payment_order
+			)
+
 			if (
-				not payment_row.payment_initiated
-				and payment_row.payment_status == "Pending"
+				payment_response
+				and "payment_status" in payment_response
+				and payment_response["payment_status"] == "Initiated"
 			):
-				# handle failed or success response
-				payment_response = self.process_payment_and_response(
-					payment_row, payment_order
+				frappe.db.set_value(
+					"Payment Order Summary",
+					payment_row.name,
+					{
+						"payment_status": "Initiated",
+						"payment_date": getdate(),
+						"payment_initiated": 1,
+					},
 				)
 
-				if (
-					payment_response
-					and "payment_status" in payment_response
-					and payment_response["payment_status"] == "Initiated"
-				):
+			elif (
+				payment_response
+				and "payment_status" in payment_response
+				and payment_response["payment_status"] == ""
+			):
+				if "message" in payment_response:
 					frappe.db.set_value(
 						"Payment Order Summary",
 						payment_row.name,
-						{
-							"payment_status": "Initiated",
-							"payment_date": getdate(),
-							"payment_initiated": 1,
-						},
+						"message",
+						payment_response.message,
 					)
-					count += 1
+			else:
+				frappe.db.set_value(
+					"Payment Order Summary",
+					payment_row.name,
+					"payment_status",
+					"Failed",
+				)
+				payment_entry = frappe.get_doc(
+					"Payment Entry", payment_row.payment_entry
+				)
+				if payment_entry.docstatus == 1:
+					payment_entry.cancel()
 
-				elif (
-					payment_response
-					and "payment_status" in payment_response
-					and payment_response["payment_status"] == ""
-				):
-					if "message" in payment_response:
-						frappe.db.set_value(
-							"Payment Order Summary",
-							payment_row.name,
-							"message",
-							payment_response.message,
-						)
-				else:
+				self.process_bank_payment_requests(payment_order, payment_row)
+
+				if payment_response and "message" in payment_response:
 					frappe.db.set_value(
 						"Payment Order Summary",
 						payment_row.name,
-						"payment_status",
-						"Failed",
+						"message",
+						payment_response.message,
 					)
-					payment_entry = frappe.get_doc(
-						"Payment Entry", payment_row.payment_entry
-					)
-					if payment_entry.docstatus == 1:
-						payment_entry.cancel()
 
-					self.process_bank_payment_requests(payment_order, payment_row)
+	def add_payment_in_the_background(self, payment_order):
+		def _add_queue(payment_row, job_id):
+			frappe.enqueue(
+				self.process_single_payment,
+				payment_order=payment_order,
+				payment_row=payment_row,
+				job_id=job_id,
+				job_name=f"Make Payment {job_id}",
+				enqueue_after_commit=True,
+			)
 
-					if payment_response and "message" in payment_response:
-						frappe.db.set_value(
-							"Payment Order Summary",
-							payment_row.name,
-							"message",
-							payment_response.message,
-						)
+		enqueue_count = 0
+		for payment_row in payment_order.summary:
+			job_id = (
+				"".join(re.findall(r"[0-9a-zA-Z]", self.name))[-10:]
+				+ "-"
+				+ payment_row.name
+			)
+			if not frappe.db.exists("RQ Job", job_id):
+				_add_queue(payment_row=payment_row, job_id=job_id)
+				enqueue_count += 1
+
+			elif (rq_job := frappe.db.exists("RQ Job", job_id)) and not is_job_enqueued(
+				job_id
+			):
+				frappe.get_doc("RQ Job", rq_job).delete()
+				frappe.clear_cache(doctype="RQ Job")
+				_add_queue(payment_row=payment_row, job_id=job_id)
+				enqueue_count += 1
+
+		frappe.msgprint(_(f"{enqueue_count} payments added in background"))
+
+	def make_single_payment(self, payment_order):
+		# add payment in background
+		if (
+			len(payment_order.summary) > 10
+			or frappe.get_single(
+				"India Banking Settings"
+			).enable_payment_in_the_background
+		):
+			return self.add_payment_in_the_background(payment_order)
+
+		for payment_row in payment_order.summary:
+			self.process_single_payment(
+				payment_order=payment_order, payment_row=payment_row
+			)
 
 		payment_order.reload()
 		processed_count = 0
@@ -359,7 +408,7 @@ class BankConnector(Document):
 				"Payment Order", payment_order.name, "status", "Initiated"
 			)
 
-		return {"message": f"{count} payments initiated"}
+		frappe.msgprint(f"{processed_count} payments initiated")
 
 	def process_payment_and_response(self, payment_row, payment_order):
 		payment_payload = self.get_payload(payment_order, "intiate_payment")
@@ -601,9 +650,9 @@ class BankConnector(Document):
 			success_count = 0
 			faild_count = 0
 			rejected_count = 0
-			for ref in payment_order.summary:
+			for summary in payment_order.summary:
 				status = frappe.db.get_value(
-					"Payment Order Summary", ref.name, "payment_status"
+					"Payment Order Summary", summary.name, "payment_status"
 				)
 				if status == "Processed":
 					success_count += 1

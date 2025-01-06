@@ -60,6 +60,8 @@ def process_payment_requests(payment_order_summary):
 		"tax_withholding_category",
 		"reference_doctype",
 		"reference_name",
+		"payment_entry",
+		"journal_entry_account",
 	]
 	if payment_order_doc.summarise_payment_based_on == "Party":
 		summarise_field.remove("reference_name")

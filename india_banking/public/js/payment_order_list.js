@@ -6,12 +6,14 @@ frappe.listview_settings["Payment Order"] = {
 		}
 		else if (doc.status == "Initiated") {
 			return [__("Initiated"), "blue", "status,=,Initiated"];
-		} else if (doc.status == "Completed") {
+		} else if (["Completed", "Approved"].includes(doc.status)) {
 			return [__("Completed"), "green", "status,=,Completed"];
 		}else if (doc.status == 'Rejected') {
 			return [__('Rejected'), "red", "status,=,Rejected"];
 		}else if (doc.status == 'Failed') {
 			return [__('Failed'), "red", "status,=,Failed"];
+		}else if (doc.status == 'Partially Approved') {
+			return [__('Partially Approved'), "yellow", "status,=,Partially Approved"];
 		}
 	},
 };

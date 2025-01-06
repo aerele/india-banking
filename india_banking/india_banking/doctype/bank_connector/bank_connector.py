@@ -682,6 +682,36 @@ class BankConnector(Document):
 						"Payment Email Notification Failed", frappe.get_traceback()
 					)
 
+	def get_bank_balance(self, bank_account):
+		payload = {
+			"bank_account_number": bank_account.bank_account_no,
+			"method": "bank_balance",
+		}
+		response = request.post(
+			self.base_url, headers=self.headers, data=json.dumps(payload)
+		)
+		# create api request log
+		create_api_log(
+			response, "Get Payment Status", "Bank Account", bank_account.bank_account_no
+		)
+
+		if response.status_code == 200:
+			response_details = self.get_response_details(response)
+			if response_details.get("server_status") == "Success":
+				if response_details.balance or response_details.balance == 0:
+					frappe.db.set_value(
+						"Bank Account",
+						bank_account.name,
+						"bank_balance",
+						response_details.balance,
+					)
+			else:
+				frappe.msgprint(
+					title=_("API Failed"),
+					msg=_("Balance Fetch Failed"),
+					indicator="red",
+				)
+
 
 def get_bank_connector(bank_account, company):
 	# Fetch the connector information
@@ -714,3 +744,10 @@ def get_payment_status(payment_order):
 		payment_order.company_bank_account, payment_order.company
 	)
 	return bank_connector.get_payment_status(payment_order)
+
+
+@frappe.whitelist()
+def get_bank_balance(bank_account_name):
+	bank_doc = frappe.get_doc("Bank Account", bank_account_name)
+	bank_connector = get_bank_connector(bank_account_name, bank_doc.company)
+	return bank_connector.get_bank_balance(bank_doc)

@@ -2,6 +2,13 @@
 // For license information, please see license.txt
 
 //purpose fully comman this doc-event to prevent getting errors
+
+frappe.ui.form.on('Bank Payment Request', {
+	refresh(frm) {
+		cur_frm.disable_form()
+	}
+})
+//purpose fully comman this doc-event to prevent getting errors
 `
 frappe.ui.form.on('Bank Payment Request', {
 	setup: function (frm) {

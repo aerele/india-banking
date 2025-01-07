@@ -46,8 +46,10 @@ class BankPaymentRequest(PaymentRequest):
 		bank_account = get_party_bank_account(self.party_type, self.party)
 		if not bank_account:
 			frappe.throw(
-				_("Default Bank Account is missing for {0} - {1}").format(
-					self.party_type, self.party
+				_(
+					"Default Bank Account is missing for {0} - {1}".format(
+						self.party_type, self.party
+					)
 				)
 			)
 
@@ -94,7 +96,7 @@ class BankPaymentRequest(PaymentRequest):
 
 	def valdidate_bank_for_wire_transfer(self):
 		if self.mode_of_payment == "Wire Transfer" and not self.bank_account:
-			frappe.throw(frappe._("Bank Account is missing for Wire Transfer Payments"))
+			frappe.throw(_("Bank Account is missing for Wire Transfer Payments"))
 
 		try:
 			status = frappe.db.get_value(

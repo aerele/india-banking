@@ -14,6 +14,7 @@ from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category 
 	get_party_tax_withholding_details,
 )
 from erpnext.accounts.party import get_party_bank_account
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils.data import cstr, flt, today
 
@@ -50,7 +51,7 @@ class BankPaymentRequest(PaymentRequest):
 			if self.get("__islocal"):
 				self.status = "Draft"
 			if self.reference_doctype or self.reference_name:
-				frappe.throw("Payments with references cannot be marked as ad-hoc")
+				frappe.throw(_("Payments with references cannot be marked as ad-hoc"))
 
 		self.valdidate_bank_for_wire_transfer()
 
@@ -106,7 +107,7 @@ class BankPaymentRequest(PaymentRequest):
 
 			if total_existing_payment_request_amount + flt(self.net_total) > ref_amount:
 				frappe.throw(
-					frappe._(
+					_(
 						"Total Bank Payment Request amount cannot be greater than {0} amount"
 					).format(self.reference_doctype)
 				)
@@ -124,8 +125,10 @@ class BankPaymentRequest(PaymentRequest):
 
 		if not debit_account:
 			frappe.throw(
-				"Debit account for Payment Type <b>{}</b> cannot be determined".format(
-					self.payment_type
+				_(
+					"Debit account for Payment Type <b>{}</b> cannot be determined".format(
+						self.payment_type
+					)
 				)
 			)
 		if not self.is_adhoc:
@@ -160,7 +163,7 @@ class BankPaymentRequest(PaymentRequest):
 
 	def valdidate_bank_for_wire_transfer(self):
 		if self.mode_of_payment == "Wire Transfer" and not self.bank_account:
-			frappe.throw(frappe._("Bank Account is missing for Wire Transfer Payments"))
+			frappe.throw(_("Bank Account is missing for Wire Transfer Payments"))
 
 		try:
 			status = frappe.db.get_value(
@@ -168,9 +171,9 @@ class BankPaymentRequest(PaymentRequest):
 			)
 
 			if self.mode_of_payment == "Wire Transfer" and status != "Approved":
-				frappe.throw("Cannot proceed with un-approved bank account")
+				frappe.throw(_("Cannot proceed with un-approved bank account"))
 		except:
-			frappe.throw("Workflow Not Found for Bank Account")
+			frappe.throw(_("Workflow Not Found for Bank Account"))
 
 
 @frappe.whitelist()
@@ -215,8 +218,10 @@ def make_bank_payment_request(**args):
 
 	if not bank_account:
 		frappe.throw(
-			frappe._("Default Bank Account is missing for {0} - {1}").format(
-				args.get("party_type"), args.get("party")
+			_(
+				"Default Bank Account is missing for {0} - {1}".format(
+					args.get("party_type"), args.get("party")
+				)
 			)
 		)
 
@@ -506,4 +511,4 @@ def get_amount(ref_doc, payment_account=None):
 	if grand_total > 0:
 		return grand_total
 	else:
-		frappe.throw(frappe._("Bank Payment Entry is already created"))
+		frappe.throw(_("Bank Payment Entry is already created"))

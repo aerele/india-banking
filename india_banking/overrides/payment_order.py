@@ -6,6 +6,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
+from frappe import _
 from frappe.utils import get_link_to_form
 
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
@@ -26,7 +27,7 @@ class CustomPaymentOrder(PaymentOrder):
 					if payment_request.grand_total != ref.amount:
 						link = get_link_to_form("Payment Request", ref.payment_request)
 						message = f"The amount in <b>#Row{ref.idx} </b>does not match the amount of the Payment Request -<b>{link}</b>. The Difference is <b>{ref.amount - payment_request.grand_total}</b>"
-						frappe.throw(title="Invalid Amount", msg=message)
+						frappe.throw(title=_("Invalid Amount"), msg=_(message))
 
 	@frappe.whitelist()
 	def update_unique_and_file_reference_id(self):
@@ -39,7 +40,7 @@ class CustomPaymentOrder(PaymentOrder):
 
 	def validate_summary(self):
 		if not self.summary:
-			frappe.throw("Please validate the summary")
+			frappe.throw(_("Please validate the summary"))
 
 		default_mode_of_transfer = (
 			frappe.get_doc("Mode of Transfer", self.default_mode_of_transfer)
@@ -64,16 +65,20 @@ class CustomPaymentOrder(PaymentOrder):
 				)
 				if not lei_number:
 					frappe.throw(
-						f"LEI Number required for payment > 50 Cr. For {payment.party_type} - {payment.party} - {payment.amount}"
+						_(
+							f"LEI Number required for payment > 50 Cr. For {payment.party_type} - {payment.party} - {payment.amount}"
+						)
 					)
 
 			if "A2A" in mode_of_transfer.mode and payment.bank != self.company_bank:
 				frappe.throw(
-					f"Invalid mode of transfer for {payment.party_type} - {payment.party} at <b>row #{payment.idx}</b>"
+					_(
+						f"Invalid mode of transfer for {payment.party_type} - {payment.party} at <b>row #{payment.idx}</b>"
+					)
 				)
 
 			if not mode_of_transfer:
-				frappe.throw("Define a specific mode of transfer or a default one")
+				frappe.throw(_("Define a specific mode of transfer or a default one"))
 
 			if not (
 				mode_of_transfer.minimum_limit
@@ -81,7 +86,9 @@ class CustomPaymentOrder(PaymentOrder):
 				<= mode_of_transfer.maximum_limit
 			):
 				frappe.throw(
-					f"Mode of Transfer not suitable for {payment.party} for {payment.amount}. {mode_of_transfer.mode}: {mode_of_transfer.minimum_limit}-{mode_of_transfer.maximum_limit}"
+					_(
+						f"Mode of Transfer not suitable for {payment.party} for {payment.amount}. {mode_of_transfer.mode}: {mode_of_transfer.minimum_limit}-{mode_of_transfer.maximum_limit}"
+					)
 				)
 
 			payment.mode_of_transfer = mode_of_transfer.mode
@@ -97,7 +104,7 @@ class CustomPaymentOrder(PaymentOrder):
 			references_total += reference.amount
 
 		if summary_total != references_total:
-			frappe.throw("Summary isn't matching the references")
+			frappe.throw(_("Summary isn't matching the references"))
 
 	def get_party_field_name(self, party):
 		if party.party_type == "Supplier":
@@ -109,7 +116,7 @@ class CustomPaymentOrder(PaymentOrder):
 		elif party.part_type == "Customer":
 			return "customer_name"
 		else:
-			frappe.throw(f"Unsupported party type {party.party_type}")
+			frappe.throw(_(f"Unsupported party type {party.party_type}"))
 
 	def on_submit(self):
 		if self.payment_order_type in [
@@ -123,19 +130,21 @@ class CustomPaymentOrder(PaymentOrder):
 			self.update_payment_status()
 
 	def on_update_after_submit(self):
-		frappe.throw("You cannot modify a payment order")
+		frappe.throw(_("You cannot modify a payment order"))
 
 	def on_cancel(self):
 		for summary in self.summary:
 			if summary.payment_status in ["Processed", "Initiated"]:
 				frappe.throw(
-					"You cannot cancel a payment order with Initiated/Processed payments"
+					_(
+						"You cannot cancel a payment order with Initiated/Processed payments"
+					)
 				)
 		super().on_cancel()
 
 	def on_trash(self):
 		if self.docstatus == 1:
-			frappe.throw("You cannot delete a payment order")
+			frappe.throw(_("You cannot delete a payment order"))
 
 	def update_payment_status(self, cancel=False):
 		self.db_set("status", "Pending")

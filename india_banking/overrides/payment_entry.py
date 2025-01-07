@@ -32,8 +32,10 @@ def make_payment_order(source_name, target_doc=None):
 			party_bank_account = get_party_bank_account(party_type, party)
 			if not party_bank_account:
 				frappe.throw(
-					_("Default Bank Account is missing for {0} - {1}").format(
-						party_type, party
+					_(
+						"Default Bank Account is missing for {0} - {1}".format(
+							party_type, party
+						)
 					)
 				)
 			return party_bank_account

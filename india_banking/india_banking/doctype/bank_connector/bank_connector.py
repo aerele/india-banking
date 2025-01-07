@@ -99,7 +99,10 @@ class BankConnector(Document):
 			payment_status_details = status_response.payment_status_details
 
 			if status_response.status == "Processed":
-				frappe.msgprint(status_response.message, status_response.file_status)
+				frappe.msgprint(
+					_(cstr(status_response.message)),
+					_(cstr(status_response.file_status)),
+				)
 				fs = status_response.file_status
 				if status_response.file_status in ["FAL", "REJ", "REC"]:
 					for summary_row in payment_order.summary:
@@ -178,9 +181,11 @@ class BankConnector(Document):
 
 				self.update_payment_status(payment_order)
 			else:
-				frappe.throw(msg=status_response.server_message, title="Failed")
+				frappe.throw(
+					msg=_(cstr(status_response.server_message)), title=_("Failed")
+				)
 		else:
-			frappe.throw("Invalid Request")
+			frappe.throw(_("Invalid Request"))
 
 	def get_status_response(self, summary_row, payment_order):
 		response = request.post(
@@ -408,7 +413,7 @@ class BankConnector(Document):
 				"Payment Order", payment_order.name, "status", "Initiated"
 			)
 
-		frappe.msgprint(f"{processed_count} payments initiated")
+		frappe.msgprint(_(f"{processed_count} payments initiated"))
 
 	def process_payment_and_response(self, payment_row, payment_order):
 		payment_payload = self.get_payload(payment_order, "intiate_payment")
@@ -430,7 +435,9 @@ class BankConnector(Document):
 		bank_link = get_link_to_form("Bank Account", payment_row.bank_account)
 		if not party_address:
 			frappe.throw(
-				f"Address not found for the selected bank account {bank_link} at <b>Row #{payment_row.idx}</b>"
+				_(
+					f"Address not found for the selected bank account {bank_link} at <b>Row #{payment_row.idx}</b>"
+				)
 			)
 
 		payment_payload.address = json.dumps(party_address)
@@ -526,7 +533,7 @@ class BankConnector(Document):
 				)
 				payment_account_list.append(summary_row.account_name + "-" + lei_number)
 				if not lei_number:
-					frappe.throw("LEI Number required for payment > 50 Cr")
+					frappe.throw(_("LEI Number required for payment > 50 Cr"))
 			else:
 				payment_account_list.append(
 					summary_row.account_name + "-" + summary_row.bank_account_no
@@ -578,8 +585,11 @@ class BankConnector(Document):
 			frappe.msgprint(_("Payment Initiated"))
 
 		elif payment_response.get("status", "") == "Failed":
-			frappe.msgprint(_("Failed - " + cstr(payment_response.get("message"))))
-
+			frappe.msgprint(
+				title=_("Failed"),
+				msg=_(cstr(payment_response.get("message"))),
+				indicator="red",
+			)
 		else:
 			frappe.throw(_("Invalid Response: Check API Log"))
 
@@ -772,7 +782,7 @@ def get_bank_connector(bank_account, company):
 		},
 	)
 	if not bank_connector:
-		frappe.throw("Bank Connector is not initialized")
+		frappe.throw(_("Bank Connector is not initialized"))
 
 	return frappe.get_doc("Bank Connector", bank_connector)
 

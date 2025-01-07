@@ -188,10 +188,12 @@ class BankConnector(Document):
 			frappe.throw(_("Invalid Request"))
 
 	def get_status_response(self, summary_row, payment_order):
+		status_payload = self.get_payload(payment_order, "get_payment_status")
+		status_payload.update(summary_row.as_dict(convert_dates_to_str=True))
 		response = request.post(
 			self.base_url,
 			headers=self.headers,
-			data=json.dumps(self.get_payload(payment_order, "get_payment_status")),
+			data=json.dumps(status_payload),
 		)
 
 		# create api request log

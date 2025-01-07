@@ -33,8 +33,8 @@ def create_api_log(res, action=None, ref_doctype=None, ref_docname=None):
 	"""Can create API log From response
 
 	Args:
-			res (response object): It is used to obtain an API response.
-			request_from (str): It is optional for the purposes of the API...
+					res (response object): It is used to obtain an API response.
+					request_from (str): It is optional for the purposes of the API...
 	"""
 	if not isinstance(res, Response):
 		return

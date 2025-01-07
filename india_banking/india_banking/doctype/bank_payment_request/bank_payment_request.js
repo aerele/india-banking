@@ -3,11 +3,11 @@
 
 //purpose fully comman this doc-event to prevent getting errors
 
-frappe.ui.form.on('Bank Payment Request', {
-	refresh(frm) {
-		frm.disable_form()
-	}
-})
+frappe.ui.form.on("Bank Payment Request", {
+  refresh(frm) {
+    frm.disable_form();
+  },
+});
 //purpose fully comman this doc-event to prevent getting errors
 /*
 frappe.ui.form.on('Bank Payment Request', {

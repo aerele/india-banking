@@ -59,9 +59,9 @@ class BankPaymentRequest(PaymentRequest):
 
 		if not debit_account:
 			frappe.throw(
-				_("Debit account for Payment Type <b>{}</b> cannot be determined").format(
-					self.payment_type or ""
-				)
+				_(
+					"Debit account for Payment Type <b>{}</b> cannot be determined"
+				).format(self.payment_type or "")
 			)
 
 		if not self.is_adhoc:
@@ -73,7 +73,9 @@ class BankPaymentRequest(PaymentRequest):
 	def create_payment_entry(self, submit=True):
 		payment_entry = super().create_payment_entry(submit=submit)
 		if payment_entry.docstatus != 1 and self.payment_type:
-			payment_entry.paid_to = frappe.db.get_value("Payment Type", self.payment_type, "account") or ""
+			payment_entry.paid_to = (
+				frappe.db.get_value("Payment Type", self.payment_type, "account") or ""
+			)
 
 		return payment_entry
 

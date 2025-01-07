@@ -1,5 +1,4 @@
 import frappe
-from frappe import _
 
 
 def get_bank_address_details(bank_account):

@@ -33,10 +33,6 @@ def make_custom_fields():
 	create_journal_entry_custom_fields()
 
 
-def create_property_setter():
-	create_payment_request_property_setter()
-
-
 def toggle_payment_request_creation(allow=True):
 	click.secho(
 		" -> {} Payment Request Creation...".format(
@@ -213,11 +209,29 @@ properties = {
 			"property_type": "Check",
 			"value": 0,
 		},
-	]
+	],
+	"Bank Account": [
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Bank Account",
+			"fieldname": "branch_code",
+			"property": "label",
+			"property_type": "Data",
+			"value": "IFSC Code",
+		},
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Bank Account",
+			"fieldname": "branch_code",
+			"property": "reqd",
+			"property_type": "Data",
+			"value": 1,
+		},
+	],
 }
 
 
-def create_payment_request_property_setter():
+def create_property_setter():
 	for doctype in properties.keys():
 		click.echo(f" -> Updating {doctype} Field Properties")
 		for _property in properties.get(doctype):

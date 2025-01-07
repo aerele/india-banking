@@ -55,7 +55,10 @@ class CustomPaymentOrder(PaymentOrder):
 				else default_mode_of_transfer
 			)
 
-			if mode_of_transfer.mode == "RTGS" and payment.amount >= 500000000:
+			if (
+				mode_of_transfer.mode in ["NEFT", "RTGS"]
+				and payment.amount >= 500000000
+			):
 				lei_number = frappe.db.get_value(
 					payment.party_type, payment.party, "lei_number"
 				)

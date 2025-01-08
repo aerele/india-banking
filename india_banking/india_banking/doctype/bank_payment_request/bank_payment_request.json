@@ -393,7 +393,8 @@
   {
    "fieldname": "net_total",
    "fieldtype": "Currency",
-   "label": "Net Total"
+   "label": "Net Total",
+   "reqd": 1
   },
   {
    "default": "0",

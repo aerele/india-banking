@@ -5,12 +5,36 @@ import json
 
 import frappe
 import requests
+from frappe import _
 from frappe.model.document import Document
 from requests.models import Response
 
 
 class IndiaBankingRequestLog(Document):
-	pass
+	@frappe.whitelist()
+	def show_failure_message(self):
+		try:
+			if (
+				self.response
+				and (response := json.loads(self.response))
+				and (server_messages := response.get("_server_messages"))
+			):
+				if (
+					server_messages
+					and (server_messages := json.loads(server_messages))
+					and (server_message := server_messages[0])
+				):
+					server_message = json.loads(server_message)
+					title = _("Failure Reason")
+					message = _(
+						f'{frappe.bold(server_message.get("title", ""))}: {server_message.get("message", "")}'
+					)
+					frappe.msgprint(title=title, msg=message)
+		except:
+			frappe.msgprint(
+				title=_("Error: Could not process the response"),
+				msg=frappe.get_traceback(with_context=1),
+			)
 
 
 def format_with_indent(data):
@@ -33,8 +57,8 @@ def create_api_log(res, action=None, ref_doctype=None, ref_docname=None):
 	"""Can create API log From response
 
 	Args:
-					res (response object): It is used to obtain an API response.
-					request_from (str): It is optional for the purposes of the API...
+		res (response object): It is used to obtain an API response.
+		request_from (str): It is optional for the purposes of the API...
 	"""
 	if not isinstance(res, Response):
 		return

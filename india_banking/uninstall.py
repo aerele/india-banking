@@ -83,6 +83,7 @@ def delete_custom_fields():
 			"total",
 			"status",
 			"icici_bank_api_info",
+			"file_reference_details_section",
 			"payment_summary",
 			"bank_api_info_column_break",
 			"payment_summary_column_break",

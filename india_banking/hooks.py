@@ -13,7 +13,6 @@ before_uninstall = "india_banking.uninstall.before_uninstall"
 doctype_js = {
 	"Payment Order": "public/js/payment_order.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
-	"Payment Type": "public/js/payment_type.js",
 	"Bank Account": "public/js/bank_account.js",
 	"Payment Request": "public/js/payment_request.js",
 }
@@ -25,7 +24,6 @@ doctype_list_js = {
 
 override_doctype_class = {
 	"Payment Order": "india_banking.overrides.payment_order.CustomPaymentOrder",
-	"Payment Entry": "india_banking.overrides.payment_entry.CustomPaymentEntry",
 	"Payment Request": "india_banking.overrides.payment_request.BankPaymentRequest",
 }
 

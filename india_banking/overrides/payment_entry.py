@@ -2,19 +2,13 @@ import frappe
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
-from erpnext.accounts.doctype.payment_entry.payment_entry import PaymentEntry
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _
-
-
-class CustomPaymentEntry(PaymentEntry):
-	pass
+from frappe.model.mapper import get_mapped_doc
 
 
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None):
-	from frappe.model.mapper import get_mapped_doc
-
 	def set_missing_values(source, target):
 		target.payment_order_type = "Payment Entry"
 		target.company_bank_account = source.bank_account

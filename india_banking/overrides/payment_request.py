@@ -8,10 +8,12 @@ from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category 
 )
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _
+from frappe.utils import get_link_to_form
 
 
 class BankPaymentRequest(PaymentRequest):
 	def validate(self):
+		self.set_default_value()
 		if not self.net_total:
 			self.net_total = self.grand_total
 
@@ -39,8 +41,30 @@ class BankPaymentRequest(PaymentRequest):
 
 		self.valdidate_bank_for_wire_transfer()
 
+	def set_default_value(self):
+		if not self.mode_of_payment:
+			self.db_set("mode_of_payment", "Wire Transfer")
+		if not self.payment_type and (
+			payment_type := frappe.db.exists(
+				"Payment Type",
+				{
+					"company": self.company,
+					"is_default": 1,
+				},
+			)
+		):
+			self.db_set("payment_type", payment_type)
+		else:
+			frappe.throw(
+				_(
+					f"Set Default <b><a href='/app/payment-type'>Payment Type</a></b> for company {frappe.bold(self.company)}".format(
+						self.company
+					)
+				)
+			)
+
 	def on_submit(self):
-		if not self.grand_total:
+		if not self.grand_total or not self.net_total:
 			frappe.throw(_("Amount cannot be zero"))
 
 		bank_account = get_party_bank_account(self.party_type, self.party)

@@ -251,8 +251,8 @@ def create_payment_order_custom_fields():
 				"insert_after": "posting_date",
 			},
 			{
-				"label": "ICICI Bank Api Info",
-				"fieldname": "icici_bank_api_info",
+				"label": "File Reference Details",
+				"fieldname": "file_reference_details_section",
 				"fieldtype": "Section Break",
 				"insert_after": "account",
 			},
@@ -261,7 +261,7 @@ def create_payment_order_custom_fields():
 				"fieldname": "unique_id",
 				"fieldtype": "Data",
 				"hidden": 1,
-				"insert_after": "icici_bank_api_info",
+				"insert_after": "file_reference_details_section",
 			},
 			{
 				"label": "File Reference Id",
@@ -558,10 +558,27 @@ def create_default_mode_of_transfers():
 
 
 def create_default_payment_type():
-	if not frappe.db.exists("Payment Type", "Pay"):
-		frappe.get_doc({"doctype": "Payment Type", "payment_type": "Pay"}).insert(
-			ignore_permissions=True, ignore_mandatory=True
-		)
+	companies = frappe.get_all(
+		"Company", ["name", "default_payable_account"], as_list=1
+	)
+	for company, default_payable_account in companies:
+		if not frappe.db.exists(
+			"Payment Type",
+			{
+				"payment_type": "Pay",
+				"account": default_payable_account,
+				"company": company,
+			},
+		):
+			frappe.get_doc(
+				{
+					"doctype": "Payment Type",
+					"payment_type": "Pay",
+					"company": company,
+					"account": default_payable_account,
+					"is_default": 1,
+				}
+			).insert(ignore_permissions=True, ignore_mandatory=True)
 
 
 def create_default_workflow():

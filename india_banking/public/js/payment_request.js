@@ -56,6 +56,16 @@ function get_bank_query_conditions(frm) {
     is_default: 1,
     disabled: 0,
   };
+  frappe.db
+    .get_single_value(
+      "India Banking Settings",
+      "activate_workflow_on_bank_account"
+    )
+    .then((r) => {
+      if (r) {
+        conditions["workflow_state"] = "Approved";
+      }
+    });
   if (frm.doc.party_type) {
     conditions["party_type"] = frm.doc.party_type;
   }

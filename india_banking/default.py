@@ -38,6 +38,7 @@ DEFAULT_MODE_OF_TRANSFERS = [
 ]
 
 STD_BANK_LIST = [
+	"Axis Bank",
 	"HDFC Bank",
 	"ICICI Bank",
 	"Kotak Mahindra Bank",

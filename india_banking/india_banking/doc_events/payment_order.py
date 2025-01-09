@@ -508,7 +508,7 @@ def get_payment_status(docname):
 
 	else:
 		for i in payment_order_doc.summary:
-			if i.payment_status == "Initiated":
+			if i.payment_status in ["Initiated", "Pending"]:
 				get_response(
 					i, payment_order_doc.company_bank_account, payment_order_doc.company
 				)

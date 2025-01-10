@@ -2,7 +2,6 @@ frappe.ui.form.on("Bank Account", {
   refresh(frm) {
     if (
       frm.doc.is_company_account &&
-      frm.doc.is_company_account &&
       !frm.doc.disabled
     ) {
       frm.add_custom_button(__("Fetch Balance"), function () {
@@ -11,7 +10,7 @@ frappe.ui.form.on("Bank Account", {
             "india_banking.india_banking.doctype.bank_connector.bank_connector.get_bank_balance",
           freeze: true,
           args: {
-            bank_name: frm.doc.name,
+            bank_account_name: frm.doc.name,
           },
           callback: (res) => {
             cur_frm.reload_doc();

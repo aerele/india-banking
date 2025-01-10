@@ -746,14 +746,14 @@ class BankConnector(Document):
 	def get_bank_balance(self, bank_account):
 		payload = {
 			"bank_account_number": bank_account.bank_account_no,
-			"method": "bank_balance",
+			"method": "get_bank_balance",
 		}
 		response = request.post(
 			self.base_url, headers=self.headers, data=json.dumps(payload)
 		)
 		# create api request log
 		create_api_log(
-			response, "Get Payment Status", "Bank Account", bank_account.bank_account_no
+			response, "Get Bank Balance", "Bank Account", bank_account.bank_account_no
 		)
 
 		if response.status_code == 200:

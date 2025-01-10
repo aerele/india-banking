@@ -8,7 +8,6 @@ from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category 
 )
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _
-from frappe.utils import get_link_to_form
 
 
 class BankPaymentRequest(PaymentRequest):
@@ -42,9 +41,7 @@ class BankPaymentRequest(PaymentRequest):
 		self.valdidate_bank_for_wire_transfer()
 
 	def set_default_value(self):
-		if not self.mode_of_payment:
-			self.db_set("mode_of_payment", "Wire Transfer")
-		if not self.payment_type and (
+		if not self.payment_type or (
 			payment_type := frappe.db.exists(
 				"Payment Type",
 				{

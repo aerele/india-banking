@@ -122,6 +122,7 @@ frappe.ui.form.on("Payment Order", {
         party_type: "",
         party: "",
         grand_total: "",
+        currency: "INR",
       },
       get_query_filters: {
         docstatus: 1,

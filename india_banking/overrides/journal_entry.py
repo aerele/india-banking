@@ -2,8 +2,10 @@ import frappe
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
+from frappe import _
 from frappe.query_builder import DocType
 from frappe.query_builder.functions import Sum
+from frappe.utils import get_url_to_form
 
 
 @frappe.whitelist()
@@ -20,7 +22,7 @@ def make_payment_order(source_name, target_doc=None, args=None):
 			"cost_center",
 			"project",
 			"debit as amount",
-			"party as employee",
+			"party",
 			"party_type",
 			"parent as journal",
 		]
@@ -67,6 +69,42 @@ def make_payment_order(source_name, target_doc=None, args=None):
 			}
 
 		for journal_account in journal_accounts:
+			bank_account = frappe.get_doc(
+				"Bank Account", journal_account.party_bank_account
+			)
+			if frappe.db.get_single_value(
+				"India Banking Settings", "activate_workflow_on_bank_account"
+			):
+				if bank_account.workflow_state != "Approved":
+					frappe.throw(
+						title=_("Cannot proceed with un-approved bank account"),
+						msg=_(
+							"{}-{}- Bank Account <a href='{}'>{}</a>".format(
+								journal_account.party_type,
+								journal_account.party,
+								get_url_to_form(
+									"Bank Account", journal_account.party_bank_account
+								),
+								frappe.bold(journal_account.party_bank_account),
+							)
+						),
+					)
+
+			if bank_account.currency != "INR":
+				frappe.throw(
+					title=_("The party bank account currency should be in INR."),
+					msg=_(
+						"{}-{}- Bank Account <a href='{}'>{}</a>".format(
+							journal_account.party_type,
+							journal_account.party,
+							get_url_to_form(
+								"Bank Account", journal_account.party_bank_account
+							),
+							frappe.bold(journal_account.party_bank_account),
+						)
+					),
+				)
+
 			journal_account = frappe._dict(journal_account)
 			details = {
 				"reference_doctype": "Journal Entry",
@@ -74,7 +112,7 @@ def make_payment_order(source_name, target_doc=None, args=None):
 				"journal_entry_account": journal_account.name,
 				"amount": journal_account.amount,
 				"party_type": journal_account.party_type,
-				"party": journal_account.employee,
+				"party": journal_account.party,
 				"mode_of_payment": "",
 				"bank_account": journal_account.party_bank_account,
 				"account": journal_account.account,

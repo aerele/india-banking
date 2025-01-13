@@ -489,9 +489,9 @@ def create_bank_account_custom_fields():
 			{
 				"label": "Mobile Number",
 				"fieldname": "mobile_number",
-				"insert_after": "iban",
 				"mandatory_depends_on": "is_company_account",
 				"fieldtype": "Data",
+				"insert_after": "iban",
 			},
 			{
 				"label": "Email",
@@ -507,6 +507,14 @@ def create_bank_account_custom_fields():
 				"fieldtype": "Currency",
 				"insert_after": "bank_account_no",
 				"read_only": 1,
+			},
+			{
+				"label": "Currency",
+				"fieldname": "currency",
+				"fieldtype": "Link",
+				"options": "Currency",
+				"insert_after": "email",
+				"reqd": 1,
 			},
 		]
 	}

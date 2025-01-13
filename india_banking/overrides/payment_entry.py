@@ -5,6 +5,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _
 from frappe.model.mapper import get_mapped_doc
+from frappe.utils import get_url_to_form
 
 
 @frappe.whitelist()
@@ -32,7 +33,36 @@ def make_payment_order(source_name, target_doc=None):
 						)
 					)
 				)
-			return party_bank_account
+
+			bank_account = frappe.get_doc("Bank Account", party_bank_account)
+			if frappe.db.get_single_value(
+				"India Banking Settings", "activate_workflow_on_bank_account"
+			):
+				if bank_account.workflow_state != "Approved":
+					frappe.throw(
+						title=_("Cannot proceed with un-approved bank account"),
+						msg=_(
+							"{}-{}- Bank Account <a href='{}'>{}</a>".format(
+								party_type,
+								party,
+								get_url_to_form("Bank Account", bank_account.name),
+								frappe.bold(bank_account.name),
+							)
+						),
+					)
+
+			if bank_account.currency != "INR":
+				frappe.throw(
+					title=_("The party bank account currency should be in INR."),
+					msg=_(
+						"{}-{}- Bank Account <a href='{}'>{}</a>".format(
+							party_type,
+							party,
+							get_url_to_form("Bank Account", bank_account.name),
+							frappe.bold(bank_account.name),
+						)
+					),
+				)
 
 		def _get_reference_data(reference=None):
 			return {

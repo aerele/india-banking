@@ -49,6 +49,7 @@ def delete_custom_fields():
 			"mobile_number",
 			"email",
 			"bank_balance",
+			"currency",
 		],
 		"Payment Entry": [
 			"source_section",

@@ -32,7 +32,7 @@ doc_events = {
 		"on_trash": "india_banking.india_banking.doc_events.bank.disallow_standard_bank_deletion"
 	},
 	"Bank Account": {
-		"validate": "india_banking.india_banking.doc_events.bank_account.validate_ifsc_code"
+		"validate": "india_banking.india_banking.doc_events.bank_account.validate"
 	},
 }
 

@@ -599,7 +599,6 @@ class BankConnector(Document):
 		pass
 
 	def generate_otp(self, payment_order):
-		payment_order.update_unique_and_file_reference_id(save=True)
 		payment_order.reload()
 
 		# Generate OTP using POST request

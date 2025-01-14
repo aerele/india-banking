@@ -257,30 +257,16 @@ def create_payment_order_custom_fields():
 				"insert_after": "account",
 			},
 			{
-				"label": "Unique ID",
-				"fieldname": "unique_id",
-				"fieldtype": "Data",
-				"hidden": 1,
-				"insert_after": "file_reference_details_section",
-			},
-			{
-				"label": "File Reference Id",
-				"fieldname": "file_reference_id",
-				"hidden": 1,
-				"fieldtype": "Data",
-				"insert_after": "unique_id",
-			},
-			{
-				"fieldtype": "Column Break",
-				"fieldname": "bank_api_info_column_break",
-				"insert_after": "file_reference_id",
-			},
-			{
 				"label": "File Sequence Number",
 				"fieldname": "file_sequence_number",
 				"fieldtype": "Data",
 				"read_only": 1,
-				"insert_after": "bank_api_info_column_break",
+				"insert_after": "file_reference_details_section",
+			},
+			{
+				"fieldtype": "Column Break",
+				"fieldname": "file_reference_details_column",
+				"insert_after": "file_sequence_number",
 			},
 			{
 				"label": "Payment Summary",

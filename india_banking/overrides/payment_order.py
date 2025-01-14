@@ -1,5 +1,4 @@
 import json
-import re
 
 import frappe
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
@@ -15,7 +14,6 @@ from india_banking.india_banking.doc_events.payment_order import make_payment_en
 class CustomPaymentOrder(PaymentOrder):
 	def before_submit(self):
 		self.validate_bank_payment_request()
-		self.update_unique_and_file_reference_id()
 
 	def validate_bank_payment_request(self):
 		if self.references:
@@ -28,12 +26,6 @@ class CustomPaymentOrder(PaymentOrder):
 						link = get_link_to_form("Payment Request", ref.payment_request)
 						message = f"The amount in <b>#Row{ref.idx} </b>does not match the amount of the Payment Request -<b>{link}</b>. The Difference is <b>{ref.amount - payment_request.grand_total}</b>"
 						frappe.throw(title=_("Invalid Amount"), msg=_(message))
-
-	@frappe.whitelist()
-	def update_unique_and_file_reference_id(self):
-		unique_id = "".join(re.findall(r"[0-9a-zA-Z]", self.name))[-10:]
-		self.unique_id = unique_id
-		self.file_reference_id = unique_id
 
 	def validate(self):
 		self.validate_summary()

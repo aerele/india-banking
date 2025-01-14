@@ -87,6 +87,7 @@ def delete_custom_fields():
 			"file_reference_details_section",
 			"payment_summary",
 			"bank_api_info_column_break",
+			"file_reference_details_column",
 			"payment_summary_column_break",
 			"amended_from",
 		],

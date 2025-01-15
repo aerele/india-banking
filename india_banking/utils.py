@@ -1,4 +1,7 @@
+import json
+
 import frappe
+from frappe import _
 
 
 def get_bank_address_details(bank_account):
@@ -42,3 +45,40 @@ def get_bank_address_details(bank_account):
 		"CountySubDivision": country_sub_division,
 		"Country": country,
 	}
+
+
+def get_party_field_name(party_type):
+	return {
+		"Supplier": "supplier_name",
+		"Customer": "customer_name",
+		"Employee": "employee_name",
+	}.get(party_type, "name")
+
+
+def extract_error_message(response_json, show_message=False) -> str:
+	try:
+		response_json = json.loads(response_json) if isinstance(response_json, str) else response_json
+		failure_message = ""
+
+		server_message = response_json.get("_server_messages", "[]")
+		if server_message and (server_message := json.loads(server_message)):
+			server_message = json.loads(server_message[0])
+			failure_message = _(
+				f'{frappe.bold(server_message.get("title", ""))}: {server_message.get("message", "")}'
+			)
+
+		failure_message = failure_message or json.loads(
+			response_json.get("message", "{}").get("message", "{}")
+		).get("errormessage", "")
+
+		if show_message and failure_message:
+			frappe.msgprint(title=_("Failure Reason"), msg=failure_message)
+
+		elif failure_message:
+			return failure_message
+
+	except:
+		frappe.throw(
+			title=_("Error: Could not process the response"),
+			msg=frappe.get_traceback(with_context=1),
+		)

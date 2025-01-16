@@ -230,7 +230,8 @@ def get_party_summary(references, company_bank_account):
 			mot = frappe.db.get_value("Mode of Transfer", {
 				"minimum_limit": ["<=", row["amount"]],
 				"maximum_limit": [">", row["amount"]],
-				"is_bank_specific": 0
+				"is_bank_specific": 0,
+				"disabled": 0,
 				},
 				order_by = "priority asc")
 			if mot:

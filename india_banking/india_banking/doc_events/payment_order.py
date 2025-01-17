@@ -483,6 +483,10 @@ def update_payment_status(payment_order_doc):
 			frappe.db.set_value(
 				"Payment Order", payment_order_doc.name, "status", "Partially Approved"
 			)
+		elif initiated_count > 0:
+			frappe.db.set_value(
+				"Payment Order", payment_order_doc.name, "status", "Partially Initiated"
+			)
 	except Exception as e:
 		frappe.log_error(
 			title="Payment Order Status Update Error", message=frappe.get_traceback()

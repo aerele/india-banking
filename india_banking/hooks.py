@@ -190,7 +190,11 @@ accounting_dimension_doctypes = ['Bank Payment Request']
 
 # Scheduled Tasks
 # ---------------
-
+scheduler_events = {
+	"daily": [
+		"india_banking.tasks.daily"
+	],
+}
 # scheduler_events = {
 # 	"all": [
 # 		"india_banking.tasks.all"

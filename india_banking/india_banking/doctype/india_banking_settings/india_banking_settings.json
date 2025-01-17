@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "summarise_payment_based_on",
+  "update_posting_date_as_payment_date",
   "column_break_wjye",
   "default_email_format"
  ],
@@ -25,12 +26,19 @@
    "fieldtype": "Link",
    "label": "Default Email Format",
    "options": "Print Format"
+  },
+  {
+   "default": "0",
+   "description": "This option will update the payment completion date as the posting date in ledger entries if it is enabled.",
+   "fieldname": "update_posting_date_as_payment_date",
+   "fieldtype": "Check",
+   "label": "Update Posting Date as Payment Date"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-06-10 16:25:19.935240",
+ "modified": "2025-01-17 13:31:38.823473",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

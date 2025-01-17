@@ -446,6 +446,7 @@ def update_payment_status(payment_order_doc):
 		success_count = 0
 		faild_count = 0
 		rejected_count = 0
+		initiated_count = 0
 		for ref in payment_order_doc.summary:
 			status = frappe.db.get_value(
 				"Payment Order Summary", ref.name, "payment_status"
@@ -456,8 +457,14 @@ def update_payment_status(payment_order_doc):
 				faild_count += 1
 			if status == "Rejected":
 				rejected_count += 1
+			if status == "Initiated":
+				initiated_count += 1
 
-		if success_count == len(payment_order_doc.summary):
+		if initiated_count == len(payment_order_doc.summary):
+			frappe.db.set_value(
+				"Payment Order", payment_order_doc.name, "status", "Initiated"
+			)
+		elif success_count == len(payment_order_doc.summary):
 			frappe.db.set_value(
 				"Payment Order", payment_order_doc.name, "status", "Approved"
 			)

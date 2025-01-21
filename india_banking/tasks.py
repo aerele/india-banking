@@ -1,4 +1,5 @@
 import frappe
+from frappe.query_builder import DocType
 
 from india_banking.india_banking.doctype.bank_connector.bank_connector import (
 	get_payment_status,
@@ -6,9 +7,17 @@ from india_banking.india_banking.doctype.bank_connector.bank_connector import (
 
 
 def daily():
+	update_payment_date_as_posting_date()
+	update_payment_status()
+
+
+def update_payment_status():
+	if not frappe.get_single("India Banking Settings").update_payment_status:
+		return
+
 	orders = frappe.get_all(
 		"Payment Order Summary",
-		{"docstatus": 1, "payment_status": "Initiated"},
+		{"docstatus": 1, "payment_status": ["in", ["Pending", "Initiated"]]},
 		pluck="parent",
 		distinct="parent",
 	)
@@ -21,3 +30,61 @@ def daily():
 				title="Error in Payment Order Status Cron",
 				message=frappe.get_traceback(),
 			)
+
+
+def update_payment_date_as_posting_date():
+	"""Update Payment Entry posting dates based on Payment date in Payment Order Summary and repost accounting ledgers."""
+	try:
+		if not frappe.get_single(
+			"India Banking Settings"
+		).update_posting_date_as_payment_date:
+			return
+
+		PaymentEntry = DocType("Payment Entry")
+		PaymentOrderSummary = DocType("Payment Order Summary")
+
+		reposting_entries = (
+			frappe.qb.from_(PaymentOrderSummary)
+			.join(PaymentEntry)
+			.on(PaymentOrderSummary.payment_entry == PaymentEntry.name)
+			.select(PaymentOrderSummary.payment_entry)
+			.where(
+				(PaymentEntry.docstatus == 1)
+				& (PaymentOrderSummary.payment_date.isnotnull())
+				& (PaymentOrderSummary.payment_date != PaymentEntry.posting_date)
+			)
+			.groupby(PaymentEntry.name)
+		).run(as_dict=True)
+
+		if reposting_entries:
+			# Update mismatched posting dates
+			(
+				frappe.qb.update(PaymentEntry)
+				.join(PaymentOrderSummary)
+				.on(PaymentOrderSummary.payment_entry == PaymentEntry.name)
+				.set(PaymentEntry.posting_date, PaymentOrderSummary.payment_date)
+				.where(
+					(PaymentEntry.docstatus == 1)
+					& (PaymentOrderSummary.payment_date.isnotnull())
+					& (PaymentOrderSummary.payment_date != PaymentEntry.posting_date)
+				)
+			).run()
+			frappe.db.commit()
+			# Repost accounting ledger entries for updated Payment Entries
+			reposting_doc = frappe.new_doc("Repost Accounting Ledger")
+			for entry in reposting_entries:
+				reposting_doc.append(
+					"vouchers",
+					{
+						"voucher_type": "Payment Entry",
+						"voucher_no": entry["payment_entry"],
+					},
+				)
+
+			reposting_doc.save()
+			reposting_doc.submit()
+	except:
+		frappe.log_error(
+			title="Error in Payment Date Update Cron",
+			message=frappe.get_traceback(),
+		)

@@ -8,7 +8,7 @@ import frappe
 import requests as request
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cstr, getdate
+from frappe.utils import cint, cstr, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
@@ -110,9 +110,8 @@ class BankConnector(Document):
 			self.verify_response(response, payment_order)
 		else:
 			# add payment in background
-			if (
-				len(payment_order.summary) > 10
-				or frappe.get_single(
+			if len(payment_order.summary) > 10 or cint(
+				frappe.get_single(
 					"India Banking Settings"
 				).enable_payment_in_the_background
 			):

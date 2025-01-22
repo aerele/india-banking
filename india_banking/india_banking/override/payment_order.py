@@ -170,7 +170,7 @@ class CustomPaymentOrder(PaymentOrder):
 
 
 @frappe.whitelist()
-def get_party_summary(references, company_bank_account):
+def get_party_summary(references, company_bank_account, summarise_payment_based_on=None):
 	references = json.loads(references)
 	if not len(references) or not company_bank_account:
 		return
@@ -178,8 +178,6 @@ def get_party_summary(references, company_bank_account):
 	# Considering the following dimensions to group payments
 	# (party_type, party, bank_account, account, cost_center, project)
 	def _get_unique_key(ref=None, summarise_field=False):
-		summarise_payment_based_on = frappe.get_single("India Banking Settings").summarise_payment_based_on
-
 		if summarise_payment_based_on == "Party":
 			if summarise_field:
 				return  ("party_type", "party", "bank_account", "account", "cost_center", "project",
@@ -218,7 +216,6 @@ def get_party_summary(references, company_bank_account):
 		summary_line_item = {k: v for k, v in zip(_get_unique_key(summarise_field=True), key) }
 		summary_line_item["amount"] = val
 		summary_line_item["remarks"] = remarks_list[key]
-		summarise_payment_based_on = frappe.get_single("India Banking Settings").summarise_payment_based_on
 		if summarise_payment_based_on == "Party":
 			summary_line_item["is_party_wise"] = 1
 		else:

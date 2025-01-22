@@ -27,35 +27,35 @@ app_license = "gpl-3.0"
 # include js in page
 # page_js = {"page" : "public/js/file.js"}
 
-fixtures = [
-    {
-		"dt": "Workflow",
-		"filters": [
-			[
-            "name", "in", [
-                "Bank Account Approval"
-            ]
-        ]
-    ]},
-    {
-		"dt": "Workflow State",
-		"filters": [
-        [
-            "name", "in", [
-                "Approved", "Rejected"
-            ]
-        ]
-    ]},
-	{
-		"dt": "Workflow Action Master",
-		"filters": [
-        [
-            "name", "in", [
-                "Pending", "Approve", "Reject"
-            ]
-        ]
-    ]}
-]
+# fixtures = [
+#     {
+# 		"dt": "Workflow",
+# 		"filters": [
+# 			[
+#             "name", "in", [
+#                 "Bank Account Approval"
+#             ]
+#         ]
+#     ]},
+#     {
+# 		"dt": "Workflow State",
+# 		"filters": [
+#         [
+#             "name", "in", [
+#                 "Approved", "Rejected"
+#             ]
+#         ]
+#     ]},
+# 	{
+# 		"dt": "Custom Field",
+# 		"filters": [
+#         [
+#             "name", "in", [
+#                "Payment Order-custom_summarise_payment_based_on"
+#             ]
+#         ]
+#     ]}
+# ]
 
 doctype_js = {
 	"Payment Order" : "public/js/payment_order.js",
@@ -63,7 +63,6 @@ doctype_js = {
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Payment Type": "public/js/payment_type.js",
 	"Bank Account": "public/js/bank_account.js"
-
 }
 
 doctype_list_js = {"Payment Order" : "public/js/payment_order_list.js"}
@@ -163,7 +162,7 @@ after_install = "india_banking.india_banking.install.after_install"
 override_doctype_class = {
 	"Payment Order": "india_banking.india_banking.override.payment_order.CustomPaymentOrder",
 	"Payment Entry": "india_banking.india_banking.override.payment_entry.CustomPaymentEntry",
-	"Bank":  "india_banking.india_banking.override.bank.CustomBank"
+	"Bank":  "india_banking.india_banking.override.bank.CustomBank",
 }
 
 
@@ -182,6 +181,9 @@ override_doctype_class = {
 doc_events = {
 	"Bank Account": {
 		"validate": "india_banking.india_banking.doc_events.bank_account.validate_ifsc_code",
+	},
+    "Unreconcile Payment":{
+        "on_submit": "india_banking.india_banking.doc_events.unreconcile_payment.on_submit",
 	}
 }
 

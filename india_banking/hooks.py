@@ -34,6 +34,9 @@ doc_events = {
 	"Bank Account": {
 		"validate": "india_banking.india_banking.doc_events.bank_account.validate"
 	},
+	"Unreconcile Payment": {
+		"on_submit": "india_banking.india_banking.doc_events.unreconcile_payment.on_submit",
+	},
 }
 
 accounting_dimension_doctypes = [

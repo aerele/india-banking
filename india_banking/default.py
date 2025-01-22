@@ -1,3 +1,17 @@
+PAYMENT_SUMMARIES_FIELDS = [
+	"party_type",
+	"party",
+	"bank_account",
+	"account",
+	"cost_center",
+	"project",
+	"tax_withholding_category",
+	"reference_doctype",
+	"reference_name",
+	"payment_entry",
+	"journal_entry_account",
+]
+
 DEFAULT_MODE_OF_TRANSFERS = [
 	{
 		"mode": "A2A/FT/Internal",

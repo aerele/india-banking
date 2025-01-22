@@ -8,6 +8,7 @@ from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from frappe import _
 from frappe.utils import get_link_to_form
 
+from india_banking.default import PAYMENT_SUMMARIES_FIELDS
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 
 
@@ -185,21 +186,9 @@ def get_party_summary(
 	# Considering the following dimensions to group payments
 	# (party_type, party, bank_account, account, cost_center, project)
 	def _get_unique_key(reference=None, summarise_field_only=False):
-		summarise_field = [
-			"party_type",
-			"party",
-			"bank_account",
-			"account",
-			"cost_center",
-			"project",
-			"tax_withholding_category",
-			"reference_doctype",
-			"reference_name",
-			"payment_entry",
-			"journal_entry",
-			"journal_entry_account",
-		]
+		summarise_field = PAYMENT_SUMMARIES_FIELDS
 		summarise_field.extend(get_accounting_dimensions())
+
 		if summarise_payment_based_on == "Party":
 			summarise_field.remove("reference_name")
 

@@ -6,6 +6,8 @@ from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoi
 from frappe import _, parse_json
 from frappe.utils import nowdate
 
+from india_banking.default import PAYMENT_SUMMARIES_FIELDS
+
 
 @frappe.whitelist()
 def cancel_pending_payments(data):
@@ -39,19 +41,7 @@ def process_payment_requests(payment_order_summary):
 	pos = frappe.get_doc("Payment Order Summary", payment_order_summary)
 	payment_order_doc = frappe.get_doc("Payment Order", pos.parent)
 
-	summarise_field = [
-		"party_type",
-		"party",
-		"bank_account",
-		"account",
-		"cost_center",
-		"project",
-		"tax_withholding_category",
-		"reference_doctype",
-		"reference_name",
-		"payment_entry",
-		"journal_entry_account",
-	]
+	summarise_field = PAYMENT_SUMMARIES_FIELDS
 	if payment_order_doc.summarise_payment_based_on == "Party":
 		summarise_field.remove("reference_name")
 
@@ -108,17 +98,15 @@ def make_payment_entries(docname):
 		if row.tax_withholding_category:
 			net_total = 0
 			for reference in payment_order_doc.references:
-				if (
-					reference.party_type == row.party_type
-					and reference.party == row.party
-					and reference.cost_center == row.cost_center
-					and reference.project == row.project
-					and reference.bank_account == row.bank_account
-					and reference.account == row.account
-					and reference.tax_withholding_category
-					== row.tax_withholding_category
-					and reference.reference_doctype == row.reference_doctype
-				):
+				filter_fields = PAYMENT_SUMMARIES_FIELDS
+				if payment_order_doc.summarise_payment_based_on == "Party":
+					filter_fields.remove("reference_name")
+				filter_fields.extend(get_accounting_dimensions())
+				match_condition = [
+					(reference.get(field, "") or "") == row.get(field, "")
+					for field in filter_fields
+				]
+				if match_condition:
 					net_total += frappe.db.get_value(
 						"Payment Request",
 						reference.payment_request,
@@ -130,17 +118,7 @@ def make_payment_entries(docname):
 			pe.tax_withholding_category = row.tax_withholding_category
 		for reference in payment_order_doc.references:
 			if not reference.is_adhoc:
-				filter_fields = [
-					"party_type",
-					"party",
-					"bank_account",
-					"account",
-					"cost_center",
-					"project",
-					"tax_withholding_category",
-					"reference_doctype",
-					"reference_name",
-				]
+				filter_fields = PAYMENT_SUMMARIES_FIELDS
 				if payment_order_doc.summarise_payment_based_on == "Party":
 					filter_fields.remove("reference_name")
 				filter_fields.extend(get_accounting_dimensions())

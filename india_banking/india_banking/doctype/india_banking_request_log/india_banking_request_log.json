@@ -6,6 +6,9 @@
  "engine": "InnoDB",
  "field_order": [
   "action",
+  "column_break_xbip",
+  "show_failure_message",
+  "section_break_yxfd",
   "url",
   "method",
   "header",
@@ -19,6 +22,7 @@
   {
    "fieldname": "action",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Action"
   },
   {
@@ -29,6 +33,7 @@
   {
    "fieldname": "method",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Method"
   },
   {
@@ -44,11 +49,13 @@
   {
    "fieldname": "response",
    "fieldtype": "Code",
+   "in_list_view": 1,
    "label": "Response"
   },
   {
    "fieldname": "status_code",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Status Code"
   },
   {
@@ -60,11 +67,25 @@
    "fieldname": "reference_docname",
    "fieldtype": "Data",
    "label": "Reference Docname"
+  },
+  {
+   "fieldname": "show_failure_message",
+   "fieldtype": "Button",
+   "label": "Show Failure Message",
+   "options": "show_failure_message"
+  },
+  {
+   "fieldname": "column_break_xbip",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_yxfd",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-08-13 14:53:20.503589",
+ "modified": "2025-01-08 13:08:50.684456",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Request Log",

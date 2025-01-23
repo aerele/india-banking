@@ -6,8 +6,15 @@
  "engine": "InnoDB",
  "field_order": [
   "summarise_payment_based_on",
+  "notify_party",
+  "enable_payment_in_the_background",
   "column_break_wjye",
-  "default_email_format"
+  "default_email_format",
+  "activate_workflow_on_bank_account",
+  "automatic_update_configuration_section",
+  "update_posting_date_as_payment_date",
+  "column_break_laug",
+  "update_payment_status"
  ],
  "fields": [
   {
@@ -25,12 +32,52 @@
    "fieldtype": "Link",
    "label": "Default Email Format",
    "options": "Print Format"
+  },
+  {
+   "default": "0",
+   "fieldname": "notify_party",
+   "fieldtype": "Check",
+   "label": "Notify Party"
+  },
+  {
+   "default": "1",
+   "fieldname": "activate_workflow_on_bank_account",
+   "fieldtype": "Check",
+   "label": "Activate Workflow on Bank Account"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_payment_in_the_background",
+   "fieldtype": "Check",
+   "label": "Enable Payment in the Background"
+  },
+  {
+   "default": "0",
+   "fieldname": "update_posting_date_as_payment_date",
+   "fieldtype": "Check",
+   "label": "Update Posting Date as Payment Date"
+  },
+  {
+   "default": "0",
+   "fieldname": "update_payment_status",
+   "fieldtype": "Check",
+   "label": "Update Payment Status"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "automatic_update_configuration_section",
+   "fieldtype": "Section Break",
+   "label": "Automatic Update Configuration"
+  },
+  {
+   "fieldname": "column_break_laug",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-06-10 16:25:19.935240",
+ "modified": "2025-01-21 13:21:56.571226",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

@@ -2,6 +2,7 @@ import frappe
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
+from frappe.utils import cstr
 
 from india_banking.default import PAYMENT_SUMMARIES_FIELDS
 
@@ -23,6 +24,7 @@ def on_submit(doc, method=None):
 	payment_order = frappe.get_doc("Payment Order", payment_order_summary.parent)
 
 	summarise_field = PAYMENT_SUMMARIES_FIELDS.copy()
+	summarise_field.remove("payment_entry")
 	summarise_field.extend(get_accounting_dimensions())
 	if payment_order.summarise_payment_based_on == "Party":
 		summarise_field.remove("reference_name")
@@ -30,7 +32,8 @@ def on_submit(doc, method=None):
 	for reference in payment_order.references:
 		if all(
 			(
-				reference.get(field, "") == payment_order_summary.get(field, "")
+				cstr(reference.get(field, ""))
+				== cstr(payment_order_summary.get(field, ""))
 				for field in summarise_field
 			)
 		):

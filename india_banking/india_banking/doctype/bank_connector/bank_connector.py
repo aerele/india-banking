@@ -36,7 +36,7 @@ class BankConnector(Document):
 	@property
 	def headers(self):
 		return {
-			"Authorization": f"token {self.get_password("api_key")}:{self.get_password("api_secret")}",
+			"Authorization": f"token {self.get_password('api_key')}:{self.get_password('api_secret')}",
 			"Content-Type": "application/json",
 		}
 

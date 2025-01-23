@@ -1,6 +1,15 @@
 // Copyright (c) 2024, Aerele Technologies Private Limited and contributors
 // For license information, please see license.txt
 
+//purpose fully comman this doc-event to prevent getting errors
+
+frappe.ui.form.on("Bank Payment Request", {
+  refresh(frm) {
+    frm.disable_form();
+  },
+});
+//purpose fully comman this doc-event to prevent getting errors
+/*
 frappe.ui.form.on('Bank Payment Request', {
 	setup: function (frm) {
 		frm.set_query("party_type", function () {
@@ -105,3 +114,4 @@ const get_bank_query_conditions = function(frm) {
 	}
 	return conditions;
 };
+*/

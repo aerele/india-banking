@@ -1,7 +1,29 @@
-import frappe, re
-from frappe import _ , cstr
+import re
 
-def validate_ifsc_code(self, method):
-	pattern = re.compile("^[A-Z]{4}0[A-Z0-9]{6}$")
-	if not pattern.match(cstr(self.branch_code)):
+import frappe
+from frappe import _
+from frappe.utils import cstr
+
+IFSC_PATTERN = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
+
+
+def validate(doc, method=None):
+	validate_ifsc_code(doc)
+	update_party_transaction_currency(doc)
+
+
+def validate_ifsc_code(doc):
+	if not IFSC_PATTERN.match(cstr(doc.branch_code)):
 		frappe.throw(_("IFSC/Branch Code is not valid"))
+
+
+def update_party_transaction_currency(doc):
+	if doc.party_type and doc.party:
+		currency_field = (
+			"salary_currency" if doc.party_type == "Employee" else "default_currency"
+		)
+		doc.currency = frappe.get_value(
+			doc.party_type, doc.party, currency_field
+		) or frappe.db.get_value("Company", doc.company, "default_currency")
+	elif doc.is_company_account:
+		doc.currency = frappe.db.get_value("Company", doc.company, "default_currency")

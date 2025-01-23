@@ -2,13 +2,13 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("India Banking Settings", {
-	refresh(frm) {
-        frm.set_query("default_email_format", function() {
-            return {
-                filters: {
-                    "doc_type": "Payment Entry"
-                }
-            }
-        })
-	},
+  refresh(frm) {
+    frm.set_query("default_email_format", function () {
+      return {
+        filters: {
+          doc_type: "Payment Entry",
+        },
+      };
+    });
+  },
 });

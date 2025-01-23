@@ -41,7 +41,7 @@ def process_payment_requests(payment_order_summary):
 	pos = frappe.get_doc("Payment Order Summary", payment_order_summary)
 	payment_order_doc = frappe.get_doc("Payment Order", pos.parent)
 
-	summarise_field = PAYMENT_SUMMARIES_FIELDS
+	summarise_field = PAYMENT_SUMMARIES_FIELDS.copy()
 	if payment_order_doc.summarise_payment_based_on == "Party":
 		summarise_field.remove("reference_name")
 
@@ -98,7 +98,7 @@ def make_payment_entries(docname):
 		if row.tax_withholding_category:
 			net_total = 0
 			for reference in payment_order_doc.references:
-				filter_fields = PAYMENT_SUMMARIES_FIELDS
+				filter_fields = PAYMENT_SUMMARIES_FIELDS.copy()
 				if payment_order_doc.summarise_payment_based_on == "Party":
 					filter_fields.remove("reference_name")
 				filter_fields.extend(get_accounting_dimensions())
@@ -118,7 +118,7 @@ def make_payment_entries(docname):
 			pe.tax_withholding_category = row.tax_withholding_category
 		for reference in payment_order_doc.references:
 			if not reference.is_adhoc:
-				filter_fields = PAYMENT_SUMMARIES_FIELDS
+				filter_fields = PAYMENT_SUMMARIES_FIELDS.copy()
 				if payment_order_doc.summarise_payment_based_on == "Party":
 					filter_fields.remove("reference_name")
 				filter_fields.extend(get_accounting_dimensions())

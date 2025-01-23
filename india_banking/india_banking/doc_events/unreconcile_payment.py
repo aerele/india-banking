@@ -22,7 +22,7 @@ def on_submit(doc, method=None):
 
 	payment_order = frappe.get_doc("Payment Order", payment_order_summary.parent)
 
-	summarise_field = PAYMENT_SUMMARIES_FIELDS
+	summarise_field = PAYMENT_SUMMARIES_FIELDS.copy()
 	summarise_field.extend(get_accounting_dimensions())
 	if payment_order.summarise_payment_based_on == "Party":
 		summarise_field.remove("reference_name")

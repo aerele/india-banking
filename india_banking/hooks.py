@@ -37,6 +37,9 @@ doc_events = {
 	"Unreconcile Payment": {
 		"on_submit": "india_banking.india_banking.doc_events.unreconcile_payment.on_submit",
 	},
+	"Payment Entry": {
+		"on_cancel": "india_banking.india_banking.doc_events.payment_entry.on_cancel",
+	},
 }
 
 accounting_dimension_doctypes = [

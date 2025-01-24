@@ -80,6 +80,43 @@ class BankPaymentRequest(PaymentRequest):
 		if not self.grand_total or not self.net_total:
 			frappe.throw(_("Amount cannot be zero"))
 
+		self.validate_payment_type()
+		self.validate_bank_account()
+
+		if not self.is_adhoc:
+			super().on_submit()
+		else:
+			if self.payment_request_type == "Outward":
+				self.db_set("status", "Initiated")
+
+	def validate_payment_type(self):
+		if self.payment_type:
+			payment_type_company = frappe.db.get_value(
+				"Payment Type", self.payment_type, "company"
+			)
+			if self.company != payment_type_company:
+				frappe.throw(
+					_(
+						"Payment Type <b>{0}</b> is not valid for company <b>{1}</b>".format(
+							self.payment_type, self.company
+						)
+					)
+				)
+
+		debit_account = frappe.db.get_value(
+			"Payment Type", self.payment_type, "account"
+		) or frappe.db.get_value(
+			self.reference_doctype, self.reference_name, "credit_to"
+		)
+
+		if not debit_account:
+			frappe.throw(
+				_(
+					"Debit account for Payment Type <b>{}</b> cannot be determined"
+				).format(self.payment_type or "")
+			)
+
+	def validate_bank_account(self):
 		bank_account = get_party_bank_account(self.party_type, self.party)
 		if not bank_account:
 			frappe.throw(
@@ -122,24 +159,18 @@ class BankPaymentRequest(PaymentRequest):
 				),
 			)
 
-		debit_account = frappe.db.get_value(
-			"Payment Type", self.payment_type, "account"
-		) or frappe.db.get_value(
-			self.reference_doctype, self.reference_name, "credit_to"
-		)
-
-		if not debit_account:
-			frappe.throw(
-				_(
-					"Debit account for Payment Type <b>{}</b> cannot be determined"
-				).format(self.payment_type or "")
+		if self.bank_account:
+			bank_account_company = frappe.db.get_value(
+				"Bank Account", self.bank_account, "company"
 			)
-
-		if not self.is_adhoc:
-			super().on_submit()
-		else:
-			if self.payment_request_type == "Outward":
-				self.db_set("status", "Initiated")
+			if self.company != bank_account_company:
+				frappe.throw(
+					_(
+						"Bank Account <b>{0}</b> is not valid for company <b>{1}</b>".format(
+							self.bank_account, self.company
+						)
+					)
+				)
 
 	def create_payment_entry(self, submit=True):
 		payment_entry = super().create_payment_entry(submit=submit)

@@ -182,7 +182,10 @@ override_doctype_class = {
 doc_events = {
 	"Bank Account": {
 		"validate": "india_banking.india_banking.doc_events.bank_account.validate_ifsc_code",
-	}
+	},
+    "Unreconcile Payment":{
+        "on_submit": "india_banking.india_banking.doc_events.unreconcile_payment.on_submit",
+	},
 }
 
 # accounting_dimension_doctypes = ['Bank Payment Request', 'Payment Order', 'Payment Order Reference', 'Payment Order Summary']

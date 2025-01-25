@@ -105,6 +105,11 @@ class BankPaymentRequest(PaymentRequest):
 				self.db_set("status", "Initiated")
 				return
 
+		if self.reference_doctype == "Purchase Invoice":
+			outstanding_amount = frappe.db.get_value("Purchase Invoice", self.reference_name, "outstanding_amount")
+			if self.grand_total > outstanding_amount:
+				frappe.throw("Grand Total cannot be greater than Invoice Outstanding Amount")
+
 	def create_payment_entry(self, submit=True):
 		payment_entry = super().create_payment_entry(submit=submit)
 		payment_entry.source_doctype = self.payment_order_type

@@ -9,8 +9,10 @@ from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category 
 
 
 from erpnext.accounts.doctype.payment_request import payment_request as PR
+from frappe.query_builder.functions import Abs, Sum
 
-from erpnext.accounts.party import get_party_bank_account
+from erpnext.accounts.party import get_party_account, get_party_bank_account
+from erpnext.accounts.utils import get_account_currency
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
@@ -43,7 +45,8 @@ class BankPaymentRequest(PaymentRequest):
 			if self.reference_doctype or self.reference_name:
 				frappe.throw("Payments with references cannot be marked as ad-hoc")
 
-		self.valdidate_bank_for_wire_transfer()
+		if self.docstatus == 1:
+			self.valdidate_bank_for_wire_transfer()
 
 	def validate_payment_request_amount(self):
 		existing_payment_request_amount = flt(
@@ -101,6 +104,11 @@ class BankPaymentRequest(PaymentRequest):
 			if self.payment_request_type == "Outward":
 				self.db_set("status", "Initiated")
 				return
+
+		if self.reference_doctype == "Purchase Invoice":
+			outstanding_amount = frappe.db.get_value("Purchase Invoice", self.reference_name, "outstanding_amount")
+			if self.grand_total > outstanding_amount:
+				frappe.throw("Grand Total cannot be greater than Invoice Outstanding Amount")
 
 	def create_payment_entry(self, submit=True):
 		payment_entry = super().create_payment_entry(submit=submit)
@@ -215,16 +223,27 @@ def make_bank_payment_request(**args):
 		"Bank Payment Request",
 		{"reference_doctype": args.dt, "reference_name": args.dn, "docstatus": 0},
 	)
-	
+
+	existing_paid_amount = get_existing_paid_amount(ref_doc.doctype, ref_doc.name)
 	existing_payment_request_amount = get_existing_payment_request_amount(args.dt, args.dn)
+
+
+	if existing_paid_amount:
+		if ref_doc.party_account_currency == ref_doc.currency:
+			if ref_doc.conversion_rate:
+				grand_total -= flt(existing_paid_amount / ref_doc.conversion_rate)
+			else:
+				grand_total -= flt(existing_paid_amount)
+		else:
+			grand_total -= flt(existing_paid_amount / ref_doc.conversion_rate)
 
 	if existing_payment_request_amount:
 		grand_total -= existing_payment_request_amount
 
-	party_account_currency = ref_doc.get("party_account_currency")
+	party_account_currency = ref_doc.get("party_account_currency", "")
 
 	if not party_account_currency:
-		party_account = get_party_account(party_type, ref_doc.get(party_type.lower()), ref_doc.company)
+		party_account = get_party_account(args.get("party_type"), ref_doc.get(args.get("party_type").lower()), ref_doc.company)
 		party_account_currency = get_account_currency(party_account)
 
 	if draft_payment_request:
@@ -241,6 +260,9 @@ def make_bank_payment_request(**args):
 		)
 
 	else:
+		if grand_total <= 0:
+			frappe.throw(frappe._("Bank Payment Entry is already created"))
+
 		bpr = frappe.new_doc("Bank Payment Request")
 
 		if not args.get("payment_request_type"):
@@ -248,7 +270,7 @@ def make_bank_payment_request(**args):
 				"Outward" if args.get("dt") in ["Purchase Order", "Purchase Invoice"] else "Inward"
 			)
 
-		bpr.payment_type = "Pay"
+		bpr.payment_type = get_payment_type(ref_doc.company)
 
 		bpr.update(
 			{
@@ -580,3 +602,39 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 	 """, as_dict= 1)
 
 	return bank_entries
+
+def get_existing_paid_amount(doctype, name):
+	PL = frappe.qb.DocType("Payment Ledger Entry")
+	PER = frappe.qb.DocType("Payment Entry Reference")
+
+	query = (
+		frappe.qb.from_(PL)
+		.left_join(PER)
+		.on(
+			(PER.reference_doctype == PL.against_voucher_type) & (PER.reference_name == PL.against_voucher_no)
+		)
+		.select(Abs(Sum(PL.amount)).as_("total_paid_amount"))
+		.where(PL.against_voucher_type.eq(doctype))
+		.where(PL.against_voucher_no.eq(name))
+		.where(PL.amount < 0)
+		.where(PL.delinked == 0)
+		.where(PER.docstatus == 1)
+		.where(PER.payment_request.isnull())
+	)
+	response = query.run()
+
+	return response[0][0] if response[0] else 0
+
+def get_payment_type(company):
+	payment_type = frappe.db.get_value(
+			"Payment Type", {
+				"company": company,
+				"is_default": 1
+			},
+			"name"
+		)
+	if not payment_type:
+		link = "<a href= '/app/payment-type'><b>Payment Type</b></a>"
+		frappe.throw("Default {link} not found for Company <b>{0}</b>".format(company, link=link))
+
+	return payment_type

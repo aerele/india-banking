@@ -15,6 +15,7 @@ frappe.ui.form.on('Payment Order', {
 				},
 			};
 		});
+		cur_frm.trigger("set_default_company_bank_account");
 	},
 	refresh(frm) {
 		frm.set_df_property('summary', 'cannot_delete_rows', true);
@@ -348,8 +349,23 @@ frappe.ui.form.on('Payment Order', {
 				frm.refresh_fields();
 			}
 		});
-	}
-
+	},
+	company(frm){
+		cur_frm.trigger("set_default_company_bank_account");
+	},
+	set_default_company_bank_account(frm){
+		if(frm.doc.company){
+			frappe.db
+			.get_value(
+				"Bank Account",
+				{ is_default: 1, is_company_account: 1, company: frm.doc.company },
+				["name"]
+			)
+			.then((r) => {
+				frm.set_value("company_bank_account", r.message.name);
+			});
+		}
+	},
 });
 
 frappe.ui.form.on('Payment Order Summary', {

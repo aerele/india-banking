@@ -392,8 +392,6 @@ class BankConnector(Document):
 		frappe.msgprint(_(f"{enqueue_count} payments added in background"))
 
 	def generate_otp(self, payment_order):
-		return {"otp_required": True}
-
 		payment_order.reload()
 
 		# Generate OTP using POST request

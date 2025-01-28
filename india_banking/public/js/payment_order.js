@@ -245,13 +245,27 @@ frappe.ui.form.on('Payment Order', {
 		// remove custom button of order type that is not imported
 		let label = ["Payment Request", "Purchase Invoice"];
 
-		if (frm.doc.references.length > 0 && frm.doc.payment_order_type) {
-			label = label.reduce(x => {
-				x!= frm.doc.payment_order_type;
-				return x;
+		// Check conditions for removing "Get Payments from" buttons
+		if (
+			(frm.doc.references.length > 0 && frm.doc.payment_order_type) ||
+			frm.doc.docstatus != 0
+		  ) {
+			// Define the mapping of payment_order_type to buttons
+			const button_mapping = {
+			  "Payment Request": ["Bank Entry(JV)", "Payment Entry"],
+			  "Payment Entry": ["Bank Entry(JV)", "Payment Request"],
+			  "Journal Entry": ["Payment Request", "Payment Entry"],
+			};
+
+			// Get the relevant buttons based on the payment_order_type
+			const buttons_to_remove =
+			  button_mapping[frm.doc.payment_order_type] || [];
+
+			// Iterate over the buttons and remove them
+			buttons_to_remove.forEach((button) => {
+			  frm.remove_custom_button(button, "Get from");
 			});
-			frm.remove_custom_button(label, "Get from");
-		}
+		  }
 	},
 	get_summary: function(frm) {
 		if (frm.doc.docstatus > 0) {

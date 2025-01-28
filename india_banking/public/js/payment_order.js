@@ -270,39 +270,16 @@ frappe.ui.form.on('Payment Order', {
 			},
 			freeze: true,
 			callback: function(r) {
-				let is_party_wise = 0;
-				if(r.message && !r.exc) {
-					let summary_data = r.message
+				if (r.message && !r.exc) {
 					frm.clear_table("summary");
-					var doc_total = 0
-					for (var i = 0; i < summary_data.length; i++) {
-						if (summary_data[i].is_party_wise && !is_party_wise) {
-							is_party_wise = 1;
-						}
-						doc_total += summary_data[i].amount
-						let row = frm.add_child("summary");
-						row.party_type = summary_data[i].party_type;
-						row.party = summary_data[i].party;
-						row.amount = summary_data[i].amount;
-						row.bank_account = summary_data[i].bank_account;
-						row.account = summary_data[i].account;
-						row.mode_of_transfer = summary_data[i].mode_of_transfer;
-						row.cost_center = summary_data[i].cost_center;
-						row.project = summary_data[i].project;
-						row.tax_withholding_category = summary_data[i].tax_withholding_category;
-						row.reference_doctype = summary_data[i].reference_doctype;
-						row.reference_name = summary_data[i].reference_name;
-						row.payment_entry = summary_data[i].payment_entry;
-						row.journal_entry = summary_data[i].journal_entry;
-						row.journal_entry_account = summary_data[i].journal_entry_account;
+					const summary_data = r.message;
+					let doc_total = 0;
+					summary_data.forEach(function (item) {
+					  frm.add_child("summary", item);
+					  doc_total += item.amount; // Calculate total amount
+					});
 
-					}
-					if (is_party_wise) {
-						frm.set_value("is_party_wise", 1);
-					} else {
-						frm.set_value("is_party_wise", 0);
-					}
-					frm.refresh_field("summary");
+					// Set total amount in the form
 					frm.doc.total = doc_total;
 					frm.refresh_fields();
 				}

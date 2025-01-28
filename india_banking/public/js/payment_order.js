@@ -24,9 +24,6 @@ frappe.ui.form.on('Payment Order', {
 		frm.remove_custom_button("Payment Entry", "Get Payments from");
 		frm.remove_custom_button("Payment Request", "Get Payments from");
 
-		frm.set_df_property("payment_order_type", "options", [""].concat(["Bank Payment Request", "Payment Entry", "Purchase Invoice"]));
-		frm.refresh_field("payment_order_type");
-
 		if (frm.doc.docstatus == 0) {
 			frm.add_custom_button(__('Bank Payment Request'), function() {
 				frm.trigger("remove_row_if_empty");
@@ -239,22 +236,19 @@ frappe.ui.form.on('Payment Order', {
                 }
 			};
 		});
+		frm.trigger("remove_button")
 	},
 
 	remove_button: function(frm) {
-		// remove custom button of order type that is not imported
-		let label = ["Payment Request", "Purchase Invoice"];
-
 		// Check conditions for removing "Get Payments from" buttons
 		if (
-			(frm.doc.references.length > 0 && frm.doc.payment_order_type) ||
-			frm.doc.docstatus != 0
+			(frm.doc.references.length > 0 && frm.doc.payment_order_type)
 		  ) {
 			// Define the mapping of payment_order_type to buttons
 			const button_mapping = {
-			  "Payment Request": ["Bank Entry(JV)", "Payment Entry"],
-			  "Payment Entry": ["Bank Entry(JV)", "Payment Request"],
-			  "Journal Entry": ["Payment Request", "Payment Entry"],
+			  "Bank Payment Request": ["Bank Entry (JV)", "Payment Entry"],
+			  "Payment Entry": ["Bank Entry (JV)", "Bank Payment Request"],
+			  "Journal Entry": ["Bank Payment Request", "Payment Entry"],
 			};
 
 			// Get the relevant buttons based on the payment_order_type

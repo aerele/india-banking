@@ -24,6 +24,10 @@ class BankPaymentRequest(PaymentRequest):
 		pass
 
 	def validate(self):
+		allow_adhoc = frappe.db.get_single_value("India Banking Settings", "allow_ad_hoc_payment")
+		if self.is_adhoc and not allow_adhoc and self.docstatus == 1:
+			frappe.throw("Ad hoc payments are not accepted.")
+
 		frappe.log_error(title="India - banking", message=cstr(self.as_dict()))
 		if self.apply_tax_withholding_amount and self.tax_withholding_category and self.payment_request_type == "Outward":
 			if not self.net_total:

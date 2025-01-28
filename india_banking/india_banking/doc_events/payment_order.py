@@ -941,7 +941,6 @@ def get_response(payment_info, company_bank_account, company):
 	if response.status_code == 200:
 		response = json.loads(response.text)
 		response_data = frappe._dict((response.get("message") or {}))
-
 		if response_data:
 			if response_data.status == "Processed":
 				if response_data.utr_number:

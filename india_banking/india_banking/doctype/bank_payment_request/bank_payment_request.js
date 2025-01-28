@@ -11,6 +11,7 @@ frappe.ui.form.on('Bank Payment Request', {
 			};
 		});
 	},
+
 	refresh(frm) {
 		frm.set_query("payment_type", function() {
 			return {
@@ -48,6 +49,7 @@ frappe.ui.form.on('Bank Payment Request', {
 	},
 
 	company (frm) {
+		frm.trigger("update_payment_type")
 		frm.set_query("payment_type", function() {
 			return {
 				filters: {
@@ -55,6 +57,19 @@ frappe.ui.form.on('Bank Payment Request', {
 				}
 			};
 		});
+	},
+	update_payment_type(frm){
+		frappe.db.get_value("Payment Type",
+			{
+				"is_default": 1,
+				"company": frm.doc.company
+			},
+			["name"],
+			(res)=>{
+				if(res.name){
+					frm.set_value("payment_type", res.name)
+				}
+			})
 	},
 	mode_of_payment (frm) {
 		var conditions = get_bank_query_conditions(frm);

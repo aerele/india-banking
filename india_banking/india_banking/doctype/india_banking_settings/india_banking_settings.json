@@ -8,7 +8,8 @@
   "summarise_payment_based_on",
   "notify_party",
   "column_break_wjye",
-  "default_email_format"
+  "default_email_format",
+  "allow_ad_hoc_payment"
  ],
  "fields": [
   {
@@ -32,12 +33,18 @@
    "fieldname": "notify_party",
    "fieldtype": "Check",
    "label": "Notify Party"
+  },
+  {
+   "default": "1",
+   "fieldname": "allow_ad_hoc_payment",
+   "fieldtype": "Check",
+   "label": "Allow Ad hoc Payment"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-12-09 16:07:39.909616",
+ "modified": "2025-01-28 16:43:13.712324",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

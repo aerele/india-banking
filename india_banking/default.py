@@ -21,6 +21,7 @@ DEFAULT_MODE_OF_TRANSFERS = [
 		"end_time": "23:59:59",
 		"disabled": 0,
 		"priority": "1",
+        "is_bank_specific": 1,
 	},
 	{
 		"mode": "IMPS",

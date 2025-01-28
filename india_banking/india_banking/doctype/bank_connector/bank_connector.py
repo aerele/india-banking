@@ -221,7 +221,7 @@ class BankConnector(Document):
 			summary_details = frappe._dict(payment_response.get("summary_details", {}))
 
 			if payment_status == "PROCESSED":
-				for summary in payment_order:
+				for summary in payment_order.summary:
 					status_details = frappe._dict(summary_details.get(summary.name, ""))
 					if status_details.status == "Processed":
 						if status_details.utr_number:

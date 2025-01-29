@@ -20,15 +20,14 @@ from frappe.utils.data import flt, today, cstr
 
 
 class BankPaymentRequest(PaymentRequest):
-	def validate_subscription_details(self):
-		pass
+	def validate_adhoc_payment(self):
+		if self.is_adhoc and not frappe.db.exists("Ad Hoc Comapny", {"company": self.company, "allow_ad_hoc": 1, "parent": 'India Banking Settings'}):
+			frappe.throw(f"Ad hoc payments are not Accepted for <b>Company - {self.company}</b>")
 
 	def validate(self):
-		allow_adhoc = frappe.db.get_single_value("India Banking Settings", "allow_ad_hoc_payment")
-		if self.is_adhoc and not allow_adhoc and self.docstatus == 1:
-			frappe.throw("Ad hoc payments are not accepted.")
+		self.is_a_subscription = None
+		self.validate_adhoc_payment()
 
-		frappe.log_error(title="India - banking", message=cstr(self.as_dict()))
 		if self.apply_tax_withholding_amount and self.tax_withholding_category and self.payment_request_type == "Outward":
 			if not self.net_total:
 				self.net_total = self.grand_total

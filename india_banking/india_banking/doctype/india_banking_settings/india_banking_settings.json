@@ -9,7 +9,8 @@
   "notify_party",
   "column_break_wjye",
   "default_email_format",
-  "allow_ad_hoc_payment"
+  "section_break_ejya",
+  "companies"
  ],
  "fields": [
   {
@@ -35,16 +36,22 @@
    "label": "Notify Party"
   },
   {
-   "default": "1",
-   "fieldname": "allow_ad_hoc_payment",
-   "fieldtype": "Check",
-   "label": "Allow Ad hoc Payment"
+   "collapsible": 1,
+   "fieldname": "section_break_ejya",
+   "fieldtype": "Section Break",
+   "label": "Ad-hoc Configurations"
+  },
+  {
+   "fieldname": "companies",
+   "fieldtype": "Table",
+   "label": "Companies",
+   "options": "Ad Hoc Comapny"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-01-28 16:43:13.712324",
+ "modified": "2025-01-29 17:56:59.779070",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

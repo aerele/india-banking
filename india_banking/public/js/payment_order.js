@@ -15,7 +15,6 @@ frappe.ui.form.on('Payment Order', {
 				},
 			};
 		});
-		cur_frm.trigger("set_default_company_bank_account");
 	},
 	refresh(frm) {
 		frm.set_df_property('summary', 'cannot_delete_rows', true);

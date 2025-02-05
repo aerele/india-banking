@@ -36,7 +36,7 @@ class BankConnector(Document):
 	@property
 	def headers(self):
 		return {
-			"Authorization": f"token {self.get_password("api_key")}:{self.get_password("api_secret")}",
+			"Authorization": f"token {self.get_password('api_key')}:{self.get_password('api_secret')}",
 			"Content-Type": "application/json",
 		}
 
@@ -221,7 +221,7 @@ class BankConnector(Document):
 			summary_details = frappe._dict(payment_response.get("summary_details", {}))
 
 			if payment_status == "PROCESSED":
-				for summary in payment_order:
+				for summary in payment_order.summary:
 					status_details = frappe._dict(summary_details.get(summary.name, ""))
 					if status_details.status == "Processed":
 						if status_details.utr_number:
@@ -392,8 +392,6 @@ class BankConnector(Document):
 		frappe.msgprint(_(f"{enqueue_count} payments added in background"))
 
 	def generate_otp(self, payment_order):
-		return {"otp_required": True}
-
 		payment_order.reload()
 
 		# Generate OTP using POST request

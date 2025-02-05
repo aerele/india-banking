@@ -170,7 +170,7 @@ def create_payment_request_custom_fields():
 				"fieldname": "payment_term",
 				"fieldtype": "Link",
 				"options": "Payment Term",
-				"depends_on": "eval:doc.apply_tax_withholding_amount",
+				"read_only": 1,
 				"insert_after": "tax_withholding_category",
 			},
 			{

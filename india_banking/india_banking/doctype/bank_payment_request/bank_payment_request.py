@@ -40,7 +40,7 @@ class BankPaymentRequest(PaymentRequest):
 			if self.grand_total and self.net_total != self.grand_total and not self.apply_tax_withholding_amount:
 				self.grand_total = self.net_total
 
-		if not self.is_adhoc:
+		if not self.is_adhoc or self.reference_doctype not in ["Payroll Entry"]:
 			super().validate()
 		else:
 			if self.get("__islocal"):
@@ -52,6 +52,10 @@ class BankPaymentRequest(PaymentRequest):
 			self.valdidate_bank_for_wire_transfer()
 
 	def validate_payment_request_amount(self):
+		if self.reference_doctype in ["Payroll Entry"]:
+			#bypass validation for payroll entry
+			return
+
 		existing_payment_request_amount = flt(
 			get_existing_payment_request_amount(self.reference_doctype, self.reference_name)
 		)
@@ -79,11 +83,6 @@ class BankPaymentRequest(PaymentRequest):
 					ref_amount = flt(ref_doc.grand_total)
 			else:
 				ref_amount = get_amount(ref_doc, self.payment_account)
-
-			frappe.log_error("existing_payment_request_amount_drafted", existing_payment_request_amount_drafted )
-			frappe.log_error("existing_payment_request_amount", existing_payment_request_amount)
-			frappe.log_error("ref_amount", ref_amount)
-			frappe.log_error("self.net_total", self.net_total)
 
 			if total_existing_payment_request_amount + flt(self.net_total) > ref_amount:
 				frappe.throw(
@@ -641,3 +640,48 @@ def get_payment_type(company):
 		frappe.throw("Default {link} not found for Company <b>{0}</b>".format(company, link=link))
 
 	return payment_type
+
+@frappe.whitelist()
+def make_payment_request_for_payroll_entry(payroll_entry):
+	existing_bank_entry = frappe.db.sql(f"""
+		SELECT je.name as journal
+		FROM `tabJournal Entry` je
+		LEFT JOIN `tabJournal Entry Account` jea
+		ON je.name = jea.parent
+		WHERE je.voucher_type = 'Bank Entry'
+		AND jea.reference_type = 'Payroll Entry'
+		AND jea.reference_name = '{payroll_entry}'
+		GROUP BY je.name
+	""", as_dict=1, debug=1)
+
+	if existing_bank_entry and (existing_bank_entry:= existing_bank_entry[0].journal):
+		frappe.msgprint(
+			title=f"Bank Entry Already Exists",
+			msg=f"<a href= '{frappe.utils.get_url_to_form("Journal Entry", existing_bank_entry)}'>{existing_bank_entry}</a>"
+		)
+
+	salary_slips = frappe.get_list("Salary Slip", {
+			"payroll_entry": payroll_entry,
+			"docstatus": 1
+		},
+		["company", "employee as party", "rounded_total as net_total"]
+	)
+	if salary_slips:
+		bank_payment_request_list = []
+		for employee_details in salary_slips:
+			bank_payment_request = frappe.new_doc("Bank Payment Request")
+			request_details = dict()
+			request_details.update({
+				"payment_request_type": "Outward",
+				"transaction_date": today(),
+				"mode_of_payment": "Wire Transfer",
+				"party_type": "Employee",
+				"reference_doctype": "Payroll Entry",
+				"reference_name": payroll_entry,
+				**employee_details
+			})
+			bank_payment_request.update(request_details)
+			bank_payment_request.save()
+			bank_payment_request_list.append(bank_payment_request.name)
+		if bank_payment_request_list:
+			frappe.msgprint(f"{', '.join(bank_payment_request_list)} Bank Payment Request Created")

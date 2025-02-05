@@ -370,6 +370,11 @@ def make_payment_order(source_name, target_doc=None, args= None):
 		if source.reference_doctype == "Purchase Invoice":
 			account = frappe.db.get_value(source.reference_doctype, source.reference_name, "credit_to")
 
+		if source.is_adhoc and source.payment_type and source.party_type == "Supplier" and source.docstatus == 1:
+			party_account = frappe.db.get_value("Party Account", {"parent": source.party, "parenttype": source.party_type, "company": source.company}, "account")
+			if party_account:
+				account = party_account
+
 		for dimension in get_accounting_dimensions():
 			target.update({dimension: source.get(dimension, '')})
 

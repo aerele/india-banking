@@ -15,6 +15,17 @@ frappe.ui.form.on('Payment Order', {
 				},
 			};
 		});
+		if (frm.doc.docstatus == 0) {
+			frappe.db
+			  .get_single_value(
+				"India Banking Settings",
+				"summarise_payment_based_on"
+			  )
+			  .then((res) => {
+				  frm.doc.summarise_payment_based_on = res;
+				  frm.refresh_fields()
+			  });
+		}
 	},
 	refresh(frm) {
 		frm.set_df_property('summary', 'cannot_delete_rows', true);

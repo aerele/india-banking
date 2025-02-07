@@ -93,8 +93,9 @@ def make_payment_entries(docname):
 		pe.received_amount = row.amount
 		pe.letter_head = frappe.db.get_value("Letter Head", {"is_default": 1}, "name")
 		pe.source_doctype = payment_order_doc.payment_order_type
+
 		for dimension in get_accounting_dimensions():
-			pe.update({dimension: payment_order_doc.get(dimension, "")})
+			pe.update({dimension: row.get(dimension, "")})
 		if row.tax_withholding_category:
 			net_total = 0
 			for reference in payment_order_doc.references:

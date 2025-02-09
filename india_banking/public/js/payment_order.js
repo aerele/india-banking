@@ -397,6 +397,22 @@ frappe.ui.form.on("Payment Order", {
       },
     });
   },
+  company(frm) {
+    cur_frm.trigger("set_default_company_bank_account");
+  },
+  set_default_company_bank_account(frm) {
+    if (frm.doc.company) {
+      frappe.db
+        .get_value(
+          "Bank Account",
+          { is_default: 1, is_company_account: 1, company: frm.doc.company },
+          ["name"]
+        )
+        .then((r) => {
+          frm.set_value("company_bank_account", r.message.name);
+        });
+    }
+  },
 });
 
 const show_update_status_dialog = function (frm) {

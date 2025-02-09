@@ -4,6 +4,7 @@ from frappe import make_property_setter
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 from india_banking.default import (
+	ALLOWED_PAYMENT_DOCTYPE,
 	DEFAULT_MODE_OF_TRANSFERS,
 	DEFAULT_WORKFLOW_ACTIONS,
 	DEFAULT_WORKFLOW_LIST,
@@ -22,6 +23,7 @@ def after_install():
 	create_default_payment_type()
 	create_default_workflow()
 	create_default_bank()
+	update_allowed_payment_doctypes()
 
 
 def make_custom_fields():
@@ -31,6 +33,14 @@ def make_custom_fields():
 	create_payment_order_custom_fields()
 	create_payment_entry_custom_fields()
 	create_journal_entry_custom_fields()
+
+
+def update_allowed_payment_doctypes():
+	frappe.db.set_single_value(
+		"India Banking Settings",
+		"allowed_payment_doctypes",
+		"\n".join(ALLOWED_PAYMENT_DOCTYPE),
+	)
 
 
 def toggle_payment_request_creation(allow=True):

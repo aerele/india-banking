@@ -95,11 +95,20 @@ frappe.ui.form.on("Payment Order", {
 
       // Add custom buttons for each payment source
       payment_sources.forEach((source) => {
-        frm.add_custom_button(
-          source.label,
-          () => frm.trigger(source.trigger),
-          __("Get Payments from")
-        );
+        frappe.db
+          .get_single_value(
+            "India Banking Settings",
+            "allowed_payment_doctypes"
+          )
+          .then((res) => {
+            if (res.split("\n").includes(source.label)) {
+              frm.add_custom_button(
+                source.label,
+                () => frm.trigger(source.trigger),
+                __("Get Payments from")
+              );
+            }
+          });
       });
     }
   },

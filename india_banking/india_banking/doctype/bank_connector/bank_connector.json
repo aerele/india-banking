@@ -80,7 +80,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-05-31 09:36:12.254838",
+ "modified": "2025-02-09 22:38:54.086376",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Connector",
@@ -102,5 +102,6 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

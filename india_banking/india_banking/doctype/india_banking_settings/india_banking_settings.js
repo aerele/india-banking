@@ -10,5 +10,80 @@ frappe.ui.form.on("India Banking Settings", {
         },
       };
     });
+    frm.get_field("allowed_payment_doctypes").$wrapper.click(() => {
+      update_allow_doctypes(frm);
+    });
   },
 });
+
+const update_allow_doctypes = function (frm) {
+  frm.data = [];
+  const dialog = new frappe.ui.Dialog({
+    title: __("Updated Allowed Doctypes"),
+    size: "small",
+    fields: [
+      {
+        fieldname: "allowed_doctypes",
+        fieldtype: "Table",
+        label: __("Doctypes"),
+        data: frm.data,
+        in_place_edit: true,
+        cannot_add_rows: true,
+        cannot_delete_rows: true,
+        get_data: () => {
+          return frm.data;
+        },
+        fields: [
+          {
+            label: __("Doctype"),
+            fieldname: "doctype",
+            fieldtype: "Data",
+            in_list_view: 1,
+          },
+          {
+            label: __("Allow"),
+            fieldname: "allow",
+            fieldtype: "Check",
+            in_list_view: 1,
+          },
+        ],
+      },
+    ],
+    primary_action: () => {
+      let allowed = "";
+
+      dialog.get_values().allowed_doctypes.forEach((ele) => {
+        if (ele.allow) {
+          allowed += ele.doctype + "\n";
+        }
+      });
+
+      if (allowed) {
+        frm.set_value("allowed_payment_doctypes", allowed);
+        frm.save();
+        dialog.hide();
+      }
+    },
+    primary_action_label: __("Update"),
+  });
+
+  frm.call({
+    method: "india_banking.utils.get_allowed_payment_doctypes",
+    async: false,
+    callback(r) {
+      if (r.message) {
+        r.message.forEach((d) => {
+          let allowed = frm.doc.allowed_payment_doctypes
+            .split("\n")
+            .includes(d);
+          dialog.fields_dict.allowed_doctypes.df.data.push({
+            doctype: d,
+            allow: allowed,
+          });
+        });
+        dialog.show();
+        dialog.fields_dict.allowed_doctypes.grid.refresh();
+      }
+    },
+  });
+};

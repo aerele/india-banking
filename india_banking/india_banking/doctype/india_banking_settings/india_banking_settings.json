@@ -11,6 +11,7 @@
   "column_break_wjye",
   "default_email_format",
   "activate_workflow_on_bank_account",
+  "allowed_payment_doctypes",
   "automatic_update_configuration_section",
   "update_posting_date_as_payment_date",
   "column_break_laug",
@@ -72,12 +73,19 @@
   {
    "fieldname": "column_break_laug",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "Payment Request\nPayment Entry\nBank Entry",
+   "fieldname": "allowed_payment_doctypes",
+   "fieldtype": "Small Text",
+   "label": "Allowed Payment Doctypes",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-01-21 13:21:56.571226",
+ "modified": "2025-02-09 22:38:38.458237",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",
@@ -96,5 +104,6 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

@@ -7,7 +7,12 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 from frappe import _
 from frappe.utils import cstr
 
-from india_banking.default import PAYMENT_SUMMARIES_FIELDS
+from india_banking.default import ALLOWED_PAYMENT_DOCTYPE, PAYMENT_SUMMARIES_FIELDS
+
+
+@frappe.whitelist()
+def get_allowed_payment_doctypes():
+	return ALLOWED_PAYMENT_DOCTYPE
 
 
 def get_bank_address_details(bank_account):
@@ -87,7 +92,7 @@ def extract_error_message(response_json, show_message=False) -> str:
 		elif failure_message:
 			return failure_message
 
-	except:
+	except Exception:
 		frappe.throw(
 			title=_("Error: Could not process the response"),
 			msg=frappe.get_traceback(with_context=1),

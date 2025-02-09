@@ -75,7 +75,7 @@ class BankConnector(Document):
 	def get_response_details(self, response):
 		try:
 			return frappe._dict(response.json().get("message"))
-		except:
+		except Exception:
 			frappe.throw(_("Invalid Response: Check API Log"))
 
 	def make_post_request(self, payment_order, otp=None, action=None):
@@ -463,7 +463,7 @@ class BankConnector(Document):
 				frappe.db.set_value(
 					"Payment Order", payment_order.name, "status", "Partially Approved"
 				)
-		except:
+		except Exception:
 			frappe.log_error(
 				title="Payment Order Status Update Error",
 				message=frappe.get_traceback(),
@@ -507,7 +507,7 @@ class BankConnector(Document):
 							}
 						],
 					)
-				except Exception as e:
+				except Exception:
 					frappe.log_error(
 						"Payment Email Notification Failed", frappe.get_traceback()
 					)
@@ -518,7 +518,7 @@ class BankConnector(Document):
 			"method": "get_bank_balance",
 		}
 		response = request.post(
-			self.base_url, headers=self.headers, data=json.dumps(payload)
+			self.connector_url, headers=self.headers, data=json.dumps(payload)
 		)
 		# create api request log
 		create_api_log(

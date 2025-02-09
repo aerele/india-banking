@@ -137,6 +137,8 @@ class BankConnector(Document):
 	def verify_payment_response(self, response, payment_order):
 		payment_response = self.get_response_details(response)
 
+		success_count = 0
+
 		if response.ok:
 			payment_status = payment_response.get("payment_status", "")
 			message = payment_response.get("message", "")
@@ -168,6 +170,8 @@ class BankConnector(Document):
 								"message": details.get("message", ""),
 							},
 						)
+						success_count += 1
+
 					elif details.get("payment_status", "") == "Failed":
 						frappe.db.set_value(
 							"Payment Order Summary",
@@ -197,6 +201,8 @@ class BankConnector(Document):
 								"message": details.get("message", ""),
 							},
 						)
+				else:
+					frappe.msgprint(f"{success_count} payment initiated")
 
 			elif payment_status == "FAILED":
 				frappe.msgprint(

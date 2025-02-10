@@ -196,6 +196,15 @@ def create_payment_request_custom_fields():
 				"depends_on": "eval:doc.payment_request_type == 'Outward'",
 				"insert_after": "remark_section",
 			},
+			{
+				"label": "Salary Slip",
+				"fieldname": "salary_slip",
+				"fieldtype": "Link",
+				"options": "Salary Slip",
+				"read_only": 1,
+				"depends_on": "eval:doc.reference_doctype == 'Payroll Entry'",
+				"insert_after": "reference_name",
+			},
 		]
 	}
 	create_custom_fields(fields)
@@ -238,6 +247,16 @@ properties = {
 			"value": 1,
 		},
 	],
+	"Payment Order": [
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Payment Order",
+			"fieldname": "party",
+			"property": "fieldtype",
+			"property_type": "Link",
+			"value": "Data",
+		},
+	],
 }
 
 
@@ -274,15 +293,23 @@ def create_payment_order_custom_fields():
 				"insert_after": "file_reference_details_section",
 			},
 			{
-				"fieldtype": "Column Break",
-				"fieldname": "file_reference_details_column",
-				"insert_after": "file_sequence_number",
-			},
-			{
-				"label": "Payment Summary",
+				"label": "",
 				"fieldname": "payment_summary",
 				"fieldtype": "Section Break",
 				"insert_after": "references",
+			},
+			{
+				"label": "Default Mode of Transfer",
+				"fieldname": "default_mode_of_transfer",
+				"fieldtype": "Link",
+				"options": "Mode of Transfer",
+				"insert_after": "payment_summary",
+			},
+			{
+				"label": "Payment Summary",
+				"fieldname": "payment_summary2",
+				"fieldtype": "Section Break",
+				"insert_after": "default_mode_of_transfer",
 			},
 			{
 				"label": "Summarise Payment Based On",
@@ -290,7 +317,7 @@ def create_payment_order_custom_fields():
 				"fieldtype": "Select",
 				"options": "Party\nVoucher",
 				"no_copy": 1,
-				"insert_after": "payment_summary",
+				"insert_after": "payment_summary2",
 			},
 			{
 				"label": "Get Summary",
@@ -299,28 +326,11 @@ def create_payment_order_custom_fields():
 				"insert_after": "summarise_payment_based_on",
 			},
 			{
-				"fieldname": "payment_summary_column_break",
-				"fieldtype": "Column Break",
-				"insert_after": "get_summary",
-			},
-			{
-				"label": "Default Mode of Transfer",
-				"fieldname": "default_mode_of_transfer",
-				"fieldtype": "Link",
-				"options": "Mode of Transfer",
-				"insert_after": "payment_summary_column_break",
-			},
-			{
-				"fieldname": "payment_summary2",
-				"fieldtype": "Section Break",
-				"insert_after": "default_mode_of_transfer",
-			},
-			{
 				"label": "Summary",
 				"fieldname": "summary",
 				"fieldtype": "Table",
 				"options": "Payment Order Summary",
-				"insert_after": "payment_summary2",
+				"insert_after": "get_summary",
 				"no_copy": 1,
 			},
 			{
@@ -328,6 +338,35 @@ def create_payment_order_custom_fields():
 				"fieldname": "total",
 				"fieldtype": "Currency",
 				"insert_after": "summary",
+			},
+			{
+				"label": "Accounting Dimensions",
+				"fieldname": "accounting_dimensions",
+				"fieldtype": "Section Break",
+				"insert_after": "account",
+				"collapsible": 1,
+			},
+			{
+				"label": "Project",
+				"fieldname": "project",
+				"fieldtype": "Link",
+				"options": "Project",
+				"no_copy": 1,
+				"insert_after": "accounting_dimensions",
+			},
+			{
+				"label": "",
+				"fieldname": "accounting_dimensions_column_break",
+				"fieldtype": "Column Break",
+				"insert_after": "project",
+			},
+			{
+				"label": "Cost Center",
+				"fieldname": "cost_center",
+				"fieldtype": "Link",
+				"options": "Cost Center",
+				"no_copy": 1,
+				"insert_after": "accounting_dimensions_column_break",
 			},
 		],
 		"Payment Order Reference": [

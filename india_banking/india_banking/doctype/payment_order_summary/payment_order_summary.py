@@ -1,4 +1,4 @@
-# Copyright (c) 2024, Aerele Technologies Private Limited and contributors
+# Copyright (c) 2025, Aerele Technologies Private Limited and contributors
 # For license information, please see license.txt
 
 # import frappe

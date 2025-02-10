@@ -109,6 +109,9 @@ def unlink_bank_payment(payment_order_summary=None):
 	summarise_field.remove("payment_entry")
 	summarise_field.extend(get_accounting_dimensions())
 
+	if payment_order.references[0].get("reference_doctype", "") == "Payroll Entry":
+		payment_order.summarise_payment_based_on = "Voucher"
+
 	if payment_order.summarise_payment_based_on == "Party":
 		summarise_field.remove("reference_name")
 
@@ -142,3 +145,19 @@ def get_payment_order_summary(payment_entry):
 	)
 	if summary:
 		return frappe.get_doc("Payment Order Summary", summary)
+
+
+@frappe.whitelist()
+def get_party_bank_account(party_type, party):
+	workflow = ""
+	if frappe.db.get_single_value(
+		"India Banking Settings", "activate_workflow_on_bank_account"
+	):
+		workflow = "Approved"
+
+	filters = {"party_type": party_type, "party": party, "is_default": 1}
+
+	if workflow:
+		filters.update({"workflow_state": workflow})
+
+	return frappe.db.get_value("Bank Account", filters)

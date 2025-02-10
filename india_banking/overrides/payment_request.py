@@ -2,13 +2,20 @@ import frappe
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
-from erpnext.accounts.doctype.payment_request.payment_request import PaymentRequest
+from erpnext.accounts.doctype.payment_request.payment_request import (
+	PaymentRequest,
+	get_dummy_message,
+	get_existing_paid_amount,
+	get_gateway_details,
+)
 from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
 	get_party_tax_withholding_details,
 )
-from erpnext.accounts.party import get_party_bank_account
 from frappe import _
-from frappe.utils import get_url_to_form
+from frappe.query_builder.functions import Sum
+from frappe.utils import flt, get_url_to_form
+
+from india_banking.utils import get_party_bank_account
 
 
 class BankPaymentRequest(PaymentRequest):
@@ -40,6 +47,12 @@ class BankPaymentRequest(PaymentRequest):
 			self.remarks = self.remarks[:48]
 
 		self.valdidate_bank_for_wire_transfer()
+
+	def validate_payment_request_amount(self):
+		if self.reference_doctype not in [
+			"Payroll Entry"
+		]:  # ignoring validation for Payroll Entry
+			super().validate_payment_request_amount()
 
 	def set_default_value(self):
 		if not self.payment_type:
@@ -292,3 +305,154 @@ def make_payment_order(source_name, target_doc=None):
 	)
 
 	return doclist
+
+
+@frappe.whitelist()
+def make_payment_request_for_payroll(**args):
+	"""Make payroll payment request"""
+
+	args = frappe._dict(args)
+
+	ref_doc = frappe.get_doc(args.doctype, args.docname)
+	gateway_account = get_gateway_details(args) or frappe._dict()
+
+	salary_slips = []
+	if args.docname:
+		salary_slips = frappe.get_list(
+			"Salary Slip",
+			{"payroll_entry": args.docname, "docstatus": 1},
+			["name as salary_slip", "gross_pay as net_total", "employee as party"],
+		)
+
+	for count, salary_details in enumerate(salary_slips):
+		grand_total = salary_details.get("net_total", 0)
+
+		bank_account = get_party_bank_account("Employee", salary_details.get("party"))
+
+		draft_payment_request = frappe.db.get_value(
+			"Payment Request",
+			{
+				"reference_doctype": args.doctype,
+				"reference_name": args.docname,
+				"salary_slip": salary_details.get("salary_slip"),
+				"docstatus": 0,
+			},
+		)
+
+		# fetches existing payment request `grand_total` amount
+		existing_payment_request_amount = get_existing_payment_request_amount(
+			args.doctype, args.docname, salary_slip=salary_details.get("salary_slip")
+		)
+
+		existing_paid_amount = get_existing_paid_amount(args.doctype, args.docname)
+
+		if existing_payment_request_amount:
+			grand_total -= existing_payment_request_amount
+
+		if existing_paid_amount:
+			grand_total -= flt(existing_paid_amount)
+
+		if grand_total < 0:
+			continue
+		else:
+			count += 1
+
+		if draft_payment_request:
+			frappe.db.set_value(
+				"Payment Request",
+				draft_payment_request,
+				"grand_total",
+				grand_total,
+				update_modified=False,
+			)
+			pr = frappe.get_doc("Payment Request", draft_payment_request)
+		else:
+			pr = frappe.new_doc("Payment Request")
+
+			args["payment_request_type"] = "Outward"
+
+			party_type = "Employee"
+			party_name = ""
+			if salary_details.get("party"):
+				party_name = frappe.get_value(
+					"Employee", salary_details.get("party"), "employee_name"
+				)
+
+			party_account_currency = "INR"
+
+			pr.update(
+				{
+					"payment_gateway_account": gateway_account.get("name"),
+					"payment_gateway": gateway_account.get("payment_gateway"),
+					"payment_account": gateway_account.get("payment_account"),
+					"payment_channel": gateway_account.get("payment_channel"),
+					"payment_request_type": args.get("payment_request_type"),
+					"currency": ref_doc.currency,
+					"party_account_currency": party_account_currency,
+					"grand_total": grand_total,
+					"mode_of_payment": "Wire Transfer" if bank_account else "",
+					"email_to": args.recipient_id or ref_doc.owner,
+					"subject": _("Payment Request for {0}").format(args.docname),
+					"message": gateway_account.get("message")
+					or get_dummy_message(ref_doc),
+					"reference_doctype": args.doctype,
+					"reference_name": args.docname,
+					"salary_slip": salary_details.get("salary_slip", ""),
+					"company": ref_doc.get("company"),
+					"party_type": party_type,
+					"party": salary_details.get("party"),
+					"bank_account": bank_account,
+					"party_name": party_name,
+				}
+			)
+
+			# Update dimensions
+			pr.update(
+				{
+					"cost_center": ref_doc.get("cost_center"),
+					"project": ref_doc.get("project"),
+				}
+			)
+
+			for dimension in get_accounting_dimensions():
+				pr.update({dimension: ref_doc.get(dimension)})
+
+			if frappe.db.get_single_value(
+				"Accounts Settings", "create_pr_in_draft_status", cache=True
+			):
+				pr.insert(ignore_permissions=True)
+			if args.submit_doc:
+				if pr.get("__unsaved"):
+					pr.insert(ignore_permissions=True)
+				pr.submit()
+	else:
+		frappe.msgprint(f"{count} Payment request Created")
+
+
+def get_existing_payment_request_amount(
+	ref_dt, ref_dn, statuses: list | None = None, salary_slip=None
+) -> list:
+	"""
+	Return the total amount of Payment Requests against a reference document.
+	"""
+	PR = frappe.qb.DocType("Payment Request")
+
+	query = (
+		frappe.qb.from_(PR)
+		.select(Sum(PR.grand_total))
+		.where(PR.reference_doctype == ref_dt)
+		.where(PR.reference_name == ref_dn)
+		.where(PR.docstatus == 1)
+	)
+
+	if statuses:
+		query = query.where(PR.status.isin(statuses))
+
+	if salary_slip:
+		try:
+			query2 = query.where(PR.salary_silp.eq(salary_slip))
+			response = query2.run()
+		except Exception:
+			response = query.run()
+
+	return response[0][0] if response[0] else 0

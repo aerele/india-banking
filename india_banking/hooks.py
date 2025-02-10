@@ -15,6 +15,7 @@ doctype_js = {
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Bank Account": "public/js/bank_account.js",
 	"Payment Request": "public/js/payment_request.js",
+	"Payroll Entry": "public/js/payroll_entry.js",
 }
 
 doctype_list_js = {
@@ -43,6 +44,7 @@ doc_events = {
 }
 
 accounting_dimension_doctypes = [
+	"Payment Order",
 	"Payment Order Reference",
 	"Payment Order Summary",
 ]

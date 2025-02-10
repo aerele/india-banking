@@ -42,6 +42,9 @@ def process_payment_requests(payment_order_summary):
 	payment_order_doc = frappe.get_doc("Payment Order", pos.parent)
 
 	summarise_field = PAYMENT_SUMMARIES_FIELDS.copy()
+	if summarise_field.get("reference_doctype", "") == "Payroll Entry":
+		payment_order_doc.summarise_payment_based_on = "Voucher"
+
 	if payment_order_doc.summarise_payment_based_on == "Party":
 		summarise_field.remove("reference_name")
 
@@ -100,8 +103,12 @@ def make_payment_entries(docname):
 			net_total = 0
 			for reference in payment_order_doc.references:
 				filter_fields = PAYMENT_SUMMARIES_FIELDS.copy()
+
+				if payment_order_doc.references[0].reference_doctype == "Payroll Entry":
+					payment_order_doc.summarise_payment_based_on = "Voucher"
 				if payment_order_doc.summarise_payment_based_on == "Party":
 					filter_fields.remove("reference_name")
+
 				filter_fields.extend(get_accounting_dimensions())
 				match_condition = [
 					(reference.get(field, "") or "") == row.get(field, "")
@@ -120,8 +127,13 @@ def make_payment_entries(docname):
 		for reference in payment_order_doc.references:
 			if not reference.is_adhoc:
 				filter_fields = PAYMENT_SUMMARIES_FIELDS.copy()
+
+				if payment_order_doc.references[0].reference_doctype == "Payroll Entry":
+					payment_order_doc.summarise_payment_based_on = "Voucher"
+
 				if payment_order_doc.summarise_payment_based_on == "Party":
 					filter_fields.remove("reference_name")
+
 				filter_fields.extend(get_accounting_dimensions())
 				match_condition = [
 					(reference.get(field, "") or "") == row.get(field, "")
@@ -140,7 +152,11 @@ def make_payment_entries(docname):
 							reference.payment_request,
 							"payment_term",
 						)
-						if not payment_term:
+
+						if (
+							reference.reference_doctype not in ["Payroll Entry"]
+							and not payment_term
+						):
 							if template := frappe.db.get_value(
 								reference.reference_doctype,
 								reference.reference_name,
@@ -247,7 +263,7 @@ def make_payment_entries(docname):
 									"payment_term": payment_term,
 								},
 							)
-					except:
+					except Exception:
 						frappe.log_error(
 							"Error in Payment Terms Template", frappe.get_traceback()
 						)

@@ -253,15 +253,7 @@ def make_payment_order(source_name, target_doc=None):
 
 	def set_missing_values(source, target):
 		target.payment_order_type = "Payment Request"
-		account = ""
-		if source.payment_type:
-			account = frappe.db.get_value(
-				"Payment Type", source.payment_type, "account"
-			)
-		if source.reference_doctype == "Purchase Invoice":
-			account = frappe.db.get_value(
-				source.reference_doctype, source.reference_name, "credit_to"
-			)
+		account = get_party_account(source)
 
 		def _update_dimensions(source):
 			return {
@@ -305,6 +297,32 @@ def make_payment_order(source_name, target_doc=None):
 	)
 
 	return doclist
+
+
+def get_party_account(source):
+	if source.payment_type:
+		account = frappe.db.get_value("Payment Type", source.payment_type, "account")
+	if source.reference_doctype == "Purchase Invoice":
+		account = frappe.db.get_value(
+			source.reference_doctype, source.reference_name, "credit_to"
+		)
+	if source.is_adhoc and source.party_type == "Supplier":
+		party_account = frappe.db.get_value(
+			"Party Account",
+			{
+				"parent": source.party,
+				"parenttype": source.party_type,
+				"company": source.company,
+			},
+			"account",
+		)
+		if party_account:
+			account = party_account
+	if source.reference_doctype == "Payroll Entry":
+		account = frappe.db.get_value(
+			source.reference_doctype, source.reference_name, "payroll_payable_account"
+		)
+	return account
 
 
 @frappe.whitelist()

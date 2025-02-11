@@ -207,11 +207,12 @@
    "label": "Account Name"
   },
   {
-   "fetch_from": "account.account_number",
+   "fetch_from": "bank_account.bank_account_no",
    "fetch_if_empty": 1,
    "fieldname": "bank_account_no",
    "fieldtype": "Data",
-   "label": "Bank Account No"
+   "label": "Bank Account No",
+   "read_only": 1
   },
   {
    "fetch_from": "bank_account.bank",
@@ -230,7 +231,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-02-10 13:51:39.007151",
+ "modified": "2025-02-10 20:54:29.962219",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Payment Order Summary",

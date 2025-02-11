@@ -7,6 +7,7 @@
  "field_order": [
   "summarise_payment_based_on",
   "notify_party",
+  "status_check",
   "column_break_wjye",
   "default_email_format"
  ],
@@ -32,12 +33,19 @@
    "fieldname": "notify_party",
    "fieldtype": "Check",
    "label": "Notify Party"
+  },
+  {
+   "default": "Every Day at Midnight",
+   "fieldname": "status_check",
+   "fieldtype": "Select",
+   "label": "Status Check",
+   "options": "Every 20 Minutes\nEvery Hour\nEvery Day at Midnight"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-12-09 16:07:39.909616",
+ "modified": "2025-02-11 10:00:42.657482",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

@@ -49,4 +49,11 @@ accounting_dimension_doctypes = [
 	"Payment Order Summary",
 ]
 
-scheduler_events = {"daily": ["india_banking.tasks.daily"]}
+scheduler_events = {
+	"daily": ["india_banking.tasks.daily"],
+	"cron": {
+		"*/20 * * * *": ["india_banking.tasks.job_twenty_minutes"],
+		"0 * * * *": ["india_banking.tasks.job_one_hour"],
+		"0 0 * * *": ["india_banking.tasks.job_at_midnight"],
+	},
+}

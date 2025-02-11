@@ -7,8 +7,28 @@ from india_banking.india_banking.doctype.bank_connector.bank_connector import (
 
 
 def daily():
-	update_payment_date_as_posting_date()
-	update_payment_status()
+	pass
+
+
+def job_twenty_minutes():
+	if frappe.get_single("India Banking Settings").status_check == "Every 20 Minutes":
+		update_payment_date_as_posting_date()
+		update_payment_status()
+
+
+def job_one_hour():
+	if frappe.get_single("India Banking Settings").status_check == "Every Hour":
+		update_payment_date_as_posting_date()
+		update_payment_status()
+
+
+def job_at_midnight():
+	if (
+		frappe.get_single("India Banking Settings").status_check
+		== "Every Day at Midnight"
+	):
+		update_payment_date_as_posting_date()
+		update_payment_status()
 
 
 def update_payment_status():

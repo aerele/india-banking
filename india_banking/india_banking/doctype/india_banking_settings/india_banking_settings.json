@@ -14,6 +14,7 @@
   "allowed_payment_doctypes",
   "automatic_update_configuration_section",
   "update_posting_date_as_payment_date",
+  "status_check",
   "column_break_laug",
   "update_payment_status"
  ],
@@ -80,12 +81,19 @@
    "fieldtype": "Small Text",
    "label": "Allowed Payment Doctypes",
    "read_only": 1
+  },
+  {
+   "default": "Every Day at Midnight",
+   "fieldname": "status_check",
+   "fieldtype": "Select",
+   "label": "Status Check",
+   "options": "Every 20 Minutes\nEvery Hour\nEvery Day at Midnight"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-09 22:38:38.458237",
+ "modified": "2025-02-11 10:48:39.906433",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

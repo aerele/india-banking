@@ -5,6 +5,7 @@ from india_banking.india_banking.doc_events.payment_order import make_payment_en
 from frappe.utils import get_datetime, get_link_to_form, getdate
 import re
 from india_banking.india_banking.doctype.bank_payment_request.bank_payment_request import get_existing_bank_entry
+from india_banking.india_banking.doc_events.payroll_entry import make_bank_entries
 class CustomPaymentOrder(PaymentOrder):
 	def before_submit(self):
 		self.update_unique_and_file_reference_id()
@@ -84,7 +85,11 @@ class CustomPaymentOrder(PaymentOrder):
 
 	def on_submit(self):
 		if self.payment_order_type not in ["Payment Entry", "Payroll Entry", "Journal Entry"]:
-			make_payment_entries(self.name)
+			if self.references[0].reference_doctype == "Payroll Entry":
+				make_bank_entries(self.name)
+			elif self.payment_order_type == "Bank Payment Request":
+				make_payment_entries(self.name)
+
 			frappe.db.set_value("Payment Order", self.name, "status", "Pending")
 
 			for ref in self.references:

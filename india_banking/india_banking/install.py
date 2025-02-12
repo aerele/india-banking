@@ -63,7 +63,7 @@ def create_default_bank():
 	for bank_details in STD_BANK_LIST:
 		if not frappe.db.exists("Bank", bank_details.get("bank_name")):
 			bank_doc = frappe.new_doc('Bank')
-			bank_doc.bank = bank_details.get("bank_name")
+			bank_doc.bank_name = bank_details.get("bank_name")
 			bank_doc.save()
 
 def create_default_payment_type():

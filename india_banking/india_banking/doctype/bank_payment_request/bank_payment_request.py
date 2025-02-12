@@ -625,12 +625,20 @@ def get_existing_paid_amount(doctype, name):
 
 	query = (
 		frappe.qb.from_(PL)
+		.left_join(PER)
+		.on(
+			(PL.against_voucher_type == PER.reference_doctype)
+			& (PL.against_voucher_no == PER.reference_name)
+			& (PL.voucher_type == PER.parenttype)
+			& (PL.voucher_no == PER.parent)
+		)
 		.select(Abs(Sum(PL.amount)).as_("total_paid_amount"))
-		.where(PL.voucher_type.eq("Payment Entry"))
 		.where(PL.against_voucher_type.eq(doctype))
 		.where(PL.against_voucher_no.eq(name))
 		.where(PL.amount < 0)
 		.where(PL.delinked == 0)
+		.where(PER.docstatus == 1)
+		.where(PER.payment_request.isnull())
 	)
 	response = query.run()
 

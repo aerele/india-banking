@@ -5,7 +5,7 @@ import frappe
 from frappe import _
 
 from erpnext.accounts.doctype.payment_request.payment_request import ( 
-	PaymentRequest, get_existing_payment_request_amount, get_dummy_message, get_existing_paid_amount, get_gateway_details
+	PaymentRequest, get_existing_payment_request_amount, get_dummy_message, get_gateway_details
 )
 from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import get_party_tax_withholding_details
 

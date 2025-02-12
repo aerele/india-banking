@@ -133,6 +133,12 @@ def unlink_bank_payment(payment_order_summary=None):
 				reference.name,
 				{"reference_doctype": "", "reference_name": ""},
 			)
+			if payment_order_summary.payment_status not in ["Processed", "Initiated"]:
+				frappe.db.set_value(
+					"Payment Order Summary",
+					payment_order_summary.name,
+					{"reference_doctype": "", "reference_name": ""},
+				)
 
 
 def get_payment_order_summary(payment_entry):

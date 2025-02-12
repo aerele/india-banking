@@ -19,6 +19,10 @@ from india_banking.utils import (
 	get_bank_address_details,
 	get_party_field_name,
 )
+from india_banking.default import PAYMENT_SUMMARIES_FIELDS
+from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
+	get_accounting_dimensions,
+)
 
 OTP_ENABLED_BANK = [
 	("ICICI Bank", 1),  # ICICI Bank, Bulk Transaction
@@ -281,12 +285,13 @@ class BankConnector(Document):
 						)
 
 						if summary.payment_entry:
+							self.process_bank_payment_requests(payment_order, summary)
+
 							payment_entry_doc = frappe.get_doc(
 								"Payment Entry", summary.payment_entry
 							)
 							if payment_entry_doc.docstatus == 1:
 								payment_entry_doc.cancel()
-							self.process_bank_payment_requests(payment_order, summary)
 
 						if summary.journal_entry_account:
 							frappe.db.set_value(
@@ -307,13 +312,14 @@ class BankConnector(Document):
 						)
 
 						if summary.payment_entry:
+							self.process_bank_payment_requests(payment_order, summary)
+
 							payment_entry_doc = frappe.get_doc(
 								"Payment Entry", summary.payment_entry
 							)
 							if payment_entry_doc.docstatus == 1:
 								payment_entry_doc.cancel()
 
-							self.process_bank_payment_requests(payment_order, summary)
 
 						if summary.journal_entry_account:
 							frappe.db.set_value(
@@ -547,6 +553,32 @@ class BankConnector(Document):
 					msg=_("Balance Fetch Failed"),
 					indicator="red",
 				)
+
+	def process_bank_payment_requests(self, payment_order, summary):
+		payment_order.reload()
+		summarise_field = PAYMENT_SUMMARIES_FIELDS.copy()
+		if summary.get("reference_doctype", "") == "Payroll Entry":
+			payment_order.summarise_payment_based_on = "Voucher"
+
+		if payment_order.summarise_payment_based_on == "Party":
+			summarise_field.remove("reference_name")
+
+		summarise_field.extend(get_accounting_dimensions())
+		key = tuple([summary.get(field, "") for field in summarise_field])
+
+		failed_prs = []
+		for ref in payment_order.references:
+			ref_key = tuple([(ref.get(field, "") or "") for field in summarise_field])
+
+			if key == ref_key and ref.payment_request:
+				failed_prs.append(ref.payment_request)
+
+		for pr in failed_prs:
+			pr_doc = frappe.get_doc("Payment Request", pr)
+			if pr_doc.docstatus == 1:
+				pr_doc.check_if_payment_entry_exists()
+				pr_doc.set_as_cancelled()
+				pr_doc.db_set("docstatus", 2)
 
 
 def get_bank_connector(bank_account, company):

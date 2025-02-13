@@ -117,7 +117,8 @@ frappe.ui.form.on('Payment Order', {
 			frm.remove_custom_button(__('Create Payment Entries'));
 		}
 		let is_pending = false
-		if (frm.doc.status == "Pending" && frm.doc.docstatus == 1) {
+		let permitted = frappe.user.has_role("Payment Manager")
+		if (frm.doc.status == "Pending" && frm.doc.docstatus == 1 && permitted) {
 			if (frm.has_perm('write') && 'summary' in frm.doc) {
 				var uninitiated_payments = 0;
 				for(var i = 0; i < frm.doc.summary.length; i++) {

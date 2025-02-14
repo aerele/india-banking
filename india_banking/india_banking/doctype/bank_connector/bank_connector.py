@@ -121,6 +121,8 @@ class BankConnector(Document):
 			):
 				return self.add_payment_in_the_background(payment_order)
 
+			success_count = {}
+
 			for summary in payment_order.summary:
 				if (
 					not summary.payment_initiated
@@ -128,17 +130,17 @@ class BankConnector(Document):
 				):
 					continue
 
-				self.make_single_request(payment_order, summary)
+				self.make_single_request(payment_order, summary, success_count)
 
-	def verify_response(self, response, payment_order):
+	def verify_response(self, response, payment_order, success_count):
 		if self.action == "intiate_payment":
-			self.verify_payment_response(response, payment_order)
+			self.verify_payment_response(response, payment_order, success_count)
 		elif self.action == "get_payment_status":
 			self.verify_status_response(response, payment_order)
 
 		self.update_payment_status(payment_order)
 
-	def verify_payment_response(self, response, payment_order):
+	def verify_payment_response(self, response, payment_order, success_count):
 		payment_response = self.get_response_details(response)
 
 		success_count = 0
@@ -342,7 +344,7 @@ class BankConnector(Document):
 		else:
 			frappe.throw("Invalid Request")
 
-	def make_single_request(self, payment_order, summary):
+	def make_single_request(self, payment_order, summary, success_count):
 		url = self.connector_url
 		headers = self.headers
 
@@ -358,7 +360,7 @@ class BankConnector(Document):
 		# create api request log
 		create_api_log(response, self.action, payment_order.doctype, payment_order.name)
 
-		self.verify_response(response, payment_order)
+		self.verify_response(response, payment_order, success_count)
 
 	def add_payment_in_the_background(self, payment_order):
 		def _add_queue(summary, job_id):

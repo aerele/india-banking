@@ -42,7 +42,7 @@ def process_payment_requests(payment_order_summary):
 	payment_order_doc = frappe.get_doc("Payment Order", pos.parent)
 
 	summarise_field = PAYMENT_SUMMARIES_FIELDS.copy()
-	if summarise_field.get("reference_doctype", "") == "Payroll Entry":
+	if pos.get("reference_doctype", "") == "Payroll Entry":
 		payment_order_doc.summarise_payment_based_on = "Voucher"
 
 	if payment_order_doc.summarise_payment_based_on == "Party":

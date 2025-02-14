@@ -565,7 +565,7 @@ def get_return_invoice_amount(doctype, docname):
 		.where(INVOICE.docstatus == 1)
 	)
 
-	response = query.run(debug=1)
+	response = query.run()
 
 	return (response[0][0] if response[0][0] else 0) if response and response[0] else 0
 

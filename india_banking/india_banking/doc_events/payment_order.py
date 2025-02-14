@@ -696,6 +696,7 @@ def make_payment_entries(docname):
 												{
 													"reference_doctype": reference.reference_doctype,
 													"reference_name": reference.reference_name,
+													"bank_payment_request": reference.bank_payment_request,
 													"total_amount": invoice_amount,
 													"allocated_amount": paid_amount,
 													"payment_term": splited_invoice_rows[
@@ -710,6 +711,7 @@ def make_payment_entries(docname):
 										{
 											"reference_doctype": reference.reference_doctype,
 											"reference_name": reference.reference_name,
+											"bank_payment_request": reference.bank_payment_request,
 											"total_amount": reference_amount,
 											"allocated_amount": reference_amount,
 										},
@@ -720,6 +722,7 @@ def make_payment_entries(docname):
 									{
 										"reference_doctype": reference.reference_doctype,
 										"reference_name": reference.reference_name,
+										"bank_payment_request": reference.bank_payment_request,
 										"total_amount": reference_amount,
 										"allocated_amount": reference_amount,
 									},
@@ -730,6 +733,7 @@ def make_payment_entries(docname):
 								{
 									"reference_doctype": reference.reference_doctype,
 									"reference_name": reference.reference_name,
+									"bank_payment_request": reference.bank_payment_request,
 									"total_amount": reference_amount,
 									"allocated_amount": reference_amount,
 									"payment_term": payment_term,

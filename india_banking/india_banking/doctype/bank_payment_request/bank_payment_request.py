@@ -638,7 +638,7 @@ def get_existing_paid_amount(doctype, name):
 		.where(PL.amount < 0)
 		.where(PL.delinked == 0)
 		.where(PER.docstatus == 1)
-		.where(PER.payment_request.isnull())
+		.where(PER.bank_payment_request.isnull())
 	)
 	response = query.run()
 

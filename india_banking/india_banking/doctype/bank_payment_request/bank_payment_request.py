@@ -9,7 +9,7 @@ from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category 
 
 
 from erpnext.accounts.doctype.payment_request import payment_request as PR
-from frappe.query_builder.functions import Abs, Sum
+from frappe.query_builder.functions import Abs, Sum, Coalesce
 
 from erpnext.accounts.party import get_party_account, get_party_bank_account
 from erpnext.accounts.utils import get_account_currency
@@ -557,7 +557,7 @@ def get_return_invoice_amount(doctype, docname):
 
 	query = (
 		frappe.qb.from_(INVOICE)
-		.select(Abs(Sum(INVOICE.rounded_total)))
+		.select(Abs((Coalesce(Sum(INVOICE.rounded_total), Sum(INVOICE.grand_total)))))
 		.where(INVOICE.name != docname)
 		.where(INVOICE.is_return.eq(1))
 		.where(INVOICE.return_against.eq(docname))

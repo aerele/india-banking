@@ -560,6 +560,7 @@ def get_return_invoice_amount(doctype, docname):
 		.select(Abs(Sum(INVOICE.rounded_total)))
 		.where(INVOICE.name != docname)
 		.where(INVOICE.is_return.eq(1))
+		.where(INVOICE.return_against.eq(docname))
 		.where(INVOICE.update_outstanding_for_self.eq(0))
 		.where(INVOICE.docstatus == 1)
 	)

@@ -536,6 +536,9 @@ def get_amount(ref_doc, payment_account=None):
 				if pay.type == "Phone" and pay.account == payment_account:
 					grand_total = pay.amount
 					break
+
+		grand_total -= get_return_invoice_amount(ref_doc.doctype, ref_doc.name)
+
 	elif dt == "POS Invoice":
 		for pay in ref_doc.payments:
 			if pay.type == "Phone" and pay.account == payment_account:
@@ -548,6 +551,22 @@ def get_amount(ref_doc, payment_account=None):
 		return grand_total
 	else:
 		frappe.throw(frappe._("Bank Payment Entry is already created"))
+
+def get_return_invoice_amount(doctype, docname):
+	INVOICE = frappe.qb.DocType(doctype)
+
+	query = (
+		frappe.qb.from_(INVOICE)
+		.select(Abs(Sum(INVOICE.rounded_total)))
+		.where(INVOICE.name != docname)
+		.where(INVOICE.is_return.eq(1))
+		.where(INVOICE.update_outstanding_for_self.eq(0))
+		.where(INVOICE.docstatus == 1)
+	)
+
+	response = query.run(debug=1)
+
+	return (response[0][0] if response[0][0] else 0) if response and response[0] else 0
 
 
 @frappe.whitelist()
@@ -619,7 +638,7 @@ def get_existing_paid_amount(doctype, name):
 		.where(PL.amount < 0)
 		.where(PL.delinked == 0)
 		.where(PER.docstatus == 1)
-		.where(PER.payment_request.isnull())
+		.where(PER.bank_payment_request.isnull())
 	)
 	response = query.run()
 

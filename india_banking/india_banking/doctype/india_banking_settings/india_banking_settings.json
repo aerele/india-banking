@@ -10,7 +10,9 @@
   "column_break_wjye",
   "default_email_format",
   "section_break_ejya",
-  "companies"
+  "companies",
+  "allowed_doctypes_section_section",
+  "allowed_doctypes"
  ],
  "fields": [
   {
@@ -46,12 +48,23 @@
    "fieldtype": "Table",
    "label": "Companies",
    "options": "Ad Hoc Comapny"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "allowed_doctypes_section_section",
+   "fieldtype": "Section Break",
+   "label": "Allowed Doctypes"
+  },
+  {
+   "fieldname": "allowed_doctypes",
+   "fieldtype": "Table",
+   "options": "Payment Allowed Doctype"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-01-29 17:56:59.779070",
+ "modified": "2025-02-16 22:38:22.324115",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

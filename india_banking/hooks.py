@@ -28,46 +28,24 @@ app_license = "gpl-3.0"
 # page_js = {"page" : "public/js/file.js"}
 
 fixtures = [
-    {
-		"dt": "Workflow",
-		"filters": [
-			[
-            "name", "in", [
-                "Bank Account Approval"
-            ]
-        ]
-    ]},
-    {
-		"dt": "Workflow State",
-		"filters": [
-        [
-            "name", "in", [
-                "Approved", "Rejected"
-            ]
-        ]
-    ]},
+	{"dt": "Workflow", "filters": [["name", "in", ["Bank Account Approval"]]]},
+	{"dt": "Workflow State", "filters": [["name", "in", ["Approved", "Rejected"]]]},
 	{
 		"dt": "Workflow Action Master",
-		"filters": [
-        [
-            "name", "in", [
-                "Pending", "Approve", "Reject"
-            ]
-        ]
-    ]}
+		"filters": [["name", "in", ["Pending", "Approve", "Reject"]]],
+	},
 ]
 
 doctype_js = {
-	"Payment Order" : "public/js/payment_order.js",
-	"Purchase Order" : "public/js/purchase_order.js",
+	"Payment Order": "public/js/payment_order.js",
+	"Purchase Order": "public/js/purchase_order.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Payment Type": "public/js/payment_type.js",
 	"Bank Account": "public/js/bank_account.js",
 	"Payroll Entry": "public/js/payroll_entry.js",
-
 }
 
-doctype_list_js = {"Payment Order" : "public/js/payment_order_list.js"}
+doctype_list_js = {"Payment Order": "public/js/payment_order_list.js"}
 
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
@@ -164,7 +142,7 @@ after_install = "india_banking.india_banking.install.after_install"
 override_doctype_class = {
 	"Payment Order": "india_banking.india_banking.override.payment_order.CustomPaymentOrder",
 	"Payment Entry": "india_banking.india_banking.override.payment_entry.CustomPaymentEntry",
-	"Bank":  "india_banking.india_banking.override.bank.CustomBank"
+	"Bank": "india_banking.india_banking.override.bank.CustomBank",
 }
 
 
@@ -184,13 +162,13 @@ doc_events = {
 	"Bank Account": {
 		"validate": "india_banking.india_banking.doc_events.bank_account.validate_ifsc_code",
 	},
-    "Unreconcile Payment":{
-        "on_submit": "india_banking.india_banking.doc_events.unreconcile_payment.on_submit",
+	"Unreconcile Payment": {
+		"on_submit": "india_banking.india_banking.doc_events.unreconcile_payment.on_submit",
 	},
 }
 
 # accounting_dimension_doctypes = ['Bank Payment Request', 'Payment Order', 'Payment Order Reference', 'Payment Order Summary']
-accounting_dimension_doctypes = ['Bank Payment Request']
+accounting_dimension_doctypes = ["Bank Payment Request"]
 
 # Scheduled Tasks
 # ---------------
@@ -213,11 +191,7 @@ accounting_dimension_doctypes = ['Bank Payment Request']
 # 	],
 # }
 
-scheduler_events = {
-	"daily": [
-		"india_banking.tasks.daily"
-	]
-}
+scheduler_events = {"daily": ["india_banking.tasks.daily"]}
 
 # Testing
 # -------
@@ -231,9 +205,9 @@ scheduler_events = {
 # 	"frappe.desk.doctype.event.event.get_events": "india_banking.event.get_events"
 # }
 
-override_whitelisted_methods = {
-	"erpnext.accounts.doctype.payment_request.payment_request.make_payment_request": "india_banking.india_banking.override.payment_request.make_payment_request"
-}
+# override_whitelisted_methods = {
+# 	"erpnext.accounts.doctype.payment_request.payment_request.make_payment_request": "india_banking.india_banking.override.payment_request.make_payment_request"
+# }
 
 #
 # each overriding function accepts a `data` argument;
@@ -299,4 +273,3 @@ override_whitelisted_methods = {
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
-

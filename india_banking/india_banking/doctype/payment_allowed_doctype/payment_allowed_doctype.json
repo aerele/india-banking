@@ -1,0 +1,47 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-02-16 22:33:53.359590",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "doctype_name",
+  "allow",
+  "workflow"
+ ],
+ "fields": [
+  {
+   "fieldname": "doctype_name",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Doctype",
+   "options": "DocType"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Allow"
+  },
+  {
+   "fieldname": "workflow",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Workflow"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-02-16 22:36:33.212040",
+ "modified_by": "Administrator",
+ "module": "India Banking",
+ "name": "Payment Allowed Doctype",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

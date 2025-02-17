@@ -173,6 +173,9 @@ frappe.ui.form.on("Payment Order", {
   },
 
   get_payments_from_journal_entry(frm) {
+    if(!frm.doc.company_bank_account){
+      frappe.throw("Please Select Company bank account first")
+    }
     erpnext.utils.map_current_doc({
       method: "india_banking.overrides.journal_entry.make_payment_order",
       source_doctype: "Journal Entry",

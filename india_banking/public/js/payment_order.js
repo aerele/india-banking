@@ -65,7 +65,7 @@ frappe.ui.form.on("Payment Order", {
   },
 
   set_pending_payment_cancel_button(frm) {
-    const has_pending_payment = frm.doc.summary.some(
+    const has_pending_payment = frm.doc.summary?.some(
       (item) => item.payment_status == "Pending"
     );
     if (has_pending_payment && frm.doc.docstatus == 1) {

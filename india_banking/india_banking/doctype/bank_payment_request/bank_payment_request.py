@@ -254,6 +254,10 @@ def make_bank_payment_request(**args):
 		party_account = get_party_account(args.get("party_type"), ref_doc.get(args.get("party_type").lower()), ref_doc.company)
 		party_account_currency = get_account_currency(party_account)
 
+	if args.ignore_no_outstanding:
+		if grand_total <= 0:
+			return
+
 	if draft_payment_request:
 		bpr = frappe.get_doc("Bank Payment Request", draft_payment_request)
 		bpr.db_set("net_total", grand_total, update_modified=False)
@@ -324,7 +328,10 @@ def make_bank_payment_request(**args):
 
 		bpr.insert(ignore_permissions=True)
 
-		if args.submit_doc:
+		if "success_list" in args:
+			args.success_list.append(bpr.name)
+
+		if frappe.get_single("India Banking Settings").submit_bank_payment_request:
 			bpr.submit()
 
 	if args.return_doc:
@@ -782,3 +789,30 @@ def make_payment_request_for_payroll_entry(**args):
 				pr.submit()
 	else:
 		frappe.msgprint(f"{count} Bank Payment request Created")
+
+
+@frappe.whitelist()
+def make_bulk_bank_payment_request(data, doctype):
+	data = frappe.parse_json(data)
+	success_request = []
+	for invoice in data:
+		if invoice.get("name", ""):
+			invoice = frappe.get_doc(doctype, invoice.get("name", ""))
+			try:
+				args= {
+				"dt": invoice.doctype,
+				"dn": invoice.name,
+				"recipient_id": "",
+				"payment_request_type": "Outward",
+				"party_type": "Supplier",
+				"party": invoice.supplier,
+				"return_doc": 1,
+				"submit_doc": 1,
+				"ignore_no_outstanding": 1,
+				"success_list": success_request
+				}
+				make_bank_payment_request(**args)
+			except Exception:
+				frappe.log_error(f"Bulk Payment Failed({invoice.name})", frappe.get_traceback())
+
+	return {"success_request": len(success_request)}

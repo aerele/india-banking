@@ -9,6 +9,7 @@
   "notify_party",
   "column_break_wjye",
   "default_email_format",
+  "submit_bank_payment_request",
   "section_break_ejya",
   "companies",
   "allowed_doctypes_section_section",
@@ -59,12 +60,18 @@
    "fieldname": "allowed_doctypes",
    "fieldtype": "Table",
    "options": "Payment Allowed Doctype"
+  },
+  {
+   "default": "0",
+   "fieldname": "submit_bank_payment_request",
+   "fieldtype": "Check",
+   "label": "Submit Bank Payment Request"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-16 22:38:22.324115",
+ "modified": "2025-02-17 10:36:01.032936",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

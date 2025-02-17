@@ -1,0 +1,56 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-02-17 14:37:10.784802",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "email_format",
+  "letter_head",
+  "cc"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "letter_head",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Letter Head",
+   "options": "Letter Head"
+  },
+  {
+   "description": "Use a comma to separate each CC.\nEx: test@example.com, test2@example.com",
+   "fieldname": "cc",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "CC"
+  },
+  {
+   "fieldname": "email_format",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Email Format",
+   "options": "Print Format"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-02-17 14:47:38.392963",
+ "modified_by": "Administrator",
+ "module": "India Banking",
+ "name": "Payment Notification",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

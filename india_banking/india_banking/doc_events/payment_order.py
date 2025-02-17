@@ -860,20 +860,18 @@ def get_bank_info(bank_name):
 
 
 def notify_party(payment_info, response_data):
-	if not frappe.get_value(
-		"India Banking Settings", "India Banking Settings", "notify_party"
-	):
+	bank_setting = frappe.get_single("India Banking Settings")
+	if not bank_setting.notify_party or not bank_setting.payment_notification:
 		return
+
 	if payment_info.payment_entry:
-		default_email_format = (
-			frappe.get_single("India Banking Settings").default_email_format
-			or "Payment Advice"
+		payment_entry = frappe.get_doc(
+			"Payment Entry", payment_info.payment_entry
 		)
-		if default_email_format:
+		notification_details = frappe.get_value("Payment Notification", {"company": payment_entry.company }, ["company", "email_format", "letter_head", "cc"], as_dict=1)
+		if notification_details:
+			notification_details = frappe._dict(notification_details)
 			try:
-				payment_entry = frappe.get_doc(
-					"Payment Entry", payment_info.payment_entry
-				)
 				frappe.sendmail(
 					recipients=[
 						payment_info.email
@@ -881,6 +879,7 @@ def notify_party(payment_info, response_data):
 							"Bank Account", payment_info.bank_account, "email"
 						)
 					],
+					cc= notification_details.cc,
 					subject="Payment Notification",
 					message="Payment for {0} is completed. Please check the attachment for details".format(
 						payment_info.party
@@ -891,13 +890,14 @@ def notify_party(payment_info, response_data):
 							"fcontent": frappe.get_print(
 								"Payment Entry",
 								payment_entry.name,
-								default_email_format,
+								notification_details.email_format or frappe.get_meta("Payment Entry").default_print_format or "Payment Advice",
 								as_pdf=True,
+								letterhead= notification_details.letter_head or None
 							),
 						}
 					],
 				)
-			except Exception as e:
+			except Exception:
 				frappe.log_error(
 					"Payment Email Notification Failed", frappe.get_traceback()
 				)
@@ -1102,6 +1102,5 @@ def get_refrence_number_for_bank_entry(payment_info):
 		LIMIT 1
 	""",
 		as_dict=1,
-		debug=1,
 	)
 	return ref_name

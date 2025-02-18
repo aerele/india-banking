@@ -12,10 +12,10 @@
   "activate_workflow_on_bank_account",
   "allowed_payment_doctypes",
   "automatic_update_configuration_section",
-  "update_posting_date_as_payment_date",
   "status_check",
-  "column_break_laug",
   "update_payment_status",
+  "column_break_laug",
+  "update_posting_date_as_payment_date",
   "payment_notifications_section",
   "notify_party",
   "payment_notification"
@@ -71,7 +71,7 @@
    "collapsible": 1,
    "fieldname": "automatic_update_configuration_section",
    "fieldtype": "Section Break",
-   "label": "Automatic Update Configuration"
+   "label": "Auto Update Configurations"
   },
   {
    "fieldname": "column_break_laug",
@@ -79,6 +79,7 @@
   },
   {
    "default": "Payment Request\nPayment Entry\nBank Entry",
+   "description": "Allows enabling or disabling payment pulling in the payment order.",
    "fieldname": "allowed_payment_doctypes",
    "fieldtype": "Small Text",
    "label": "Allowed Payment Doctypes",
@@ -108,7 +109,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-18 10:17:53.397406",
+ "modified": "2025-02-18 10:51:04.285201",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

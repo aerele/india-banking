@@ -6,7 +6,6 @@
  "engine": "InnoDB",
  "field_order": [
   "summarise_payment_based_on",
-  "notify_party",
   "enable_payment_in_the_background",
   "column_break_wjye",
   "default_email_format",
@@ -16,7 +15,10 @@
   "update_posting_date_as_payment_date",
   "status_check",
   "column_break_laug",
-  "update_payment_status"
+  "update_payment_status",
+  "payment_notifications_section",
+  "notify_party",
+  "payment_notification"
  ],
  "fields": [
   {
@@ -86,14 +88,27 @@
    "default": "Every Day at Midnight",
    "fieldname": "status_check",
    "fieldtype": "Select",
-   "label": "Status Check",
+   "label": "Status check at",
    "options": "Every 20 Minutes\nEvery Hour\nEvery Day at Midnight"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "payment_notifications_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Notifications "
+  },
+  {
+   "depends_on": "notify_party",
+   "fieldname": "payment_notification",
+   "fieldtype": "Table",
+   "mandatory_depends_on": "notify_party",
+   "options": "Payment Notification"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-11 10:48:39.906433",
+ "modified": "2025-02-18 10:17:53.397406",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

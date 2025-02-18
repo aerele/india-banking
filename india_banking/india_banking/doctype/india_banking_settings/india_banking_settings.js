@@ -3,7 +3,7 @@
 
 frappe.ui.form.on("India Banking Settings", {
   refresh(frm) {
-    frm.set_query("default_email_format", function () {
+    frm.set_query("email_format", "payment_notification", function () {
       return {
         filters: {
           doc_type: "Payment Entry",

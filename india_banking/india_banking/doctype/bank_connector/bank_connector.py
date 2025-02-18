@@ -484,20 +484,18 @@ class BankConnector(Document):
 			)
 
 	def notify_party(self, summary_row):
-		if not frappe.get_value(
-			"India Banking Settings", "India Banking Settings", "notify_party"
-		):
+		bank_setting = frappe.get_single("India Banking Settings")
+		if not bank_setting.notify_party or not bank_setting.payment_notification:
 			return
+
 		if summary_row.payment_entry:
-			default_email_format = (
-				frappe.get_single("India Banking Settings").default_email_format
-				or "Payment Advice"
+			payment_entry = frappe.get_doc(
+				"Payment Entry", summary_row.payment_entry
 			)
-			if default_email_format:
+			notification_details = frappe.get_value("Payment Notification", {"company": payment_entry.company }, ["company", "email_format", "letter_head", "cc"], as_dict=1)
+			if notification_details:
+				notification_details = frappe._dict(notification_details)
 				try:
-					payment_entry = frappe.get_doc(
-						"Payment Entry", summary_row.payment_entry
-					)
 					frappe.sendmail(
 						recipients=[
 							summary_row.email
@@ -505,6 +503,7 @@ class BankConnector(Document):
 								"Bank Account", summary_row.bank_account, "email"
 							)
 						],
+						cc= notification_details.cc,
 						subject="Payment Notification",
 						message="Payment for {0} is completed. Please check the attachment for details".format(
 							summary_row.party
@@ -515,8 +514,9 @@ class BankConnector(Document):
 								"fcontent": frappe.get_print(
 									"Payment Entry",
 									payment_entry.name,
-									default_email_format,
+									notification_details.email_format or frappe.get_meta("Payment Entry").default_print_format or "Payment Advice",
 									as_pdf=True,
+									letterhead= notification_details.letter_head or None
 								),
 							}
 						],
@@ -525,6 +525,7 @@ class BankConnector(Document):
 					frappe.log_error(
 						"Payment Email Notification Failed", frappe.get_traceback()
 					)
+
 
 	def get_bank_balance(self, bank_account):
 		payload = {

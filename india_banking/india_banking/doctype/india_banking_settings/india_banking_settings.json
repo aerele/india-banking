@@ -8,12 +8,11 @@
   "summarise_payment_based_on",
   "enable_payment_in_the_background",
   "column_break_wjye",
-  "default_email_format",
   "activate_workflow_on_bank_account",
   "allowed_payment_doctypes",
   "automatic_update_configuration_section",
-  "status_check",
   "update_payment_status",
+  "status_check",
   "column_break_laug",
   "update_posting_date_as_payment_date",
   "payment_notifications_section",
@@ -30,12 +29,6 @@
   {
    "fieldname": "column_break_wjye",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "default_email_format",
-   "fieldtype": "Link",
-   "label": "Default Email Format",
-   "options": "Print Format"
   },
   {
    "default": "0",
@@ -87,9 +80,11 @@
   },
   {
    "default": "Every Day at Midnight",
+   "depends_on": "update_payment_status",
    "fieldname": "status_check",
    "fieldtype": "Select",
    "label": "Status check at",
+   "mandatory_depends_on": "update_payment_status",
    "options": "Every 20 Minutes\nEvery Hour\nEvery Day at Midnight"
   },
   {
@@ -109,7 +104,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-18 10:51:04.285201",
+ "modified": "2025-02-18 16:30:50.843105",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

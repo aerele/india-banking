@@ -11,11 +11,10 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
 	get_party_tax_withholding_details,
 )
+from erpnext.accounts.party import get_party_bank_account
 from frappe import _
 from frappe.query_builder.functions import Sum
-from frappe.utils import flt, get_url_to_form
-
-from india_banking.utils import get_party_bank_account
+from frappe.utils import flt, get_url_to_form, getdate
 
 
 class BankPaymentRequest(PaymentRequest):
@@ -46,8 +45,6 @@ class BankPaymentRequest(PaymentRequest):
 		if self.remarks:
 			self.remarks = self.remarks[:48]
 
-		self.valdidate_bank_for_wire_transfer()
-
 	def validate_payment_request_amount(self):
 		if self.reference_doctype not in [
 			"Payroll Entry"
@@ -55,6 +52,9 @@ class BankPaymentRequest(PaymentRequest):
 			super().validate_payment_request_amount()
 
 	def set_default_value(self):
+		if not self.transaction_date:
+			self.transaction_date = getdate()
+
 		if not self.payment_type:
 			if payment_type := frappe.db.exists(
 				"Payment Type",
@@ -64,30 +64,18 @@ class BankPaymentRequest(PaymentRequest):
 				},
 			):
 				self.payment_type = payment_type
-			else:
-				frappe.throw(
-					_(
-						f"Set Default <b><a href='/app/payment-type'>Payment Type</a></b> for company {frappe.bold(self.company)}".format(
-							self.company
-						)
-					)
-				)
-
-		filters = {
-			"party_type": self.party_type,
-			"party": self.party,
-			"is_default": 1,
-			"disabled": 0,
-			"currency": self.currency,
-		}
-
-		if frappe.db.get_single_value(
-			"India Banking Settings", "activate_workflow_on_bank_account"
-		):
-			filters["workflow_state"] = "Approved"
 
 		if not self.bank_account:
+			filters = {
+				"party_type": self.party_type,
+				"party": self.party,
+				"is_default": 1,
+				"disabled": 0,
+			}
 			self.bank_account = frappe.get_value("Bank Account", filters, "name")
+
+		if self.bank_account:
+			self.mode_of_payment = "Wire Transfer"
 
 	def on_submit(self):
 		if not self.grand_total or not self.net_total:
@@ -115,6 +103,14 @@ class BankPaymentRequest(PaymentRequest):
 						)
 					)
 				)
+		else:
+			frappe.throw(
+				_(
+					f"Set Default <b><a href='/app/payment-type'>Payment Type</a></b> for company {frappe.bold(self.company)}".format(
+						self.company
+					)
+				)
+			)
 
 		debit_account = frappe.db.get_value(
 			"Payment Type", self.payment_type, "account"
@@ -131,16 +127,19 @@ class BankPaymentRequest(PaymentRequest):
 
 	def validate_bank_account(self):
 		bank_account = get_party_bank_account(self.party_type, self.party)
-		if not bank_account:
-			frappe.throw(
-				_(
-					"Default Bank Account is missing for {0} - {1}".format(
-						self.party_type, frappe.bold(self.party)
+		if not self.bank_account:
+			if not bank_account:
+				frappe.throw(
+					_(
+						"Default Bank Account is missing for {0} - {1}".format(
+							self.party_type, frappe.bold(self.party)
+						)
 					)
 				)
-			)
+			else:
+				self.bank_account = bank_account
 
-		bank_account = frappe.get_doc("Bank Account", bank_account)
+		bank_account = frappe.get_doc("Bank Account", self.bank_account)
 		if frappe.db.get_single_value(
 			"India Banking Settings", "activate_workflow_on_bank_account"
 		):
@@ -151,7 +150,7 @@ class BankPaymentRequest(PaymentRequest):
 						"{}-{}- Bank Account <a href='{}'>{}</a>".format(
 							self.party_type,
 							self.party,
-							get_url_to_form("Bank Account", bank_account),
+							get_url_to_form("Bank Account", bank_account.name),
 							frappe.bold(bank_account),
 						)
 					),
@@ -166,8 +165,8 @@ class BankPaymentRequest(PaymentRequest):
 					"{}-{}- Bank Account <a href='{}'>{}</a>".format(
 						self.party_type,
 						self.party,
-						get_url_to_form("Bank Account", bank_account.name),
-						frappe.bold(bank_account.name),
+						get_url_to_form("Bank Account", self.bank_account),
+						frappe.bold(self.bank_account),
 					)
 				),
 			)
@@ -206,45 +205,6 @@ class BankPaymentRequest(PaymentRequest):
 			return taxes["tax_amount"]
 		else:
 			return 0
-
-	def valdidate_bank_for_wire_transfer(self):
-		if self.mode_of_payment == "Wire Transfer":
-			if not self.bank_account:
-				frappe.throw(_("Bank Account is missing for Wire Transfer Payments"))
-
-			bank_account = frappe.get_doc("Bank Account", self.bank_account)
-
-			if (
-				frappe.db.get_single_value(
-					"India Banking Settings", "activate_workflow_on_bank_account"
-				)
-				and bank_account.workflow_state != "Approved"
-			):
-				frappe.throw(
-					title=_("Cannot proceed with un-approved bank account"),
-					msg=_(
-						"{}-{}- Bank Account <a href='{}'>{}</a>".format(
-							self.party_type,
-							self.party,
-							get_url_to_form("Bank Account", self.bank_account),
-							frappe.bold(self.bank_account),
-						)
-					),
-				)
-			if bank_account.currency != self.currency:
-				frappe.throw(
-					title=_(
-						f"The party bank account currency should be in {self.currency}."
-					),
-					msg=_(
-						"{}-{}- Bank Account <a href='{}'>{}</a>".format(
-							bank_account.party_type,
-							bank_account.party,
-							get_url_to_form("Bank Account", self.bank_account),
-							frappe.bold(self.bank_account),
-						)
-					),
-				)
 
 
 @frappe.whitelist()

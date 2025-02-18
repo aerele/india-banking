@@ -229,6 +229,7 @@ def make_payment_entries(docname):
 													"payment_term": splited_invoice_rows[
 														term_row
 													].get("payment_term"),
+													"payment_request": reference.payment_request,
 												},
 											)
 										term_row += 1
@@ -240,6 +241,7 @@ def make_payment_entries(docname):
 											"reference_name": reference.reference_name,
 											"total_amount": reference_amount,
 											"allocated_amount": reference_amount,
+											"payment_request": reference.payment_request,
 										},
 									)
 							else:
@@ -250,6 +252,7 @@ def make_payment_entries(docname):
 										"reference_name": reference.reference_name,
 										"total_amount": reference_amount,
 										"allocated_amount": reference_amount,
+										"payment_request": reference.payment_request,
 									},
 								)
 						else:
@@ -261,6 +264,7 @@ def make_payment_entries(docname):
 									"total_amount": reference_amount,
 									"allocated_amount": reference_amount,
 									"payment_term": payment_term,
+									"payment_request": reference.payment_request,
 								},
 							)
 					except Exception:

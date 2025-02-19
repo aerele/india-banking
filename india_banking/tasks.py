@@ -2,12 +2,13 @@ import frappe
 from frappe.query_builder import DocType
 
 from india_banking.india_banking.doctype.bank_connector.bank_connector import (
+	get_bank_connector,
 	get_payment_status,
 )
 
 
 def daily():
-	pass
+	update_payment_status_for_processed_payment()
 
 
 def job_twenty_minutes():
@@ -31,21 +32,56 @@ def job_at_midnight():
 		update_payment_status()
 
 
+def update_payment_status_for_processed_payment():
+	statuses = ["Processed"]
+	retry_period = frappe.get_single("India Banking Settings").update_payment_status
+
+	PaymentOrderSummary = DocType("Payment Order Summary")
+	payment_orders = (
+		frappe.qb.from_(PaymentOrderSummary)
+		.select(PaymentOrderSummary.parent)
+		.where(
+			(PaymentOrderSummary.docstatus == 1)
+			& (PaymentOrderSummary.payment_status.isin(statuses))
+			& (
+				PaymentOrderSummary.payment_date
+				>= frappe.utils.add_days(frappe.utils.nowdate(), -(retry_period))
+			)
+			& (PaymentOrderSummary.payment_date.isnotnull())
+		)
+		.distinct()
+	).run(pluck=True, debug=1)
+
+	for payment_order in payment_orders:
+		payment_order = frappe.get_doc("Payment Order", payment_order)
+		bank_connector = get_bank_connector(
+			payment_order.company_bank_account, payment_order.company
+		)
+		bank_connector.action = "get_payment_status"
+		bank_connector.add_payment_in_the_background(
+			payment_order=payment_order, statuses=statuses
+		)
+
+
 def update_payment_status():
 	if not frappe.get_single("India Banking Settings").update_payment_status:
 		return
 
-	orders = frappe.get_all(
-		"Payment Order Summary",
-		{"docstatus": 1, "payment_status": ["in", ["Pending", "Initiated"]]},
-		pluck="parent",
-		distinct="parent",
-	)
+	PaymentOrderSummary = DocType("Payment Order Summary")
+	orders = (
+		frappe.qb.from_(PaymentOrderSummary)
+		.select(PaymentOrderSummary.parent)
+		.where(
+			(PaymentOrderSummary.docstatus == 1)
+			& (PaymentOrderSummary.payment_status.isin(["Pending", "Initiated"]))
+		)
+		.distinct()
+	).run(pluck=True)
 
 	for order in orders:
 		try:
 			frappe.enqueue(get_payment_status, payment_order=order, queue="short")
-		except:
+		except Exception:
 			frappe.log_error(
 				title="Error in Payment Order Status Cron",
 				message=frappe.get_traceback(),
@@ -103,7 +139,7 @@ def update_payment_date_as_posting_date():
 
 			reposting_doc.save()
 			reposting_doc.submit()
-	except:
+	except Exception:
 		frappe.log_error(
 			title="Error in Payment Date Update Cron",
 			message=frappe.get_traceback(),

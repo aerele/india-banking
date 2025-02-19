@@ -13,6 +13,7 @@
   "automatic_update_configuration_section",
   "update_payment_status",
   "status_check",
+  "retry_period",
   "column_break_laug",
   "update_posting_date_as_payment_date",
   "payment_notifications_section",
@@ -52,13 +53,13 @@
    "default": "0",
    "fieldname": "update_posting_date_as_payment_date",
    "fieldtype": "Check",
-   "label": "Update Posting Date as Payment Date"
+   "label": "Auto Update Posting Date as Payment Date"
   },
   {
    "default": "0",
    "fieldname": "update_payment_status",
    "fieldtype": "Check",
-   "label": "Update Payment Status"
+   "label": "Auto Update Payment Status"
   },
   {
    "collapsible": 1,
@@ -99,12 +100,19 @@
    "fieldtype": "Table",
    "mandatory_depends_on": "notify_party",
    "options": "Payment Notification"
+  },
+  {
+   "default": "3",
+   "description": "Check the payment status for 'Processed' payment from the payment initiation date until the retry period.",
+   "fieldname": "retry_period",
+   "fieldtype": "Int",
+   "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-18 16:30:50.843105",
+ "modified": "2025-02-18 17:57:12.368644",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

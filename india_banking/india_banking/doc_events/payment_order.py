@@ -494,7 +494,10 @@ def update_payment_status(payment_order_doc):
 
 
 @frappe.whitelist()
-def get_payment_status(docname):
+def get_payment_status(docname, statuses= None):
+	if not statuses:
+		statuses = ["Initiated", "Pending"]
+
 	payment_order_doc = frappe.get_doc("Payment Order", docname)
 
 	# Fetch the connector information
@@ -519,7 +522,7 @@ def get_payment_status(docname):
 
 	else:
 		for i in payment_order_doc.summary:
-			if i.payment_status in ["Initiated", "Pending"]:
+			if i.payment_status in statuses:
 				get_response(
 					i, payment_order_doc.company_bank_account, payment_order_doc.company
 				)

@@ -194,7 +194,7 @@ accounting_dimension_doctypes = ["Bank Payment Request"]
 # 	],
 # }
 
-scheduler_events = {"daily": ["india_banking.tasks.daily"]}
+scheduler_events = {"daily": ["india_banking.tasks.daily", "india_banking.tasks.update_payment_status_for_processed_payment"]}
 
 # Testing
 # -------

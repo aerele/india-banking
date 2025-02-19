@@ -6,10 +6,11 @@
  "engine": "InnoDB",
  "field_order": [
   "summarise_payment_based_on",
-  "notify_party",
+  "retry_period",
   "column_break_wjye",
   "default_email_format",
   "submit_bank_payment_request",
+  "notify_party",
   "section_break_ejya",
   "companies",
   "allowed_doctypes_section_section",
@@ -66,12 +67,19 @@
    "fieldname": "submit_bank_payment_request",
    "fieldtype": "Check",
    "label": "Submit Bank Payment Request"
+  },
+  {
+   "default": "3",
+   "description": "Check the payment status for 'Processed' payment from the payment initiation date until the retry period.",
+   "fieldname": "retry_period",
+   "fieldtype": "Int",
+   "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-17 10:36:01.032936",
+ "modified": "2025-02-19 09:56:34.810706",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

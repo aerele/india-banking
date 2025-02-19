@@ -22,15 +22,11 @@ const create_bulk_request = function (listview, doctype) {
           args: { data: checked_items, doctype: doctype },
         })
         .then((r) => {
-          console.log(r.message.success_request);
-          
           if(r.message.success_request > 0){
             setTimeout(
               ()=>{frappe.msgprint(`<b>${r.message.success_request} Bank Payment Request Created</b>`)}, 1000
             )
           }
-
-
         });
       if (count_of_rows > 10) {
         frappe.show_alert("Starting a background job to create {0} {1}", [

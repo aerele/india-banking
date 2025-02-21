@@ -59,7 +59,7 @@ class BankConnector(Document):
 	def verify_otp(self, payment_order, otp):
 		pass
 
-	def get_payload(self, payment_order, action=None):
+	def get_payload(self, payment_order, action=None, otp=None):
 		bank_account = frappe.get_doc(
 			"Bank Account", payment_order.company_bank_account
 		)
@@ -92,7 +92,9 @@ class BankConnector(Document):
 				return self.generate_otp(payment_order)
 
 			action = "get_payment_status"
-			self.make_post_request(payment_order, otp, action)
+			self.make_post_request(
+				payment_order, action=action
+			)  # get payment status before initiating payment
 			action = "initiate_payment"
 
 		self.action = action
@@ -104,7 +106,7 @@ class BankConnector(Document):
 			url = self.connector_url
 			headers = self.headers
 
-			payload = self.get_payload(payment_order)
+			payload = self.get_payload(payment_order, otp=otp)
 
 			response = request.post(url, headers=headers, data=json.dumps(payload))
 

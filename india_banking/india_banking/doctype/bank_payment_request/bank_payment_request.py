@@ -221,7 +221,7 @@ def make_bank_payment_request(**args):
 	grand_total = get_amount(ref_doc, gateway_account.get("payment_account"))
 
 	bank_account = (
-		get_party_bank_account(args.get("party_type"), args.get("party")) if args.get("party_type") else ""
+		get_party_bank_account_with_cost_center(args.get("party_type"), args.get("party"), cost_center=ref_doc.cost_center) if args.get("party_type") else ""
 	)
 
 	if not bank_account:
@@ -432,7 +432,7 @@ def make_payment_order(source_name, target_doc=None, args= None):
 					"party_type": source.party_type,
 					"party": source.party,
 					"mode_of_payment": source.mode_of_payment,
-					"bank_account": get_party_bank_account(source.get("party_type"), source.get("party")) if source.get("party_type") else "",
+					"bank_account": get_party_bank_account_with_cost_center(source.get("party_type"), source.get("party"), cost_center=source.cost_center) if source.get("party_type") else "",
 					"account": account,
 					"cost_center": source.cost_center,
 					"project": source.project,
@@ -449,7 +449,7 @@ def make_payment_order(source_name, target_doc=None, args= None):
 					"party_type": source.party_type,
 					"party": source.party,
 					"mode_of_payment": "Wire Transfer",
-					"bank_account": source.party_bank_account or get_party_bank_account(source.get("party_type"), source.get("party")),
+					"bank_account": source.party_bank_account or get_party_bank_account_with_cost_center(source.get("party_type"), source.get("party"), cost_center=source.cost_center),
 					"account": source.paid_to,
 					"cost_center": source.cost_center,
 					"project": source.project,
@@ -685,7 +685,7 @@ def make_payment_request_for_payroll_entry(**args):
 	for count, salary_details in enumerate(salary_slips):
 		grand_total = salary_details.get("net_total", 0)
 
-		bank_account = get_party_bank_account("Employee", salary_details.get("party"))
+		bank_account = get_party_bank_account_with_cost_center("Employee", salary_details.get("party"))
 
 		draft_payment_request = frappe.db.get_value(
 			"Bank Payment Request",
@@ -816,3 +816,25 @@ def make_bulk_bank_payment_request(data, doctype):
 				frappe.log_error(f"Bulk Payment Failed({invoice.name})", frappe.get_traceback())
 
 	return {"success_request": len(success_request)}
+
+
+def get_party_bank_account_with_cost_center(party_type, party, cost_center=None):
+	"""Get party bank account with cost center validation"""
+	filters = {
+		"party_type": party_type,
+		"party": party,
+		"is_default": 1,
+	}
+	if cost_center:
+		filters["cost_center"] = cost_center
+
+	party_account_with_cost_center = frappe.db.get_value("Bank Account", filters, "name")
+	msg = frappe._("Default Bank Account is missing for {0} - {1}").format(party_type, party)
+	if cost_center:
+			msg = frappe._("Default Bank Account is missing for {0} - {1}({2})").format(
+				party_type, party, frappe.bold(cost_center)
+			)
+	if not party_account_with_cost_center:
+		frappe.throw(msg)
+
+	return party_account_with_cost_center

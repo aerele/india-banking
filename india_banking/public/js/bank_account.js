@@ -17,6 +17,15 @@ frappe.ui.form.on('Bank Account', {
 		if (frm.doc.workflow_state == 'Approved') {
 			frm.set_read_only();
 		}
+		frm.set_query("cost_center", function() {
+			return {
+				filters: {
+					"is_group": 0,
+					"disabled": 0,
+					company: frm.doc.company
+				}
+			};
+		});
 	},
 	onload(frm){
 		if (frm.doc.workflow_state == 'Approved') {

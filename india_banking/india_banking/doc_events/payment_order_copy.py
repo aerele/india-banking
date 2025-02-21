@@ -468,7 +468,7 @@ def make_payment_entries(docname):
 				filter_condition = ( reference.party_type == row.party_type and reference.party == row.party and reference.cost_center == row.cost_center
 					and reference.project == row.project and reference.bank_account == row.bank_account and reference.account == row.account
 					and reference.tax_withholding_category == row.tax_withholding_category and reference.reference_doctype == row.reference_doctype )
-				if not payment_order_doc.is_party_wise:
+				if not payment_order_doc.get("is_party_wise", ""):
 					filter_condition = filter_condition and (reference.reference_doctype == row.reference_doctype and reference.reference_name == row.reference_name)
 
 				if filter_condition:

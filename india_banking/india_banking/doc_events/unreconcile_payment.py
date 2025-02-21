@@ -6,6 +6,8 @@ def on_submit(doc, method=None):
 
 	if frappe.db.get_value("Payment Entry", doc.voucher_no, "source_doctype") != "Bank Payment Request":
 		return
+	if not frappe.get_single("India Banking Settings").allow_unreconcile:
+		return
 
 	payment_order_summary = get_payment_order_summary(doc.voucher_no)
 
@@ -15,12 +17,19 @@ def on_submit(doc, method=None):
 	payment_order = frappe.get_doc("Payment Order", payment_order_summary.parent)
 
 	for reference in payment_order.references:
-		filter_condition = ( payment_order_summary.party_type == reference.party_type and payment_order_summary.party == reference.party and payment_order_summary.cost_center == reference.cost_center
-				and payment_order_summary.project == reference.project and payment_order_summary.bank_account == reference.bank_account and payment_order_summary.account == reference.account
-				and payment_order_summary.tax_withholding_category == reference.tax_withholding_category and payment_order_summary.reference_doctype == reference.reference_doctype )
-		if not payment_order.is_party_wise or payment_order.get('summarise_payment_based_on') == "Voucher":
-			filter_condition = filter_condition and (payment_order_summary.reference_doctype == reference.reference_doctype and payment_order_summary.reference_name == reference.reference_name)
-		if filter_condition:
+		fields = ["party_type", "party", "cost_center", "project", "bank_account", "account", "tax_withholding_category", "reference_doctype"]
+		if not payment_order.get("is_party_wise", "") or payment_order.get('summarise_payment_based_on') == "Voucher":
+			fields = fields + ["reference_name"]
+
+		filter_condition = [(payment_order_summary.get(field, ""), reference.get(field, "")) for field in fields]
+		values_match = True
+		for filter in filter_condition:
+			if bool(filter[0]) == bool(filter[1]):
+				if  filter[0] != filter[1]:
+					values_match = False
+					break
+
+		if values_match:
 			frappe.db.set_value("Bank Payment Request", reference.bank_payment_request, {"reference_doctype": "", "reference_name": ""})
 			frappe.db.set_value("Payment Order Reference", reference.name, {"reference_doctype": "", "reference_name": ""})
 

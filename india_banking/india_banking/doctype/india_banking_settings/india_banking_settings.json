@@ -11,6 +11,7 @@
   "default_email_format",
   "submit_bank_payment_request",
   "notify_party",
+  "allow_unreconcile",
   "section_break_ejya",
   "companies",
   "allowed_doctypes_section_section",
@@ -74,12 +75,18 @@
    "fieldname": "retry_period",
    "fieldtype": "Int",
    "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_unreconcile",
+   "fieldtype": "Check",
+   "label": "Allow Unreconcile"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-19 09:56:34.810706",
+ "modified": "2025-02-21 10:33:35.816736",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

@@ -45,18 +45,21 @@
   },
   {
    "default": "1",
+   "description": "If more than 10 payments need to be initiated to the bank, they will be processed in the background. This prevents delays caused by long bank response times.",
    "fieldname": "enable_payment_in_the_background",
    "fieldtype": "Check",
-   "label": "Enable Payment in the Background"
+   "label": "Enqueue large payments in the background"
   },
   {
    "default": "0",
+   "description": "A Payment Entry is created before initiating the payment. If the bank requires post-authorization and the approver approves the payment on a later date, the payment date in the bank statement may differ from the ledger's posting date. Enabling this setting ensures the ledger is updated accordingly.",
    "fieldname": "update_posting_date_as_payment_date",
    "fieldtype": "Check",
    "label": "Auto Update Posting Date as Payment Date"
   },
   {
    "default": "0",
+   "description": "If unchecked, user will have to manually fetch the status of every payment order.",
    "fieldname": "update_payment_status",
    "fieldtype": "Check",
    "label": "Auto Update Payment Status"
@@ -73,7 +76,7 @@
   },
   {
    "default": "Payment Request\nPayment Entry\nBank Entry",
-   "description": "Allows enabling or disabling payment pulling in the payment order.",
+   "description": "Enabled doctypes can be pulled in the payment order for payment processing. ",
    "fieldname": "allowed_payment_doctypes",
    "fieldtype": "Small Text",
    "label": "Allowed Payment Doctypes",
@@ -112,7 +115,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-18 17:57:12.368644",
+ "modified": "2025-02-22 13:05:10.274363",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

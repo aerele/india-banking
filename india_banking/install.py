@@ -4,6 +4,7 @@ from frappe import make_property_setter
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 from india_banking.default import (
+	ALLOWED_PAYMENT_DOCTYPE,
 	DEFAULT_MODE_OF_TRANSFERS,
 	DEFAULT_WORKFLOW_ACTIONS,
 	DEFAULT_WORKFLOW_LIST,
@@ -22,6 +23,7 @@ def after_install():
 	create_default_payment_type()
 	create_default_workflow()
 	create_default_bank()
+	update_allowed_payment_doctypes()
 
 
 def make_custom_fields():
@@ -31,6 +33,14 @@ def make_custom_fields():
 	create_payment_order_custom_fields()
 	create_payment_entry_custom_fields()
 	create_journal_entry_custom_fields()
+
+
+def update_allowed_payment_doctypes():
+	frappe.db.set_single_value(
+		"India Banking Settings",
+		"allowed_payment_doctypes",
+		"\n".join(ALLOWED_PAYMENT_DOCTYPE),
+	)
 
 
 def toggle_payment_request_creation(allow=True):
@@ -118,8 +128,7 @@ def create_supplier_custom_fields():
 
 def create_payment_request_custom_fields():
 	click.secho(" -> Installing Custom Fields in a Payment Request")
-	fields = {
-		"Payment Request": [
+	custom_field = [
 			{
 				"label": "Payment Type",
 				"fieldname": "payment_type",
@@ -170,7 +179,7 @@ def create_payment_request_custom_fields():
 				"fieldname": "payment_term",
 				"fieldtype": "Link",
 				"options": "Payment Term",
-				"depends_on": "eval:doc.apply_tax_withholding_amount",
+				"read_only": 1,
 				"insert_after": "tax_withholding_category",
 			},
 			{
@@ -187,8 +196,18 @@ def create_payment_request_custom_fields():
 				"insert_after": "remark_section",
 			},
 		]
-	}
-	create_custom_fields(fields)
+	if "hrms" in frappe.get_installed_apps():
+		custom_field.append({
+				"label": "Salary Slip",
+				"fieldname": "salary_slip",
+				"fieldtype": "Link",
+				"options": "Salary Slip",
+				"read_only": 1,
+				"depends_on": "eval:doc.reference_doctype == 'Payroll Entry'",
+				"insert_after": "reference_name",
+			})
+
+	create_custom_fields({"Payment Request": custom_field})
 
 
 properties = {
@@ -228,6 +247,16 @@ properties = {
 			"value": 1,
 		},
 	],
+	"Payment Order": [
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Payment Order",
+			"fieldname": "party",
+			"property": "fieldtype",
+			"property_type": "Link",
+			"value": "Data",
+		},
+	],
 }
 
 
@@ -264,15 +293,23 @@ def create_payment_order_custom_fields():
 				"insert_after": "file_reference_details_section",
 			},
 			{
-				"fieldtype": "Column Break",
-				"fieldname": "file_reference_details_column",
-				"insert_after": "file_sequence_number",
-			},
-			{
-				"label": "Payment Summary",
+				"label": "",
 				"fieldname": "payment_summary",
 				"fieldtype": "Section Break",
 				"insert_after": "references",
+			},
+			{
+				"label": "Default Mode of Transfer",
+				"fieldname": "default_mode_of_transfer",
+				"fieldtype": "Link",
+				"options": "Mode of Transfer",
+				"insert_after": "payment_summary",
+			},
+			{
+				"label": "Payment Summary",
+				"fieldname": "payment_summary2",
+				"fieldtype": "Section Break",
+				"insert_after": "default_mode_of_transfer",
 			},
 			{
 				"label": "Summarise Payment Based On",
@@ -280,7 +317,7 @@ def create_payment_order_custom_fields():
 				"fieldtype": "Select",
 				"options": "Party\nVoucher",
 				"no_copy": 1,
-				"insert_after": "payment_summary",
+				"insert_after": "payment_summary2",
 			},
 			{
 				"label": "Get Summary",
@@ -289,28 +326,11 @@ def create_payment_order_custom_fields():
 				"insert_after": "summarise_payment_based_on",
 			},
 			{
-				"fieldname": "payment_summary_column_break",
-				"fieldtype": "Column Break",
-				"insert_after": "get_summary",
-			},
-			{
-				"label": "Default Mode of Transfer",
-				"fieldname": "default_mode_of_transfer",
-				"fieldtype": "Link",
-				"options": "Mode of Transfer",
-				"insert_after": "payment_summary_column_break",
-			},
-			{
-				"fieldname": "payment_summary2",
-				"fieldtype": "Section Break",
-				"insert_after": "default_mode_of_transfer",
-			},
-			{
 				"label": "Summary",
 				"fieldname": "summary",
 				"fieldtype": "Table",
 				"options": "Payment Order Summary",
-				"insert_after": "payment_summary2",
+				"insert_after": "get_summary",
 				"no_copy": 1,
 			},
 			{
@@ -318,6 +338,35 @@ def create_payment_order_custom_fields():
 				"fieldname": "total",
 				"fieldtype": "Currency",
 				"insert_after": "summary",
+			},
+			{
+				"label": "Accounting Dimensions",
+				"fieldname": "accounting_dimensions",
+				"fieldtype": "Section Break",
+				"insert_after": "account",
+				"collapsible": 1,
+			},
+			{
+				"label": "Project",
+				"fieldname": "project",
+				"fieldtype": "Link",
+				"options": "Project",
+				"no_copy": 1,
+				"insert_after": "accounting_dimensions",
+			},
+			{
+				"label": "",
+				"fieldname": "accounting_dimensions_column_break",
+				"fieldtype": "Column Break",
+				"insert_after": "project",
+			},
+			{
+				"label": "Cost Center",
+				"fieldname": "cost_center",
+				"fieldtype": "Link",
+				"options": "Cost Center",
+				"no_copy": 1,
+				"insert_after": "accounting_dimensions_column_break",
 			},
 		],
 		"Payment Order Reference": [

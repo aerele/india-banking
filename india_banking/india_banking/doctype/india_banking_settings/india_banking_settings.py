@@ -9,6 +9,8 @@ class IndiaBankingSettings(Document):
 	def validate(self):
 		self.enable_or_disable_workflow_to_bank_account()
 		self.enable_payment_entry_reposting()
+		if not self.notify_party:
+			self.payment_notification = []
 
 	def enable_or_disable_workflow_to_bank_account(self):
 		"""Enable or disable workflow to bank account based on settings."""

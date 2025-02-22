@@ -6,7 +6,7 @@ from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoi
 from frappe import _, parse_json
 from frappe.utils import nowdate
 
-from india_banking.default import PAYMENT_SUMMARIES_FIELDS
+from india_banking.default import PAYMENT_SUMMARY_FIELDS
 
 
 @frappe.whitelist()
@@ -41,7 +41,10 @@ def process_payment_requests(payment_order_summary):
 	pos = frappe.get_doc("Payment Order Summary", payment_order_summary)
 	payment_order_doc = frappe.get_doc("Payment Order", pos.parent)
 
-	summarise_field = PAYMENT_SUMMARIES_FIELDS.copy()
+	summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
+	if pos.get("reference_doctype", "") == "Payroll Entry":
+		payment_order_doc.summarise_payment_based_on = "Voucher"
+
 	if payment_order_doc.summarise_payment_based_on == "Party":
 		summarise_field.remove("reference_name")
 
@@ -93,14 +96,19 @@ def make_payment_entries(docname):
 		pe.received_amount = row.amount
 		pe.letter_head = frappe.db.get_value("Letter Head", {"is_default": 1}, "name")
 		pe.source_doctype = payment_order_doc.payment_order_type
+
 		for dimension in get_accounting_dimensions():
-			pe.update({dimension: payment_order_doc.get(dimension, "")})
+			pe.update({dimension: row.get(dimension, "")})
 		if row.tax_withholding_category:
 			net_total = 0
 			for reference in payment_order_doc.references:
-				filter_fields = PAYMENT_SUMMARIES_FIELDS.copy()
+				filter_fields = PAYMENT_SUMMARY_FIELDS.copy()
+
+				if payment_order_doc.references[0].reference_doctype == "Payroll Entry":
+					payment_order_doc.summarise_payment_based_on = "Voucher"
 				if payment_order_doc.summarise_payment_based_on == "Party":
 					filter_fields.remove("reference_name")
+
 				filter_fields.extend(get_accounting_dimensions())
 				match_condition = [
 					(reference.get(field, "") or "") == row.get(field, "")
@@ -118,9 +126,14 @@ def make_payment_entries(docname):
 			pe.tax_withholding_category = row.tax_withholding_category
 		for reference in payment_order_doc.references:
 			if not reference.is_adhoc:
-				filter_fields = PAYMENT_SUMMARIES_FIELDS.copy()
+				filter_fields = PAYMENT_SUMMARY_FIELDS.copy()
+
+				if payment_order_doc.references[0].reference_doctype == "Payroll Entry":
+					payment_order_doc.summarise_payment_based_on = "Voucher"
+
 				if payment_order_doc.summarise_payment_based_on == "Party":
 					filter_fields.remove("reference_name")
+
 				filter_fields.extend(get_accounting_dimensions())
 				match_condition = [
 					(reference.get(field, "") or "") == row.get(field, "")
@@ -139,7 +152,11 @@ def make_payment_entries(docname):
 							reference.payment_request,
 							"payment_term",
 						)
-						if not payment_term:
+
+						if (
+							reference.reference_doctype not in ["Payroll Entry"]
+							and not payment_term
+						):
 							if template := frappe.db.get_value(
 								reference.reference_doctype,
 								reference.reference_name,
@@ -212,6 +229,7 @@ def make_payment_entries(docname):
 													"payment_term": splited_invoice_rows[
 														term_row
 													].get("payment_term"),
+													"payment_request": reference.payment_request,
 												},
 											)
 										term_row += 1
@@ -223,6 +241,7 @@ def make_payment_entries(docname):
 											"reference_name": reference.reference_name,
 											"total_amount": reference_amount,
 											"allocated_amount": reference_amount,
+											"payment_request": reference.payment_request,
 										},
 									)
 							else:
@@ -233,6 +252,7 @@ def make_payment_entries(docname):
 										"reference_name": reference.reference_name,
 										"total_amount": reference_amount,
 										"allocated_amount": reference_amount,
+										"payment_request": reference.payment_request,
 									},
 								)
 						else:
@@ -244,9 +264,10 @@ def make_payment_entries(docname):
 									"total_amount": reference_amount,
 									"allocated_amount": reference_amount,
 									"payment_term": payment_term,
+									"payment_request": reference.payment_request,
 								},
 							)
-					except:
+					except Exception:
 						frappe.log_error(
 							"Error in Payment Terms Template", frappe.get_traceback()
 						)

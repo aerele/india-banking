@@ -54,9 +54,12 @@ def make_payment_order(source_name, target_doc=None, args=None):
 				& (BankAccount.disabled == 0)
 				& (BankAccount.is_default == 1)
 			)
+			.groupby(
+				JournalEntryAccount.name
+			)
 		)
 
-		journal_accounts = query.run(as_dict=True, debug=1)
+		journal_accounts = query.run(as_dict=True)
 
 		target.payment_order_type = "Journal Entry"
 		target.docstaus = 0

@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class PaymentOrderSummary(Document):
+class PaymentNotification(Document):
 	pass

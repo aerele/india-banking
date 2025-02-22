@@ -6,15 +6,19 @@
  "engine": "InnoDB",
  "field_order": [
   "summarise_payment_based_on",
-  "notify_party",
   "enable_payment_in_the_background",
   "column_break_wjye",
-  "default_email_format",
   "activate_workflow_on_bank_account",
+  "allowed_payment_doctypes",
   "automatic_update_configuration_section",
-  "update_posting_date_as_payment_date",
+  "update_payment_status",
+  "status_check",
+  "retry_period",
   "column_break_laug",
-  "update_payment_status"
+  "update_posting_date_as_payment_date",
+  "payment_notifications_section",
+  "notify_party",
+  "payment_notification"
  ],
  "fields": [
   {
@@ -26,12 +30,6 @@
   {
    "fieldname": "column_break_wjye",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "default_email_format",
-   "fieldtype": "Link",
-   "label": "Default Email Format",
-   "options": "Print Format"
   },
   {
    "default": "0",
@@ -47,37 +45,77 @@
   },
   {
    "default": "1",
+   "description": "If more than 10 payments need to be initiated to the bank, they will be processed in the background. This prevents delays caused by long bank response times.",
    "fieldname": "enable_payment_in_the_background",
    "fieldtype": "Check",
-   "label": "Enable Payment in the Background"
+   "label": "Enqueue large payments in the background"
   },
   {
    "default": "0",
+   "description": "A Payment Entry is created before initiating the payment. If the bank requires post-authorization and the approver approves the payment on a later date, the payment date in the bank statement may differ from the ledger's posting date. Enabling this setting ensures the ledger is updated accordingly.",
    "fieldname": "update_posting_date_as_payment_date",
    "fieldtype": "Check",
-   "label": "Update Posting Date as Payment Date"
+   "label": "Auto Update Posting Date as Payment Date"
   },
   {
    "default": "0",
+   "description": "If unchecked, user will have to manually fetch the status of every payment order.",
    "fieldname": "update_payment_status",
    "fieldtype": "Check",
-   "label": "Update Payment Status"
+   "label": "Auto Update Payment Status"
   },
   {
    "collapsible": 1,
    "fieldname": "automatic_update_configuration_section",
    "fieldtype": "Section Break",
-   "label": "Automatic Update Configuration"
+   "label": "Auto Update Configurations"
   },
   {
    "fieldname": "column_break_laug",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "Payment Request\nPayment Entry\nBank Entry",
+   "description": "Enabled doctypes can be pulled in the payment order for payment processing. ",
+   "fieldname": "allowed_payment_doctypes",
+   "fieldtype": "Small Text",
+   "label": "Allowed Payment Doctypes",
+   "read_only": 1
+  },
+  {
+   "default": "Every Day at Midnight",
+   "depends_on": "update_payment_status",
+   "fieldname": "status_check",
+   "fieldtype": "Select",
+   "label": "Status check at",
+   "mandatory_depends_on": "update_payment_status",
+   "options": "Every 20 Minutes\nEvery Hour\nEvery Day at Midnight"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "payment_notifications_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Notifications "
+  },
+  {
+   "depends_on": "notify_party",
+   "fieldname": "payment_notification",
+   "fieldtype": "Table",
+   "mandatory_depends_on": "notify_party",
+   "options": "Payment Notification"
+  },
+  {
+   "default": "3",
+   "description": "Check the payment status for 'Processed' payment from the payment initiation date until the retry period.",
+   "fieldname": "retry_period",
+   "fieldtype": "Int",
+   "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-01-21 13:21:56.571226",
+ "modified": "2025-02-22 13:05:10.274363",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",
@@ -96,5 +134,6 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

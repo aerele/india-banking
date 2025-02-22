@@ -473,7 +473,6 @@ def get_existing_payment_request_amount(
 		else 0
 	)
 
-
 def get_amount(ref_doc, payment_account=None):
 	"""get amount based on doctype"""
 	dt = ref_doc.doctype

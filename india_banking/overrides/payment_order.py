@@ -8,7 +8,7 @@ from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from frappe import _
 from frappe.utils import get_link_to_form
 
-from india_banking.default import PAYMENT_SUMMARIES_FIELDS
+from india_banking.default import PAYMENT_SUMMARY_FIELDS
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 from india_banking.india_banking.doc_events.payroll_entry import make_bank_entries
 
@@ -191,7 +191,7 @@ def get_party_summary(
 
 	# Considering the following dimensions to group payments
 	def _get_unique_key(reference=None, summarise_field_only=False):
-		summarise_field = PAYMENT_SUMMARIES_FIELDS.copy()
+		summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
 		summarise_field.extend(get_accounting_dimensions())
 
 		if summarise_payment_based_on == "Party":

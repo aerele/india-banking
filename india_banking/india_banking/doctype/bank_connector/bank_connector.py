@@ -14,7 +14,7 @@ from frappe.model.document import Document
 from frappe.utils import cint, cstr, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
-from india_banking.default import PAYMENT_SUMMARIES_FIELDS
+from india_banking.default import PAYMENT_SUMMARY_FIELDS
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
 )
@@ -584,7 +584,7 @@ class BankConnector(Document):
 
 	def process_bank_payment_requests(self, payment_order, summary):
 		payment_order.reload()
-		summarise_field = PAYMENT_SUMMARIES_FIELDS.copy()
+		summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
 		if summary.get("reference_doctype", "") == "Payroll Entry":
 			payment_order.summarise_payment_based_on = "Voucher"
 

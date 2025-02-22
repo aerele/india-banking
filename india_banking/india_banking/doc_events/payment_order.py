@@ -6,7 +6,7 @@ from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoi
 from frappe import _, parse_json
 from frappe.utils import nowdate
 
-from india_banking.default import PAYMENT_SUMMARIES_FIELDS
+from india_banking.default import PAYMENT_SUMMARY_FIELDS
 
 
 @frappe.whitelist()
@@ -41,7 +41,7 @@ def process_payment_requests(payment_order_summary):
 	pos = frappe.get_doc("Payment Order Summary", payment_order_summary)
 	payment_order_doc = frappe.get_doc("Payment Order", pos.parent)
 
-	summarise_field = PAYMENT_SUMMARIES_FIELDS.copy()
+	summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
 	if pos.get("reference_doctype", "") == "Payroll Entry":
 		payment_order_doc.summarise_payment_based_on = "Voucher"
 
@@ -102,7 +102,7 @@ def make_payment_entries(docname):
 		if row.tax_withholding_category:
 			net_total = 0
 			for reference in payment_order_doc.references:
-				filter_fields = PAYMENT_SUMMARIES_FIELDS.copy()
+				filter_fields = PAYMENT_SUMMARY_FIELDS.copy()
 
 				if payment_order_doc.references[0].reference_doctype == "Payroll Entry":
 					payment_order_doc.summarise_payment_based_on = "Voucher"
@@ -126,7 +126,7 @@ def make_payment_entries(docname):
 			pe.tax_withholding_category = row.tax_withholding_category
 		for reference in payment_order_doc.references:
 			if not reference.is_adhoc:
-				filter_fields = PAYMENT_SUMMARIES_FIELDS.copy()
+				filter_fields = PAYMENT_SUMMARY_FIELDS.copy()
 
 				if payment_order_doc.references[0].reference_doctype == "Payroll Entry":
 					payment_order_doc.summarise_payment_based_on = "Voucher"

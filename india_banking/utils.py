@@ -7,7 +7,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 from frappe import _
 from frappe.utils import cstr
 
-from india_banking.default import ALLOWED_PAYMENT_DOCTYPE, PAYMENT_SUMMARIES_FIELDS
+from india_banking.default import ALLOWED_PAYMENT_DOCTYPE, PAYMENT_SUMMARY_FIELDS
 
 
 @frappe.whitelist()
@@ -105,7 +105,7 @@ def unlink_bank_payment(payment_order_summary=None):
 
 	payment_order = frappe.get_doc("Payment Order", payment_order_summary.parent)
 
-	summarise_field = PAYMENT_SUMMARIES_FIELDS.copy()
+	summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
 	summarise_field.remove("payment_entry")
 	summarise_field.extend(get_accounting_dimensions())
 

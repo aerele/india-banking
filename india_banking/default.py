@@ -1,4 +1,4 @@
-PAYMENT_SUMMARIES_FIELDS = [
+PAYMENT_SUMMARY_FIELDS = [
 	"party_type",
 	"party",
 	"bank_account",

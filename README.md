@@ -21,7 +21,8 @@ Due to strict bank security requirements (static IPs, certificates, and specific
 - **HDFC Bank Server App**: API integration live.
 - **Yes Bank Server App**: API integration live.
 - **Axis Bank Server App**: API integration live.
-- **Kotak Mahindra Bank Server App**: Latest API access available, awaiting go-live.
+- **Kotak Mahindra Bank Server App**: API integration live.
+- **Bank of Baroda**: In UAT phase.
 - **SBI Server App**: Awaiting API access.
 - **Standard Chartered Bank Server App**: Awaiting API access.
 

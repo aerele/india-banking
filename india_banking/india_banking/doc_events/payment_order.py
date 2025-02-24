@@ -17,6 +17,7 @@ from india_banking.india_banking.doctype.india_banking_request_log.india_banking
 )
 from india_banking.india_banking.install import STD_BANK_LIST
 from india_banking.utils import get_bank_address_details
+from india_banking.india_banking.default import PAYMENT_SUMMARY_FIELDS
 
 
 @frappe.whitelist()
@@ -315,7 +316,7 @@ def process_bulk_payment(payment_order_doc, otp):
 		payment_details = response.json()
 		return payment_details.get("message")
 
-	frappe.throw("Invalid payment request")
+	frappe.throw("Invalid bank payment request")
 
 
 @frappe.whitelist()
@@ -532,11 +533,10 @@ def get_payment_status(docname, statuses= None):
 
 
 @frappe.whitelist()
-def make_payment_entries(docname):
+def make_payment_entries(docname, submit_doc=True):
 	payment_order_doc = frappe.get_doc("Payment Order", docname)
 	"""create entry"""
 	frappe.flags.ignore_account_permission = True
-
 	for row in payment_order_doc.summary:
 		pe = frappe.new_doc("Payment Entry")
 		pe.payment_type = "Pay"
@@ -553,7 +553,6 @@ def make_payment_entries(docname):
 		if pe.party_type == "Supplier":
 			pe.ensure_supplier_is_not_blocked()
 		pe.payment_order = payment_order_doc.name
-
 		pe.paid_from = payment_order_doc.account
 		if row.account:
 			pe.paid_to = row.account
@@ -565,23 +564,23 @@ def make_payment_entries(docname):
 		pe.source_doctype = payment_order_doc.payment_order_type
 
 		for dimension in get_accounting_dimensions():
-			pe.update({dimension: payment_order_doc.get(dimension, "")})
-
+			pe.update({dimension: row.get(dimension, "")})
 		if row.tax_withholding_category:
 			net_total = 0
-
 			for reference in payment_order_doc.references:
-				if (
-					reference.party_type == row.party_type
-					and reference.party == row.party
-					and reference.cost_center == row.cost_center
-					and reference.project == row.project
-					and reference.bank_account == row.bank_account
-					and reference.account == row.account
-					and reference.tax_withholding_category
-					== row.tax_withholding_category
-					and reference.reference_doctype == row.reference_doctype
-				):
+				filter_fields = PAYMENT_SUMMARY_FIELDS.copy()
+
+				if payment_order_doc.references[0].reference_doctype == "Payroll Entry":
+					payment_order_doc.summarise_payment_based_on = "Voucher"
+				if payment_order_doc.summarise_payment_based_on == "Party":
+					filter_fields.remove("reference_name")
+
+				filter_fields.extend(get_accounting_dimensions())
+				match_condition = [
+					(reference.get(field, "") or "") == row.get(field, "")
+					for field in filter_fields
+				]
+				if all(match_condition):
 					net_total += frappe.db.get_value(
 						"Bank Payment Request",
 						reference.bank_payment_request,
@@ -591,26 +590,23 @@ def make_payment_entries(docname):
 			pe.received_amount = net_total
 			pe.apply_tax_withholding_amount = 1
 			pe.tax_withholding_category = row.tax_withholding_category
+
 		for reference in payment_order_doc.references:
 			if not reference.is_adhoc:
-				filter_condition = (
-					reference.party_type == row.party_type
-					and reference.party == row.party
-					and reference.cost_center == row.cost_center
-					and reference.project == row.project
-					and reference.bank_account == row.bank_account
-					and reference.account == row.account
-					and reference.tax_withholding_category
-					== row.tax_withholding_category
-					and reference.reference_doctype == row.reference_doctype
-				)
-				if payment_order_doc.summarise_payment_based_on == "Voucher":
-					filter_condition = filter_condition and (
-						reference.reference_doctype == row.reference_doctype
-						and reference.reference_name == row.reference_name
-					)
+				filter_fields = PAYMENT_SUMMARY_FIELDS.copy()
 
-				if filter_condition:
+				if payment_order_doc.references[0].reference_doctype == "Payroll Entry":
+					payment_order_doc.summarise_payment_based_on = "Voucher"
+
+				if payment_order_doc.summarise_payment_based_on == "Party":
+					filter_fields.remove("reference_name")
+
+				filter_fields.extend(get_accounting_dimensions())
+				match_condition = [
+					(reference.get(field, "") or "") == row.get(field, "")
+					for field in filter_fields
+				]
+				if all(match_condition):
 					reference_amount = frappe.db.get_value(
 						"Bank Payment Request",
 						reference.bank_payment_request,
@@ -624,7 +620,10 @@ def make_payment_entries(docname):
 							"payment_term",
 						)
 
-						if not payment_term:
+						if (
+							reference.reference_doctype not in ["Payroll Entry"]
+							and not payment_term
+						):
 							if template := frappe.db.get_value(
 								reference.reference_doctype,
 								reference.reference_name,
@@ -641,13 +640,11 @@ def make_payment_entries(docname):
 										)
 									},
 								)
-
 								is_term_applied = frappe.db.get_value(
 									"Payment Terms Template",
 									template,
 									"allocate_payment_based_on_payment_terms",
 								)
-
 								if splited_invoice_rows and is_term_applied:
 									term_row = 0
 									while reference_amount > 0:
@@ -666,15 +663,12 @@ def make_payment_entries(docname):
 											)
 											or 0
 										)
-
 										per = (
 											frappe.db.get_value(
-												"Payment Terms Template Detail",
-												{
-													"payment_term": splited_invoice_rows[term_row].get("payment_term", ""),
-													"parenttype": "Payment Terms Template",
-													"parent": template,
-												},
+												"Payment Term",
+												splited_invoice_rows[term_row].get(
+													"payment_term"
+												),
 												"invoice_portion",
 											)
 											/ 100
@@ -685,26 +679,24 @@ def make_payment_entries(docname):
 											"grand_total",
 										)
 										to_be_pay = per * invoice_amount
-
 										if (reference_amount + term_paid) <= to_be_pay:
 											paid_amount = reference_amount
 											reference_amount -= paid_amount
 										else:
 											paid_amount = to_be_pay - term_paid
 											reference_amount -= paid_amount
-
 										if paid_amount:
 											pe.append(
 												"references",
 												{
 													"reference_doctype": reference.reference_doctype,
 													"reference_name": reference.reference_name,
-													"bank_payment_request": reference.bank_payment_request,
 													"total_amount": invoice_amount,
 													"allocated_amount": paid_amount,
 													"payment_term": splited_invoice_rows[
 														term_row
 													].get("payment_term"),
+													"bank_payment_request": reference.bank_payment_request,
 												},
 											)
 										term_row += 1
@@ -714,9 +706,9 @@ def make_payment_entries(docname):
 										{
 											"reference_doctype": reference.reference_doctype,
 											"reference_name": reference.reference_name,
-											"bank_payment_request": reference.bank_payment_request,
 											"total_amount": reference_amount,
 											"allocated_amount": reference_amount,
+											"bank_payment_request": reference.bank_payment_request,
 										},
 									)
 							else:
@@ -725,9 +717,9 @@ def make_payment_entries(docname):
 									{
 										"reference_doctype": reference.reference_doctype,
 										"reference_name": reference.reference_name,
-										"bank_payment_request": reference.bank_payment_request,
 										"total_amount": reference_amount,
 										"allocated_amount": reference_amount,
+										"bank_payment_request": reference.bank_payment_request,
 									},
 								)
 						else:
@@ -736,32 +728,36 @@ def make_payment_entries(docname):
 								{
 									"reference_doctype": reference.reference_doctype,
 									"reference_name": reference.reference_name,
-									"bank_payment_request": reference.bank_payment_request,
 									"total_amount": reference_amount,
 									"allocated_amount": reference_amount,
 									"payment_term": payment_term,
+									"bank_payment_request": reference.bank_payment_request,
 								},
 							)
-					except:
+					except Exception:
 						frappe.log_error(
 							"Error in Payment Terms Template", frappe.get_traceback()
 						)
-
 		pe.update(
 			{
 				"reference_no": payment_order_doc.name,
 				"reference_date": nowdate(),
-				"remarks": "Bank Payment Entry from Payment Order - {0}".format(
+				"remarks": "Payment Entry from Payment Order - {0}".format(
 					payment_order_doc.name
 				),
 			}
 		)
 		pe.setup_party_account_field()
 		pe.set_missing_values()
-		pe.validate()
 		group_by_invoices(pe)
+		pe.validate()
+
+
 		pe.insert(ignore_permissions=True, ignore_mandatory=True)
-		pe.submit()
+		if submit_doc:
+			pe.submit()
+
+		# add payment entry reference in summary row
 		frappe.db.set_value("Payment Order Summary", row.name, "payment_entry", pe.name)
 
 

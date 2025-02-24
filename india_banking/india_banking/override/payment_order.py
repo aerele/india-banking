@@ -6,6 +6,11 @@ from frappe.utils import get_datetime, get_link_to_form, getdate
 import re
 from india_banking.india_banking.doctype.bank_payment_request.bank_payment_request import get_existing_bank_entry
 from india_banking.india_banking.doc_events.payroll_entry import make_bank_entries
+from india_banking.india_banking.default import PAYMENT_SUMMARY_FIELDS
+from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
+	get_accounting_dimensions,
+)
+
 class CustomPaymentOrder(PaymentOrder):
 	def before_submit(self):
 		self.update_unique_and_file_reference_id()
@@ -39,6 +44,7 @@ class CustomPaymentOrder(PaymentOrder):
 					frappe.throw(f"LEI Number required for payment > 50 Cr. For {payment_info.party_type} - {payment_info.party} - {payment_info.amount}")
 			if "A2A" in payment_info.mode_of_transfer and payment_info.bank != self.company_bank:
 				frappe.throw(f"Invalid mode of transfer for {payment_info.party_type} - {payment_info.party} at <b>row #{payment_info.idx}</b>")
+
 
 	def validate_summary(self):
 		if len(self.summary) <= 0:
@@ -74,6 +80,17 @@ class CustomPaymentOrder(PaymentOrder):
 
 		if summary_total != references_total:
 			frappe.throw("Summary isn't matching the references")
+
+
+	def get_summary(self):
+		summary_details = get_party_summary(self.references, self.company_bank_account, self.summarise_payment_based_on)  or []
+		self.summary = []
+		total = 0
+		for summary in summary_details:
+			self.append("summary", summary)
+			total += summary.get("amount", 0)
+		self.total = total
+
 
 	def get_party_field_name(self, party):
 		if party.party_type == 'Supplier':
@@ -170,79 +187,67 @@ class CustomPaymentOrder(PaymentOrder):
 				frappe.db.set_value(self.payment_order_type, d.get(ref_doc_field), ref_field, status)
 
 
+
 @frappe.whitelist()
-def get_party_summary(references, company_bank_account):
-	references = json.loads(references)
+def get_party_summary(
+	references, company_bank_account, summarise_payment_based_on=None
+):
+	if isinstance(references, str):
+		references = json.loads(references)
+
 	if not len(references) or not company_bank_account:
 		return
 
+	if references[0].get("reference_doctype", "") == "Payroll Entry":
+		summarise_payment_based_on = "Voucher"
+
 	# Considering the following dimensions to group payments
-	# (party_type, party, bank_account, account, cost_center, project)
-	def _get_unique_key(ref=None, summarise_field=False):
-		summarise_payment_based_on = frappe.get_single("India Banking Settings").summarise_payment_based_on
+	def _get_unique_key(reference=None, summarise_field_only=False):
+		summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
+		summarise_field.extend(get_accounting_dimensions())
 
 		if summarise_payment_based_on == "Party":
-			if summarise_field:
-				return  ("party_type", "party", "bank_account", "account", "cost_center", "project",
-				"tax_withholding_category", "reference_doctype", "payment_entry", "journal_entry",
-				"journal_entry_account")
+			summarise_field.remove("reference_name")
 
-			return (ref.party_type, ref.party, ref.bank_account, ref.account, ref.cost_center, ref.project,
-			ref.tax_withholding_category, ref.reference_doctype, ref.payment_entry, ref.journal_entry,
-			ref.journal_entry_account)
-
-		elif summarise_payment_based_on == "Voucher":
-			if summarise_field:
-				return ('party_type', 'party', 'reference_doctype', 'reference_name', 'bank_account',
-				'account', 'cost_center', 'project', 'tax_withholding_category', 'payment_entry', 'journal_entry',
-				'journal_entry_account')
-
-			return (ref.party_type, ref.party, ref.reference_doctype, ref.reference_name, ref.bank_account,
-			ref.account, ref.cost_center, ref.project, ref.tax_withholding_category, ref.payment_entry,
-			ref.journal_entry, ref.journal_entry_account)
+		if summarise_field_only:
+			return tuple(summarise_field)
+		else:
+			return tuple([(reference.get(field) or "") for field in summarise_field])
 
 	summary = {}
-	for ref in references:
-		ref = frappe._dict(ref)
-		key = _get_unique_key(ref)
+	for reference in references:
+		if isinstance(reference, dict):
+			reference = frappe._dict(reference)
+
+		key = _get_unique_key(reference)
 
 		if key in summary:
-			summary[key] += ref.amount
+			summary[key] += reference.amount
 		else:
-			summary[key] = ref.amount
+			summary[key] = reference.amount
 
 	result = []
+
 	for key, val in summary.items():
-		summary_line_item = {k: v for k, v in zip(_get_unique_key(summarise_field=True), key) }
-		summary_line_item["amount"] = val
-		summarise_payment_based_on = frappe.get_single("India Banking Settings").summarise_payment_based_on
-		if summarise_payment_based_on == "Party":
-			summary_line_item["is_party_wise"] = 1
-		else:
-			summary_line_item["is_party_wise"] = 0
+		summary_line_item = {
+			k: v for k, v in zip(_get_unique_key(summarise_field_only=True), key)
+		}
+		party_bank = frappe.db.get_value(
+			"Bank Account", summary_line_item["bank_account"], "bank"
+		)
+		company_bank = frappe.db.get_value("Bank Account", company_bank_account, "bank")
+
+		summary_line_item.update(
+			{
+				"amount": val,
+				"mode_of_transfer": get_mode_of_transfer(val, party_bank, company_bank),
+			}
+		)
 
 		result.append(summary_line_item)
 
-	for row in result:
-		party_bank = frappe.db.get_value("Bank Account", row["bank_account"], "bank")
-		company_bank = frappe.db.get_value("Bank Account", company_bank_account, "bank")
-		row["mode_of_transfer"] = None
-		if party_bank == company_bank:
-			mode_of_transfer = frappe.db.get_value("Mode of Transfer", {"is_bank_specific": 1, "bank": party_bank, "disabled": 0})
-			if mode_of_transfer:
-				row["mode_of_transfer"] = mode_of_transfer
-		else:
-			mot = frappe.db.get_value("Mode of Transfer", {
-				"minimum_limit": ["<=", row["amount"]],
-				"maximum_limit": [">", row["amount"]],
-				"is_bank_specific": 0,
-				"disabled": 0,
-				},
-				order_by = "priority asc")
-			if mot:
-				row["mode_of_transfer"] = mot
-
 	return result
+
 
 def get_bank_entry_for_payroll(filters= None):
 	if filters and filters.get('refrence_name'):
@@ -263,3 +268,23 @@ def get_bank_entry_for_payroll(filters= None):
 	 """, as_dict= 1 )
 
 	return journal_entry if journal_entry else ''
+
+
+def get_mode_of_transfer(amount, party_bank, company_bank):
+	mode_of_transfer = None
+	if party_bank == company_bank:
+		mode_of_transfer = frappe.db.get_value(
+			"Mode of Transfer", {"is_bank_specific": 1, "bank": party_bank}
+		)
+	else:
+		mode_of_transfer = frappe.db.get_value(
+			"Mode of Transfer",
+			{
+				"minimum_limit": ["<=", amount],
+				"maximum_limit": [">", amount],
+				"is_bank_specific": 0,
+			},
+			order_by="priority asc",
+		)
+
+	return mode_of_transfer

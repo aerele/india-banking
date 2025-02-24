@@ -11,7 +11,7 @@ from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category 
 
 
 from erpnext.accounts.doctype.payment_request import payment_request as PR
-from frappe.query_builder.functions import Abs, Sum
+from frappe.query_builder.functions import Abs, Sum, Coalesce
 
 from erpnext.accounts.party import get_party_account, get_party_bank_account
 from erpnext.accounts.utils import get_account_currency
@@ -19,6 +19,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
 from frappe.utils.data import flt, today
+
 
 class BankPaymentRequest(PaymentRequest):
 	def validate_adhoc_payment(self):
@@ -231,10 +232,8 @@ def make_bank_payment_request(**args):
 		"Bank Payment Request",
 		{"reference_doctype": args.dt, "reference_name": args.dn, "docstatus": 0},
 	)
-
 	existing_paid_amount = get_existing_paid_amount(ref_doc.doctype, ref_doc.name)
 	existing_payment_request_amount = get_existing_payment_request_amount(args.dt, args.dn)
-
 
 	if existing_paid_amount:
 		if ref_doc.party_account_currency == ref_doc.currency:
@@ -273,7 +272,7 @@ def make_bank_payment_request(**args):
 
 	else:
 		if grand_total <= 0:
-			frappe.throw(frappe._("Bank Payment Entry is already created"))
+			frappe.throw(frappe._("Bank Payment Request is already created"))
 
 		bpr = frappe.new_doc("Bank Payment Request")
 
@@ -370,45 +369,47 @@ def update_bank_entry(source, target):
 			target.append("references",ref)
 	
 
+def set_missing_values(source, target):
+	target.payment_order_type = "Bank Payment Request"
+	if not target.company_bank_account:
+		target.company_bank_account = frappe.get_value("Bank Account", {"company": source.company, "is_default": 1, "is_company_account": 1}, "name")
+	account = ""
+	if source.payment_type:
+		account = frappe.db.get_value("Payment Type", source.payment_type, "account")
+	if source.reference_doctype == "Purchase Invoice":
+		account = frappe.db.get_value(source.reference_doctype, source.reference_name, "credit_to")
+
+	if source.is_adhoc and source.payment_type and source.party_type == "Supplier" and source.docstatus == 1:
+		party_account = frappe.db.get_value("Party Account", {"parent": source.party, "parenttype": source.party_type, "company": source.company}, "account")
+		if party_account:
+			account = party_account
+
+	for dimension in get_accounting_dimensions():
+		target.update({dimension: source.get(dimension, '')})
+
+	target.append(
+		"references",
+		{
+			"reference_doctype": source.reference_doctype,
+			"reference_name": source.reference_name,
+			"amount": source.grand_total,
+			"party_type": source.party_type,
+			"party": source.party,
+			"bank_payment_request": source.name,
+			"mode_of_payment": source.mode_of_payment,
+			"bank_account": source.bank_account,
+			"account": account,
+			"is_adhoc": source.is_adhoc,
+			"cost_center": source.cost_center,
+			"project": source.project,
+			"tax_withholding_category": source.tax_withholding_category
+		},
+	)
+	target.status = "Pending"
+
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None, args= None):
 	from frappe.model.mapper import get_mapped_doc
-
-	def set_missing_values(source, target):
-		target.payment_order_type = "Bank Payment Request"
-		account = ""
-		if source.payment_type:
-			account = frappe.db.get_value("Payment Type", source.payment_type, "account")
-		if source.reference_doctype == "Purchase Invoice":
-			account = frappe.db.get_value(source.reference_doctype, source.reference_name, "credit_to")
-
-		if source.is_adhoc and source.payment_type and source.party_type == "Supplier" and source.docstatus == 1:
-			party_account = frappe.db.get_value("Party Account", {"parent": source.party, "parenttype": source.party_type, "company": source.company}, "account")
-			if party_account:
-				account = party_account
-
-		for dimension in get_accounting_dimensions():
-			target.update({dimension: source.get(dimension, '')})
-
-		target.append(
-			"references",
-			{
-				"reference_doctype": source.reference_doctype,
-				"reference_name": source.reference_name,
-				"amount": source.grand_total,
-				"party_type": source.party_type,
-				"party": source.party,
-				"bank_payment_request": source_name,
-				"mode_of_payment": source.mode_of_payment,
-				"bank_account": source.bank_account,
-				"account": account,
-				"is_adhoc": source.is_adhoc,
-				"cost_center": source.cost_center,
-				"project": source.project,
-				"tax_withholding_category": source.tax_withholding_category
-			},
-		)
-		target.status = "Pending"
 
 	def update_missing_values(source, target):
 		target.payment_order_type = "Payment Entry"
@@ -626,30 +627,57 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 
 	return bank_entries
 
-def get_existing_paid_amount(doctype, name):
-	PL = frappe.qb.DocType("Payment Ledger Entry")
+
+def get_existing_paid_amount(doctype, docname):
+	"""
+	Calculate the existing paid amount for a given document type and document name.
+	This function queries the Payment Ledger Entry (PLE) and Payment Entry Reference (PER)
+	tables to compute the total paid amount and the amount paid through bank payment requests.
+	It then returns the difference between these two amounts.
+	Args:
+		doctype (str): The document type for which the paid amount is to be calculated.
+		docname (str): The document name for which the paid amount is to be calculated.
+	Returns:
+		float: The difference between the total paid amount and the request paid amount.
+	"""
+
+	PLE = frappe.qb.DocType("Payment Ledger Entry")
 	PER = frappe.qb.DocType("Payment Entry Reference")
 
 	query = (
-		frappe.qb.from_(PL)
+		frappe.qb.from_(PLE)
 		.left_join(PER)
 		.on(
-			(PL.against_voucher_type == PER.reference_doctype)
-			& (PL.against_voucher_no == PER.reference_name)
-			& (PL.voucher_type == PER.parenttype)
-			& (PL.voucher_no == PER.parent)
+			(PLE.against_voucher_type == PER.reference_doctype)
+			& (PLE.against_voucher_no == PER.reference_name)
+			& (PLE.voucher_type == PER.parenttype)
+			& (PLE.voucher_no == PER.parent)
 		)
-		.select(Abs(Sum(PL.amount)).as_("total_paid_amount"))
-		.where(PL.against_voucher_type.eq(doctype))
-		.where(PL.against_voucher_no.eq(name))
-		.where(PL.amount < 0)
-		.where(PL.delinked == 0)
-		.where(PER.docstatus == 1)
-		.where(PER.bank_payment_request.isnull())
+		.select(
+			Abs(Sum(PLE.amount)).as_("total_amount"),
+			Abs(Sum(
+				frappe.qb.terms.Case()
+				.when(PER.bank_payment_request.isnotnull(), PLE.amount)
+				.else_(0)
+			)).as_("request_paid_amount")
+		)
+		.where(
+			(PLE.voucher_type.isin([doctype, 'Journal Entry', 'Payment Entry']))
+			& (PLE.against_voucher_type == doctype)
+			& (PLE.against_voucher_no == docname)
+			& (PLE.delinked == 0)
+			& (PLE.docstatus == 1)
+			& (PLE.amount < 0)
+		)
 	)
-	response = query.run()
 
-	return response[0][0] if response[0] else 0
+	result = query.run()
+
+	ledger_amount = flt(result[0][0]) if result else 0
+	request_paid_amount = flt(result[0][1]) if result else 0
+
+	return ledger_amount - request_paid_amount
+
 
 def get_payment_type(company):
 	payment_type = frappe.db.get_value(
@@ -838,3 +866,27 @@ def get_party_bank_account_with_cost_center(party_type, party, cost_center=None)
 		frappe.throw(msg)
 
 	return party_account_with_cost_center
+
+
+@frappe.whitelist()
+def make_bulk_bank_payment_order(requests):
+	requests = frappe.parse_json(requests)
+
+	payment_order = frappe.new_doc("Payment Order")
+	payment_order.summarise_payment_based_on = frappe.get_single("India Banking Settings").summarise_payment_based_on
+
+	for request in requests:
+		source = frappe.get_doc("Bank Payment Request", request.get("name"))
+		if not payment_order.company:
+			payment_order.company = source.company
+		set_missing_values(source, payment_order)
+	payment_order.get_summary()
+	payment_order.save()
+	try:
+		if frappe.get_single("India Banking Settings").submit_payment_order:
+			payment_order.submit()
+	except Exception:
+		payment_order.docstatus = 0
+		payment_order.save()
+
+	return payment_order.name

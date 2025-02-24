@@ -18,4 +18,62 @@ frappe.listview_settings["Bank Payment Request"] = {
 			return [__("Cancelled"), "red", "status,=,Cancelled"];
 		}
 	},
+	onload: function (listview) {
+		listview.page.add_action_item(__("Payment Order"), ()=>{create_bulk_order(listview)});
+	}
 };
+
+
+const create_bulk_order = function (listview) {
+	if(!listview.page.fields_dict.company.value){
+		frappe.throw({ message: __("Please select a Company filter first."), title: __("Mandatory") });
+	}
+
+	let checked_items = listview.get_checked_items();
+	const doc_name = [];
+	const requestsed = [];
+	checked_items.forEach((Item) => {
+	  if (Item.docstatus != 1) {
+		doc_name.push(Item.name);
+	  }
+	  else if (Item.status != "Initiated") {
+		requestsed.push(Item.name);
+	  }
+	});
+
+	let count_of_rows = checked_items.length;
+	frappe.confirm(__("Create Payment Order"), () => {
+	  if (doc_name.length == 0 && requestsed.length == 0) {
+		frappe
+		  .call({
+			method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_bulk_bank_payment_order",
+			args: { requests: checked_items },
+			freeze: true,
+			freeze_message: __("Creating Payment Order"),
+		  })
+		  .then((r) => {
+			if(r.message){
+			  setTimeout(()=>{
+				  frappe.msgprint("Payment order created successfully");
+				  cur_list.refresh();
+				},
+				5000
+			  )
+			}
+		  });
+		if (count_of_rows > 10) {
+		  frappe.show_alert("Starting a background job to create {0} {1}", [
+			count_of_rows,
+			__("Payment Order"),
+		  ]);
+		}
+	  } else {
+		if (doc_name.length > 0) {
+		  frappe.msgprint(__("Selected document must be in submitted state"));
+		}
+		if (requestsed.length > 0) {
+		  frappe.msgprint(__("Selected document must be in Initiated state"));
+		}
+	  }
+	});
+}

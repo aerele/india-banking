@@ -67,3 +67,17 @@ STD_BANK_LIST = [
 ]
 
 ALLOWED_DOCTYPES = ["Purchase Order", "Purchase Invoice", "Payroll Entry"]
+
+PAYMENT_SUMMARY_FIELDS = [
+	"party_type",
+	"party",
+	"bank_account",
+	"account",
+	"cost_center",
+	"project",
+	"tax_withholding_category",
+	"reference_doctype",
+	"reference_name",
+	"payment_entry",
+	"journal_entry_account",
+]

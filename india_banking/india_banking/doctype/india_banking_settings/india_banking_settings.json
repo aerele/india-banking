@@ -9,9 +9,12 @@
   "retry_period",
   "column_break_wjye",
   "default_email_format",
-  "submit_bank_payment_request",
   "notify_party",
   "allow_unreconcile",
+  "bulk_creation_configurations_section",
+  "submit_bank_payment_request",
+  "column_break_xfzu",
+  "submit_payment_order",
   "section_break_ejya",
   "companies",
   "allowed_doctypes_section_section",
@@ -81,12 +84,28 @@
    "fieldname": "allow_unreconcile",
    "fieldtype": "Check",
    "label": "Allow Unreconcile"
+  },
+  {
+   "default": "0",
+   "fieldname": "submit_payment_order",
+   "fieldtype": "Check",
+   "label": "Submit Payment Order"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "bulk_creation_configurations_section",
+   "fieldtype": "Section Break",
+   "label": "Bulk Creation Configurations"
+  },
+  {
+   "fieldname": "column_break_xfzu",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-21 10:33:35.816736",
+ "modified": "2025-02-21 12:46:59.524532",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

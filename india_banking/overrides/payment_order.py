@@ -138,6 +138,58 @@ class CustomPaymentOrder(PaymentOrder):
 				)
 		super().on_cancel()
 
+	def on_update(self):
+		self.verify_and_update_summary_references()
+
+	@frappe.whitelist()
+	def verify_and_update_summary_references(self):
+		try:
+
+			def _get_unique_key(reference=None, summarise_field_only=False):
+				summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
+				summarise_field.extend(get_accounting_dimensions())
+
+				if self.summarise_payment_based_on == "Party":
+					summarise_field.remove("reference_name")
+
+				if summarise_field_only:
+					return tuple(summarise_field)
+				else:
+					return tuple(
+						[reference.get(field, "") for field in summarise_field]
+					)
+
+			summary = {}
+			for reference in self.references:
+				key = _get_unique_key(reference)
+
+				if key in summary:
+					summary[key]["amount"] += reference.amount
+					summary[key]["summary_references"].append(reference.name)
+
+				else:
+					summary[key] = {
+						"amount": reference.amount,
+						"summary_references": [reference.name],
+					}
+
+			if len(summary) != len(self.summary):
+				frappe.throw(_("Please validate the summary"))
+
+			for ref_summary, summary_row in zip(list(summary.values()), self.summary):
+				if ref_summary.get("amount") != summary_row.get("amount"):
+					frappe.throw(
+						title="Summary details mismatch",
+						msg=_("Please validate the summary"),
+					)
+				summary_row.db_set(
+					"summary_references", str(ref_summary["summary_references"])
+				)
+		except Exception:
+			frappe.db.rollback()
+		else:
+			frappe.db.commit()
+
 	def on_trash(self):
 		if self.docstatus == 1:
 			frappe.throw(_("You cannot delete a payment order"))
@@ -208,9 +260,12 @@ def get_party_summary(
 		key = _get_unique_key(reference)
 
 		if key in summary:
-			summary[key] += reference.amount
+			summary[key]["amount"] += reference.amount
+
 		else:
-			summary[key] = reference.amount
+			summary[key] = {
+				"amount": reference.amount,
+			}
 
 	result = []
 	for key, val in summary.items():
@@ -224,8 +279,10 @@ def get_party_summary(
 
 		summary_line_item.update(
 			{
-				"amount": val,
-				"mode_of_transfer": get_mode_of_transfer(val, party_bank, company_bank),
+				"amount": val.get("amount"),
+				"mode_of_transfer": get_mode_of_transfer(
+					val.get("amount"), party_bank, company_bank
+				),
 			}
 		)
 

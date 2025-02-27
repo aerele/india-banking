@@ -85,7 +85,7 @@ frappe.ui.form.on("Payment Order", {
 		}
 	},
 
-	set_get_payments_from_buttons(frm) {
+	async set_get_payments_from_buttons(frm) {
 		if (frm.doc.docstatus === 0) {
 			// Define an array of payment sources and their respective triggers
 			const payment_sources = [
@@ -104,22 +104,19 @@ frappe.ui.form.on("Payment Order", {
 			];
 
 			// Add custom buttons for each payment source
-			payment_sources.forEach((source) => {
-				frappe.db
-					.get_single_value(
-						"India Banking Settings",
-						"allowed_payment_doctypes"
-					)
-					.then((res) => {
-						if (res.split("\n").includes(source.label)) {
-							frm.add_custom_button(
-								source.label,
-								() => frm.trigger(source.trigger),
-								__("Get Payments from")
-							);
-						}
-					});
-			});
+			for (const source of payment_sources) {
+				const res = await frappe.db.get_single_value(
+					"India Banking Settings",
+					"allowed_payment_doctypes"
+				);
+				if (res.split("\n").includes(source.label)) {
+					frm.add_custom_button(
+						source.label,
+						() => frm.trigger(source.trigger),
+						__("Get Payments from")
+					);
+				}
+			}
 		}
 	},
 
@@ -312,7 +309,7 @@ frappe.ui.form.on("Payment Order", {
 			if (has_initiated_or_non_pending) {
 				frm.dashboard.add_comment(
 					"Payment is already initiated. Check the status using the 'Get Status' button before trying again.",
-					(permanent = false)
+					permanent = false
 				);
 				frm.add_custom_button(__("Get Status"), () => {
 					frappe.call({

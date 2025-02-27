@@ -60,8 +60,6 @@ frappe.ui.form.on("Payment Order", {
 		frm.trigger("set_get_payments_from_buttons");
 		frm.trigger("set_payment_and_status_buttons");
 		frm.trigger("set_pending_payment_cancel_button");
-
-		frm.trigger("remove_button");
 	},
 
   set_pending_payment_cancel_button(frm) {
@@ -117,6 +115,7 @@ frappe.ui.form.on("Payment Order", {
 					);
 				}
 			}
+			frm.trigger("remove_button");
 		}
 	},
 

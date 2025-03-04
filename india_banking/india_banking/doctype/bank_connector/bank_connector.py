@@ -75,6 +75,7 @@ class BankConnector(Document):
 		)
 		payment_payload.method = self.get("action", "") or action
 		payment_payload.bulk_transaction = self.bulk_transaction
+		payment_payload.doc.otp = otp
 
 		return payment_payload
 

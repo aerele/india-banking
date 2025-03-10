@@ -882,7 +882,7 @@ def notify_party(payment_info, response_data):
 					cc= notification_details.cc,
 					subject="Payment Notification",
 					message="Payment for {0} is completed. Please check the attachment for details".format(
-						payment_info.party
+						payment_info.party_name
 					),
 					attachments=[
 						{

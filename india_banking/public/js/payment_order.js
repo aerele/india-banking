@@ -56,12 +56,13 @@ frappe.ui.form.on("Payment Order", {
 	refresh(frm) {
 		frm.remove_custom_button("Payment Entry", "Get Payments from");
 		frm.remove_custom_button("Payment Request", "Get Payments from");
+		frm.remove_custom_button("Bank Entry(JV)", "Get Payments from");
+		// Remove the "Create Journal Entries" button
+		frm.remove_custom_button("Create Journal Entries");
 
 		frm.trigger("set_get_payments_from_buttons");
 		frm.trigger("set_payment_and_status_buttons");
 		frm.trigger("set_pending_payment_cancel_button");
-
-		frm.trigger("remove_button");
 	},
 
   set_pending_payment_cancel_button(frm) {
@@ -85,7 +86,7 @@ frappe.ui.form.on("Payment Order", {
 		}
 	},
 
-	set_get_payments_from_buttons(frm) {
+	async set_get_payments_from_buttons(frm) {
 		if (frm.doc.docstatus === 0) {
 			// Define an array of payment sources and their respective triggers
 			const payment_sources = [
@@ -104,22 +105,30 @@ frappe.ui.form.on("Payment Order", {
 			];
 
 			// Add custom buttons for each payment source
-			payment_sources.forEach((source) => {
-				frappe.db
-					.get_single_value(
-						"India Banking Settings",
-						"allowed_payment_doctypes"
-					)
-					.then((res) => {
-						if (res.split("\n").includes(source.label)) {
-							frm.add_custom_button(
-								source.label,
-								() => frm.trigger(source.trigger),
-								__("Get Payments from")
-							);
-						}
-					});
-			});
+			for (const source of payment_sources) {
+				const res = await frappe.db.get_single_value(
+					"India Banking Settings",
+					"allowed_payment_doctypes"
+				);
+				if (res.split("\n").includes(source.label)) {
+					if (
+						frm.doc.payment_order_type == source.label ||
+						(source.label == "Bank Entry(JV)" && frm.doc.payment_order_type == "Journal Entry")
+					) {
+						frm.add_custom_button(
+							source.label,
+							() => frm.trigger(source.trigger),
+							__("Get Payments from")
+						);
+					} else if (!frm.doc.payment_order_type) {
+						frm.add_custom_button(
+							source.label,
+							() => frm.trigger(source.trigger),
+							__("Get Payments from")
+						);
+					}
+				}
+			}
 		}
 	},
 
@@ -312,7 +321,7 @@ frappe.ui.form.on("Payment Order", {
 			if (has_initiated_or_non_pending) {
 				frm.dashboard.add_comment(
 					"Payment is already initiated. Check the status using the 'Get Status' button before trying again.",
-					(permanent = false)
+					permanent = false
 				);
 				frm.add_custom_button(__("Get Status"), () => {
 					frappe.call({
@@ -395,32 +404,6 @@ frappe.ui.form.on("Payment Order", {
 		);
 	},
 
-	remove_button: function (frm) {
-		// Remove the "Create Journal Entries" button
-		frm.remove_custom_button("Create Journal Entries");
-
-		// Check conditions for removing "Get Payments from" buttons
-		if (
-			(frm.doc.references.length > 0 && frm.doc.payment_order_type) ||
-			frm.doc.docstatus != 0
-		) {
-			// Define the mapping of payment_order_type to buttons
-			const button_mapping = {
-				"Payment Request": ["Bank Entry(JV)", "Payment Entry"],
-				"Payment Entry": ["Bank Entry(JV)", "Payment Request"],
-				"Journal Entry": ["Payment Request", "Payment Entry"],
-			};
-
-			// Get the relevant buttons based on the payment_order_type
-			const buttons_to_remove =
-				button_mapping[frm.doc.payment_order_type] || [];
-
-			// Iterate over the buttons and remove them
-			buttons_to_remove.forEach((button) => {
-				frm.remove_custom_button(button, "Get Payments from");
-			});
-		}
-	},
 	summarise_payment_based_on(frm) {
 		if (frm.doc.company_bank_account) {
 			frm.trigger("get_summary");

@@ -13,6 +13,8 @@
   "banking_section",
   "mode_of_transfer",
   "payment_status",
+  "payment_initiated",
+  "payment_date",
   "message",
   "reference_number",
   "bank_account",
@@ -31,8 +33,7 @@
   "accounting_dimensions_section",
   "cost_center",
   "project",
-  "payment_initiated",
-  "payment_date"
+  "summary_references"
  ],
  "fields": [
   {
@@ -226,12 +227,18 @@
    "fieldtype": "Data",
    "label": "Party Name",
    "read_only": 1
+  },
+  {
+   "fieldname": "summary_references",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Summary References"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-02-10 20:54:29.962219",
+ "modified": "2025-02-27 12:57:09.480234",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Payment Order Summary",

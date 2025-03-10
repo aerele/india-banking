@@ -853,19 +853,19 @@ def get_party_bank_account_with_cost_center(party_type, party, cost_center=None)
 		"party": party,
 		"is_default": 1,
 	}
+
+	party_account = frappe.db.get_value("Bank Account", filters, "name")
+
+	if not party_account:
+		frappe.throw(frappe._("Default Bank Account is missing for {0} - {1}").format(party_type, party))
+
 	if cost_center:
+		del filters["is_default"]
 		filters["cost_center"] = cost_center
 
 	party_account_with_cost_center = frappe.db.get_value("Bank Account", filters, "name")
-	msg = frappe._("Default Bank Account is missing for {0} - {1}").format(party_type, party)
-	if cost_center:
-			msg = frappe._("Default Bank Account is missing for {0} - {1}({2})").format(
-				party_type, party, frappe.bold(cost_center)
-			)
-	if not party_account_with_cost_center:
-		frappe.throw(msg)
 
-	return party_account_with_cost_center
+	return party_account_with_cost_center or party_account
 
 
 @frappe.whitelist()

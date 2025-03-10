@@ -63,6 +63,7 @@ def make_payment_order(source_name, target_doc=None):
 						)
 					),
 				)
+			return bank_account.name
 
 		def _get_reference_data(reference=None):
 			return {

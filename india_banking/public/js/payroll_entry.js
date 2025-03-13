@@ -4,7 +4,7 @@ frappe.ui.form.on("Payroll Entry", {
       frm.doc.salary_slips_submitted ||
       (frm.doc.__onload && frm.doc.__onload.submitted_ss)
     ) {
-      frm.events.add_payment_request_button(frm);
+      // frm.events.add_payment_request_button(frm);
     }
   },
   add_payment_request_button: function (frm) {

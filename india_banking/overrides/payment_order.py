@@ -6,7 +6,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 )
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from frappe import _
-from frappe.utils import get_link_to_form
+from frappe.utils import get_link_to_form, getdate
 
 from india_banking.default import PAYMENT_SUMMARY_FIELDS
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
@@ -15,6 +15,19 @@ from india_banking.india_banking.doc_events.payroll_entry import make_bank_entri
 
 class CustomPaymentOrder(PaymentOrder):
 	def before_submit(self):
+		if not frappe.get_single(
+			"India Banking Settings"
+		).allow_future_date_payment_order:
+			if getdate(self.posting_date) > getdate():
+				link = get_link_to_form(
+					"India Banking Settings", "India Banking Settings"
+				)
+				frappe.throw(
+					title=_("Future Date Not Allowed"),
+					msg=_(
+						f"Future Payment Order Date is not allowed! <br> Please go to <b>{link}</b> and enable 'Allow Future Date Payment Order' to proceed."
+					),
+				)
 		self.validate_bank_payment_request()
 
 	def validate_bank_payment_request(self):

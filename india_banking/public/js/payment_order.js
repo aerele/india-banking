@@ -65,27 +65,20 @@ frappe.ui.form.on("Payment Order", {
 		frm.trigger("set_pending_payment_cancel_button");
 	},
 
-  set_pending_payment_cancel_button(frm) {
-    const has_pending_payment = frm.doc.summary?.some(
-      (item) => item.payment_status == "Pending"
-    );
-    if (has_pending_payment && frm.doc.docstatus == 1) {
-      frm.add_custom_button(__("Cancel Pending Payments"), function () {
-        show_update_status_dialog(frm);
-      });
-    }
-  },
 	set_pending_payment_cancel_button(frm) {
-		const has_pending_payment = frm.doc.summary.some(
+		const has_pending_payment = frm.doc.summary?.filter(
 			(item) => item.payment_status == "Pending"
-		);
-		if (has_pending_payment && frm.doc.docstatus == 1) {
+		).length;
+		if (
+			has_pending_payment &&
+			has_pending_payment < frm.doc.summary.length &&
+			frm.doc.docstatus == 1
+		){
 			frm.add_custom_button(__("Cancel Pending Payments"), function () {
 				show_update_status_dialog(frm);
 			});
 		}
 	},
-
 	async set_get_payments_from_buttons(frm) {
 		if (frm.doc.docstatus === 0) {
 			// Define an array of payment sources and their respective triggers
@@ -158,6 +151,7 @@ frappe.ui.form.on("Payment Order", {
 				bank: frm.doc.bank,
 				name: ["not in", existing_payment_requests],
 				company: frm.doc.company,
+				transaction_date: ["<=", frappe.datetime.get_today()]
 			},
 		});
 	},
@@ -299,7 +293,7 @@ frappe.ui.form.on("Payment Order", {
 				(item) => item.payment_status === "Pending"
 			);
 
-			if (has_pending_payments) {
+			if (frappe.user_roles.includes("Payment Manager") && has_pending_payments) {
 				// Add a custom button to initiate payment
 				frm.add_custom_button(__("Initiate Payment"), () => {
 					frm.trigger("make_payment");

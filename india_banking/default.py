@@ -59,6 +59,8 @@ STD_BANK_LIST = [
 	"Kotak Mahindra Bank",
 ]
 
+DEFAULT_ROLES = ["Payment Manager"]
+
 DEFAULT_WORKFLOW_STATE = [
 	"Pending",
 	"Approved",

@@ -6,9 +6,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 )
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
 from frappe import _, parse_json
-from frappe.utils import nowdate
-
-from india_banking.default import PAYMENT_SUMMARY_FIELDS
+from frappe.utils import flt, nowdate
 
 
 @frappe.whitelist()
@@ -41,28 +39,14 @@ def cancel_pending_payments(data):
 
 def process_payment_requests(payment_order_summary):
 	pos = frappe.get_doc("Payment Order Summary", payment_order_summary)
-	payment_order_doc = frappe.get_doc("Payment Order", pos.parent)
 
-	summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
-	if pos.get("reference_doctype", "") == "Payroll Entry":
-		payment_order_doc.summarise_payment_based_on = "Voucher"
-
-	if payment_order_doc.summarise_payment_based_on == "Party":
-		summarise_field.remove("reference_name")
-
-	summarise_field.extend(get_accounting_dimensions())
-	key = tuple([pos.get(field, "") for field in summarise_field])
-
-	failed_prs = []
-	for ref in payment_order_doc.references:
-		ref_key = tuple([(ref.get(field, "") or "") for field in summarise_field])
-
-		if key == ref_key and ref.payment_request:
-			failed_prs.append(ref.payment_request)
-
-	for pr in failed_prs:
-		pr_doc = frappe.get_doc("Payment Request", pr)
-		if pr_doc.docstatus == 1:
+	summary_references = ast.literal_eval(pos.summary_references)
+	for reference in summary_references:
+		payment_request = frappe.get_value(
+			"Payment Order Reference", reference, "payment_request"
+		)
+		if payment_request:
+			pr_doc = frappe.get_doc("Payment Request", payment_request)
 			pr_doc.check_if_payment_entry_exists()
 			pr_doc.set_as_cancelled()
 			pr_doc.db_set("docstatus", 2)
@@ -78,8 +62,8 @@ def make_payment_entries(docname):
 			{
 				"reference_doctype": reference.reference_doctype,
 				"reference_name": reference.reference_name,
-				"total_amount": reference_amount,
-				"allocated_amount": allocated_amount or reference_amount,
+				"total_amount": flt(reference_amount),
+				"allocated_amount": flt(allocated_amount) or flt(reference_amount),
 				"payment_term": payment_term,
 				"payment_request": reference.payment_request,
 			},
@@ -100,6 +84,10 @@ def make_payment_entries(docname):
 		pe.cost_center = row.cost_center
 		pe.project = row.project
 		pe.posting_date = nowdate()
+		if frappe.get_single(
+			"India Banking Settings"
+		).use_payment_order_date_as_payment_entry_date:
+			pe.posting_date = payment_order_doc.posting_date
 		pe.mode_of_payment = "Wire Transfer"
 		pe.party_type = row.party_type
 		pe.party = row.party

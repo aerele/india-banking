@@ -245,7 +245,10 @@ class CustomPaymentOrder(PaymentOrder):
 
 @frappe.whitelist()
 def get_party_summary(
-	references, company_bank_account, summarise_payment_based_on=None
+	references,
+	company_bank_account,
+	summarise_payment_based_on=None,
+	default_mode_of_transfer=None,
 ):
 	references = json.loads(references)
 	if not len(references) or not company_bank_account:
@@ -294,7 +297,10 @@ def get_party_summary(
 			{
 				"amount": val.get("amount"),
 				"mode_of_transfer": get_mode_of_transfer(
-					val.get("amount"), party_bank, company_bank
+					val.get("amount"),
+					party_bank,
+					company_bank,
+					default_mode_of_transfer,
 				),
 			}
 		)
@@ -304,21 +310,27 @@ def get_party_summary(
 	return result
 
 
-def get_mode_of_transfer(amount, party_bank, company_bank):
+def get_mode_of_transfer(
+	amount, party_bank, company_bank, default_mode_of_transfer=None
+):
 	mode_of_transfer = None
 	if party_bank == company_bank:
 		mode_of_transfer = frappe.db.get_value(
 			"Mode of Transfer", {"is_bank_specific": 1, "bank": party_bank}
 		)
 	else:
-		mode_of_transfer = frappe.db.get_value(
-			"Mode of Transfer",
-			{
-				"minimum_limit": ["<=", amount],
-				"maximum_limit": [">", amount],
-				"is_bank_specific": 0,
-			},
-			order_by="priority asc",
+		mode_of_transfer = (
+			frappe.db.get_value(
+				"Mode of Transfer",
+				{
+					"minimum_limit": ["<=", amount],
+					"maximum_limit": [">", amount],
+					"is_bank_specific": 0,
+					"disabled": 0,
+				},
+				order_by="priority asc",
+			)
+			or default_mode_of_transfer
 		)
 
 	return mode_of_transfer

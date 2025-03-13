@@ -185,55 +185,6 @@ frappe.ui.form.on("Payment Order", {
 		});
 	},
 
-  get_payments_from_journal_entry(frm) {
-    if(!frm.doc.company_bank_account){
-      frappe.throw("Please Select Company bank account first")
-    }
-    erpnext.utils.map_current_doc({
-      method: "india_banking.overrides.journal_entry.make_payment_order",
-      source_doctype: "Journal Entry",
-      target: frm,
-      setters: [
-        {
-          fieldtype: "Link",
-          label: "Company",
-          fieldname: "company",
-          options: "Company",
-          default: frappe.defaults.get_user_default("company"),
-        },
-        {
-          fieldtype: "Select",
-          label: "Entry Type",
-          fieldname: "voucher_type",
-          options: "Bank Entry",
-          hidden: true,
-        },
-        {
-          fieldtype: "Currency",
-          label: "Amount",
-          fieldname: "total",
-          hidden: true,
-        },
-      ],
-      get_query: function () {
-        // Extract unique reference names from the references table
-        const existing_journal_entries = [
-          ...new Set(
-            (frm.doc.references || []).map(
-              (reference) => reference.reference_name
-            )
-          ),
-        ];
-        return {
-          query: "india_banking.overrides.journal_entry.get_bank_entry",
-          filters: {
-            docs: existing_journal_entries,
-            company_account: frm.doc.account,
-          },
-        };
-      },
-    });
-  },
 	get_payments_from_journal_entry(frm) {
 		erpnext.utils.map_current_doc({
 			method: "india_banking.overrides.journal_entry.make_payment_order",

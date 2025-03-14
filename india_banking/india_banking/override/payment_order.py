@@ -115,7 +115,7 @@ class CustomPaymentOrder(PaymentOrder):
 
 
 @frappe.whitelist()
-def get_party_summary(references, company_bank_account):
+def get_party_summary(references, company_bank_account, default_mode_of_transfer=None):
 	references = json.loads(references)
 	if not len(references) or not company_bank_account:
 		return
@@ -174,10 +174,11 @@ def get_party_summary(references, company_bank_account):
 			mot = frappe.db.get_value("Mode of Transfer", {
 				"minimum_limit": ["<=", row["amount"]],
 				"maximum_limit": [">", row["amount"]],
-				"is_bank_specific": 0
+				"is_bank_specific": 0,
+				"disabled": 0
 				}, 
 				order_by = "priority asc")
-			if mot:
-				row["mode_of_transfer"] = mot
+
+			row["mode_of_transfer"] = mot or default_mode_of_transfer
 
 	return result

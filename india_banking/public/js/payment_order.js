@@ -218,7 +218,8 @@ frappe.ui.form.on('Payment Order', {
 			method: "india_banking.india_banking.override.payment_order.get_party_summary",
 			args: {
 				references: frm.doc.references,
-				company_bank_account: frm.doc.company_bank_account
+				company_bank_account: frm.doc.company_bank_account,
+				default_mode_of_transfer: frm.doc.default_mode_of_transfer,
 			},
 			freeze: true,
 			callback: function(r) {

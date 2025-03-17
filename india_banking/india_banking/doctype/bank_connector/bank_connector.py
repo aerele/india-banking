@@ -465,6 +465,7 @@ class BankConnector(Document):
 			success_count = 0
 			faild_count = 0
 			rejected_count = 0
+			initiated_count = 0
 			for summary in payment_order.summary:
 				status = frappe.db.get_value(
 					"Payment Order Summary", summary.name, "payment_status"
@@ -475,8 +476,14 @@ class BankConnector(Document):
 					faild_count += 1
 				if status == "Rejected":
 					rejected_count += 1
+				if status == "Initiated":
+					initiated_count += 1
 
-			if success_count == len(payment_order.summary):
+			if initiated_count == len(payment_order.summary):
+				frappe.db.set_value(
+					"Payment Order", payment_order.name, "status", "Initiated"
+				)
+			elif success_count == len(payment_order.summary):
 				frappe.db.set_value(
 					"Payment Order", payment_order.name, "status", "Approved"
 				)
@@ -496,6 +503,10 @@ class BankConnector(Document):
 			):
 				frappe.db.set_value(
 					"Payment Order", payment_order.name, "status", "Partially Approved"
+				)
+			elif initiated_count > 0:
+				frappe.db.set_value(
+					"Payment Order", payment_order.name, "status", "Partially Initiated"
 				)
 		except Exception:
 			frappe.log_error(

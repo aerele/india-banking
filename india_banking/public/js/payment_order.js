@@ -235,7 +235,6 @@ frappe.ui.form.on("Payment Order", {
 	set_payment_and_status_buttons(frm) {
 		// Check if the document is in a pending state and user has write permissions
 		if (
-			frm.doc.status === "Pending" &&
 			frm.doc.docstatus === 1 &&
 			frm.has_perm("write")
 		) {
@@ -253,7 +252,6 @@ frappe.ui.form.on("Payment Order", {
 		}
 
 		if (
-			["Pending", "Initiated"].includes(frm.doc.status) &&
 			frm.doc.docstatus === 1 &&
 			frm.has_perm("write")
 		) {

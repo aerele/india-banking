@@ -12,6 +12,65 @@ from frappe.utils import get_url_to_form
 def make_payment_order(source_name, target_doc=None, args=None):
 	from frappe.model.mapper import get_mapped_doc
 
+	def validate_party_bank_account(bank_entry=None):
+		if not bank_entry:
+			return
+
+		JournalEntryAccount = DocType("Journal Entry Account")
+		BankAccount = DocType("Bank Account")
+
+		bank_account_query = (
+			frappe.qb.from_(JournalEntryAccount)
+			.left_join(BankAccount)
+			.on(JournalEntryAccount.party == BankAccount.party)
+			.select(
+				JournalEntryAccount.party_type,
+				JournalEntryAccount.party,
+				BankAccount.name.as_("bank_account"),
+			)
+			.where(
+				(JournalEntryAccount.parent == bank_entry)
+				& (
+					JournalEntryAccount.payment_status.notin(
+						["Paid", "Ordered", "Payment Ordered"]
+					)
+				)
+				& (
+					(BankAccount.name.isnull())
+					| (BankAccount.disabled == 1)
+					| (BankAccount.is_default == 0)
+				)
+			)
+			.groupby(JournalEntryAccount.party)
+		)
+
+		non_bank_account_party = bank_account_query.run(as_dict=1)
+
+		msg = ""
+		for party_details in non_bank_account_party:
+			if (
+				party_details
+				and (party_type := party_details.get("party_type"))
+				and (party := party_details.get("party"))
+			):
+				if not party_details.get("bank_account"):
+					msg += (
+						f"<b>{party_type}-{party}</b> does not have a bank account.<br>"
+					)
+				else:
+					msg += (
+						f"<b>{party_type}-{party}</b> has no default bank account.<br>"
+					)
+		if msg:
+			frappe.msgprint(
+				_(
+					"We can see Some bank entries are missing bank account details and have been ignored. Please update the bank account information and try again.</br></br><p style='color:red'><b>Missing Details are below</b></p>"
+					+ msg
+				),
+				title=_("Missing Bank Account"),
+				indicator="orange",
+			)
+
 	def update_bank_entry(source, target):
 		JournalEntryAccount = DocType("Journal Entry Account")
 		BankAccount = DocType("Bank Account")
@@ -27,6 +86,9 @@ def make_payment_order(source_name, target_doc=None, args=None):
 			"parent as journal",
 		]
 		select_field.extend(get_accounting_dimensions())
+
+		# Validate party does NOT have a valid Bank Account
+		validate_party_bank_account(source.name)
 
 		# Build the query
 		query = (
@@ -54,9 +116,7 @@ def make_payment_order(source_name, target_doc=None, args=None):
 				& (BankAccount.disabled == 0)
 				& (BankAccount.is_default == 1)
 			)
-			.groupby(
-				JournalEntryAccount.name
-			)
+			.groupby(JournalEntryAccount.name)
 		)
 
 		journal_accounts = query.run(as_dict=True)

@@ -1,13 +1,10 @@
+import ast
 import json
 
 import frappe
-from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
-	get_accounting_dimensions,
-)
 from frappe import _
-from frappe.utils import cstr
 
-from india_banking.default import ALLOWED_PAYMENT_DOCTYPE, PAYMENT_SUMMARY_FIELDS
+from india_banking.default import ALLOWED_PAYMENT_DOCTYPE
 
 
 @frappe.whitelist()
@@ -100,45 +97,40 @@ def extract_error_message(response_json, show_message=False) -> str:
 
 
 def unlink_bank_payment(payment_order_summary=None):
+	"""
+	Unlinks bank payment references from the given payment order summary.
+
+	This function takes a payment order summary and removes the references to
+	payment requests and payment order references associated with it. It updates
+	the database to clear the reference doctype and reference name fields.
+	"""
 	if not payment_order_summary:
 		return
 
-	payment_order = frappe.get_doc("Payment Order", payment_order_summary.parent)
-
-	summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
-	summarise_field.remove("payment_entry")
-	summarise_field.extend(get_accounting_dimensions())
-
-	if payment_order.references[0].get("reference_doctype", "") == "Payroll Entry":
-		payment_order.summarise_payment_based_on = "Voucher"
-
-	if payment_order.summarise_payment_based_on == "Party":
-		summarise_field.remove("reference_name")
-
-	for reference in payment_order.references:
-		if all(
-			(
-				cstr(reference.get(field, ""))
-				== cstr(payment_order_summary.get(field, ""))
-				for field in summarise_field
-			)
-		):
+	summary_references = ast.literal_eval(
+		payment_order_summary.get("summary_references")
+	)
+	for reference in summary_references:
+		payment_request = frappe.get_doc(
+			"Payment Order Reference", reference, "payment_request"
+		)
+		if payment_request:
 			frappe.db.set_value(
 				"Payment Request",
-				reference.payment_request,
+				payment_request,
 				{"reference_doctype": "", "reference_name": ""},
 			)
-			frappe.db.set_value(
-				"Payment Order Reference",
-				reference.name,
-				{"reference_doctype": "", "reference_name": ""},
-			)
-			if payment_order_summary.payment_status not in ["Processed", "Initiated"]:
-				frappe.db.set_value(
-					"Payment Order Summary",
-					payment_order_summary.name,
-					{"reference_doctype": "", "reference_name": ""},
-				)
+		frappe.db.set_value(
+			"Payment Order Reference",
+			reference,
+			{"reference_doctype": "", "reference_name": ""},
+		)
+
+		frappe.db.set_value(
+			"Payment Order Summary",
+			payment_order_summary.name,
+			{"reference_doctype": "", "reference_name": ""},
+		)
 
 
 def get_payment_order_summary(payment_entry):

@@ -6,7 +6,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 )
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from frappe import _
-from frappe.utils import get_link_to_form
+from frappe.utils import get_link_to_form, getdate
 
 from india_banking.default import PAYMENT_SUMMARY_FIELDS
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
@@ -15,6 +15,19 @@ from india_banking.india_banking.doc_events.payroll_entry import make_bank_entri
 
 class CustomPaymentOrder(PaymentOrder):
 	def before_submit(self):
+		if not frappe.get_single(
+			"India Banking Settings"
+		).allow_future_date_payment_order:
+			if getdate(self.posting_date) > getdate():
+				link = get_link_to_form(
+					"India Banking Settings", "India Banking Settings"
+				)
+				frappe.throw(
+					title=_("Future Date Not Allowed"),
+					msg=_(
+						f"Future Payment Order Date is not allowed! <br> Please go to <b>{link}</b> and enable 'Allow Future Date Payment Order' to proceed."
+					),
+				)
 		self.validate_bank_payment_request()
 
 	def validate_bank_payment_request(self):
@@ -232,7 +245,10 @@ class CustomPaymentOrder(PaymentOrder):
 
 @frappe.whitelist()
 def get_party_summary(
-	references, company_bank_account, summarise_payment_based_on=None
+	references,
+	company_bank_account,
+	summarise_payment_based_on=None,
+	default_mode_of_transfer=None,
 ):
 	references = json.loads(references)
 	if not len(references) or not company_bank_account:
@@ -281,7 +297,10 @@ def get_party_summary(
 			{
 				"amount": val.get("amount"),
 				"mode_of_transfer": get_mode_of_transfer(
-					val.get("amount"), party_bank, company_bank
+					val.get("amount"),
+					party_bank,
+					company_bank,
+					default_mode_of_transfer,
 				),
 			}
 		)
@@ -291,21 +310,27 @@ def get_party_summary(
 	return result
 
 
-def get_mode_of_transfer(amount, party_bank, company_bank):
+def get_mode_of_transfer(
+	amount, party_bank, company_bank, default_mode_of_transfer=None
+):
 	mode_of_transfer = None
 	if party_bank == company_bank:
 		mode_of_transfer = frappe.db.get_value(
 			"Mode of Transfer", {"is_bank_specific": 1, "bank": party_bank}
 		)
 	else:
-		mode_of_transfer = frappe.db.get_value(
-			"Mode of Transfer",
-			{
-				"minimum_limit": ["<=", amount],
-				"maximum_limit": [">", amount],
-				"is_bank_specific": 0,
-			},
-			order_by="priority asc",
+		mode_of_transfer = (
+			frappe.db.get_value(
+				"Mode of Transfer",
+				{
+					"minimum_limit": ["<=", amount],
+					"maximum_limit": [">", amount],
+					"is_bank_specific": 0,
+					"disabled": 0,
+				},
+				order_by="priority asc",
+			)
+			or default_mode_of_transfer
 		)
 
 	return mode_of_transfer

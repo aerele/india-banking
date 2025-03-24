@@ -176,12 +176,13 @@ frappe.ui.form.on("Payment Order", {
 			},
 			get_query_filters: {
 				docstatus: 1,
-				name: ["not in", existing_payment_entries],
+				existing_payment_entries: existing_payment_entries,
 				source_doctype: ["!=", "Payment Request"],
 				payment_type: "Pay",
 				mode_of_payment: "Wire Transfer",
 				bank_account: frm.doc.company_bank_account,
 			},
+			get_query_method: "india_banking.overrides.payment_entry.get_payment_entry",
 		});
 	},
 

@@ -1,6 +1,7 @@
 # Copyright (c) 2024, Aerele Technologies Private Limited and contributors
 # For license information, please see license.txt
 
+import ast
 import json
 import re
 
@@ -14,7 +15,6 @@ from frappe.model.document import Document
 from frappe.utils import cint, cstr, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
-from india_banking.default import PAYMENT_SUMMARY_FIELDS
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
 )
@@ -75,6 +75,7 @@ class BankConnector(Document):
 		)
 		payment_payload.method = self.get("action", "") or action
 		payment_payload.bulk_transaction = self.bulk_transaction
+		payment_payload.doc.otp = otp
 
 		return payment_payload
 
@@ -464,6 +465,7 @@ class BankConnector(Document):
 			success_count = 0
 			faild_count = 0
 			rejected_count = 0
+			initiated_count = 0
 			for summary in payment_order.summary:
 				status = frappe.db.get_value(
 					"Payment Order Summary", summary.name, "payment_status"
@@ -474,8 +476,14 @@ class BankConnector(Document):
 					faild_count += 1
 				if status == "Rejected":
 					rejected_count += 1
+				if status == "Initiated":
+					initiated_count += 1
 
-			if success_count == len(payment_order.summary):
+			if initiated_count == len(payment_order.summary):
+				frappe.db.set_value(
+					"Payment Order", payment_order.name, "status", "Initiated"
+				)
+			elif success_count == len(payment_order.summary):
 				frappe.db.set_value(
 					"Payment Order", payment_order.name, "status", "Approved"
 				)
@@ -495,6 +503,10 @@ class BankConnector(Document):
 			):
 				frappe.db.set_value(
 					"Payment Order", payment_order.name, "status", "Partially Approved"
+				)
+			elif initiated_count > 0:
+				frappe.db.set_value(
+					"Payment Order", payment_order.name, "status", "Partially Initiated"
 				)
 		except Exception:
 			frappe.log_error(
@@ -584,26 +596,13 @@ class BankConnector(Document):
 
 	def process_bank_payment_requests(self, payment_order, summary):
 		payment_order.reload()
-		summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
-		if summary.get("reference_doctype", "") == "Payroll Entry":
-			payment_order.summarise_payment_based_on = "Voucher"
-
-		if payment_order.summarise_payment_based_on == "Party":
-			summarise_field.remove("reference_name")
-
-		summarise_field.extend(get_accounting_dimensions())
-		key = tuple([summary.get(field, "") for field in summarise_field])
-
-		failed_prs = []
-		for ref in payment_order.references:
-			ref_key = tuple([(ref.get(field, "") or "") for field in summarise_field])
-
-			if key == ref_key and ref.payment_request:
-				failed_prs.append(ref.payment_request)
-
-		for pr in failed_prs:
-			pr_doc = frappe.get_doc("Payment Request", pr)
-			if pr_doc.docstatus == 1:
+		summary_references = ast.literal_eval(summary.get("summary_references"))
+		for reference in summary_references:
+			payment_request = frappe.get_value(
+				"Payment Order Reference", reference, "payment_request"
+			)
+			if payment_request:
+				pr_doc = frappe.get_doc("Payment Request", payment_request)
 				pr_doc.check_if_payment_entry_exists()
 				pr_doc.set_as_cancelled()
 				pr_doc.db_set("docstatus", 2)

@@ -17,6 +17,12 @@ frappe.listview_settings["Payment Order"] = {
         "yellow",
         "status,=,Partially Approved",
       ];
+    } else if (doc.status == "Partially Initiated") {
+      return [
+        __("Partially Initiated"),
+        "grey",
+        "status,=,Partially Initiated",
+      ];
     }
   },
 };

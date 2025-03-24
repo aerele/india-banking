@@ -7,6 +7,8 @@
  "field_order": [
   "summarise_payment_based_on",
   "enable_payment_in_the_background",
+  "use_payment_order_date_as_payment_entry_date",
+  "allow_future_date_payment_order",
   "column_break_wjye",
   "activate_workflow_on_bank_account",
   "allowed_payment_doctypes",
@@ -110,12 +112,24 @@
    "fieldname": "retry_period",
    "fieldtype": "Int",
    "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
+  },
+  {
+   "default": "0",
+   "fieldname": "use_payment_order_date_as_payment_entry_date",
+   "fieldtype": "Check",
+   "label": "Use Payment Order Date as Payment Entry Date"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_future_date_payment_order",
+   "fieldtype": "Check",
+   "label": "Allow future Date Payment Order"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-22 13:05:10.274363",
+ "modified": "2025-03-12 16:13:24.156102",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

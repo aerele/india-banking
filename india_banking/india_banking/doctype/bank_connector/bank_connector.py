@@ -7,9 +7,6 @@ import re
 
 import frappe
 import requests as request
-from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
-	get_accounting_dimensions,
-)
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, cstr, getdate
@@ -47,8 +44,15 @@ class BankConnector(Document):
 		}
 
 	@property
+	def integration_type(self):
+		return {
+			"H2H": "india_banking_h2h",
+			"API": "india_banking_connector",
+		}.get(self.bank_integration_type, "india_banking_connector")
+
+	@property
 	def connector_url(self):
-		return f"{self.url}/api/method/india_banking_connector.api.connect"
+		return f"{self.url}/api/method/{self.integration_type}.api.connect"
 
 	def check_otp_enabled(self, otp=None):
 		if (self.bank, self.bulk_transaction) in OTP_ENABLED_BANK and otp is None:
@@ -102,8 +106,7 @@ class BankConnector(Document):
 
 		if otp:
 			self.verify_otp(payment_order, otp)
-
-		if self.bulk_transaction:
+		if self.bank_integration_type == "H2H" or self.bulk_transaction:
 			url = self.connector_url
 			headers = self.headers
 
@@ -137,9 +140,13 @@ class BankConnector(Document):
 
 		if self.action == "initiate_payment":
 			msg = _("Payment Initiated")
-			if not self.bulk_transaction:
+			if self.bank_integration_type == "API" or (not self.bulk_transaction):
 				msg = _(f"{self.success_count} Payment(s) Initiated")
-			frappe.msgprint(msg)
+			if not frappe.flags.error_message:
+				frappe.msgprint(msg)
+			else:
+				frappe.msgprint(frappe.flags.error_message)
+				frappe.flags.error_message = ""
 
 	def verify_response(self, response, payment_order):
 		if self.action == "initiate_payment":
@@ -228,8 +235,9 @@ class BankConnector(Document):
 				)
 
 			else:
-				extract_error_message(response.json(), show_message=True)
-
+				frappe.flags.error_message = extract_error_message(
+					response.json(), show_message=False
+				)
 		else:
 			frappe.throw(_("Connection Failed"))
 

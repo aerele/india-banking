@@ -565,10 +565,13 @@ class BankConnector(Document):
 					)
 
 	def get_bank_balance(self, bank_account):
-		payload = {
-			"bank_account_number": bank_account.bank_account_no,
-			"method": "get_bank_balance",
+		payload = frappe._dict({})
+		doc = {
+			"company_bank": bank_account.bank,
+			"company_account_number": bank_account.bank_account_no,
 		}
+		payload.doc = doc
+		payload.method = "get_bank_balance"
 		response = request.post(
 			self.connector_url, headers=self.headers, data=json.dumps(payload)
 		)
@@ -629,16 +632,17 @@ class BankConnector(Document):
 		is_paginated=False,
 		last_tran_id=None,
 	):
-		payload = json.dumps(
-			{
-				"bank_account_number": bank_account.bank_account_no,
-				"from_date": from_date or add_days(getdate(), -1).strftime("%d-%m-%Y"),
-				"to_date": to_date or getdate().strftime("%d-%m-%Y"),
-				"paginated": is_paginated,
-				"last_transaction_id": last_tran_id,
-				"method": "get_bank_statement",
-			}
-		)
+		payload = frappe._dict({})
+		doc = {
+			"company_account_number": bank_account.bank_account_no,
+			"company_bank": bank_account.bank,
+			"from_date": from_date or add_days(getdate(), -1).strftime("%d-%m-%Y"),
+			"to_date": to_date or getdate().strftime("%d-%m-%Y"),
+			"paginated": is_paginated,
+			"last_transaction_id": last_tran_id,
+		}
+		payload.doc = doc
+		payload.method = "get_bank_statement"
 		response = request.post(
 			self.connector_url, headers=self.headers, data=json.dumps(payload)
 		)

@@ -4,6 +4,7 @@
 import ast
 import json
 import re
+import time
 
 import frappe
 import requests as request
@@ -152,6 +153,8 @@ class BankConnector(Document):
 		if self.action == "initiate_payment":
 			self.verify_payment_response(response, payment_order)
 		elif self.action == "get_payment_status":
+			time.sleep(1)  # User intreaction time
+
 			self.verify_status_response(response, payment_order)
 
 		self.update_payment_status(payment_order)

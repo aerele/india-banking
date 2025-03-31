@@ -64,6 +64,7 @@ def delete_custom_fields():
 			"taxes_deducted",
 			"apply_tax_withholding_amount",
 			"tax_withholding_category",
+			"salary_slip",
 			"payment_term",
 			"remarks",
 			"remark_section",

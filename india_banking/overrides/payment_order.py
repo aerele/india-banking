@@ -10,7 +10,6 @@ from frappe.utils import get_link_to_form, getdate
 
 from india_banking.default import PAYMENT_SUMMARY_FIELDS
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
-from india_banking.india_banking.doc_events.payroll_entry import make_bank_entries
 
 
 class CustomPaymentOrder(PaymentOrder):
@@ -131,9 +130,7 @@ class CustomPaymentOrder(PaymentOrder):
 			"Payment Entry",
 			"Journal Entry",
 		]:
-			if self.references[0].reference_doctype == "Payroll Entry":
-				make_bank_entries(self.name)
-			elif self.payment_order_type == "Payment Request":
+			if self.payment_order_type == "Payment Request":
 				make_payment_entries(self.name)
 
 			self.update_payment_status()
@@ -253,9 +250,6 @@ def get_party_summary(
 	references = json.loads(references)
 	if not len(references) or not company_bank_account:
 		return
-
-	if references[0].get("reference_doctype", "") == "Payroll Entry":
-		summarise_payment_based_on = "Voucher"
 
 	# Considering the following dimensions to group payments
 	def _get_unique_key(reference=None, summarise_field_only=False):

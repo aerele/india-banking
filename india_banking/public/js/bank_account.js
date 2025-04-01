@@ -14,19 +14,15 @@ frappe.ui.form.on('Bank Account', {
 				})
 			});
 		}
-		if (frm.doc.workflow_state == 'Approved') {
-			frm.set_read_only();
-		}
 	},
 	onload(frm){
 		if (frm.doc.workflow_state == 'Approved') {
-			frm.set_read_only();
+			frm.disable_form();
 		}
-	},
-	after_workflow_action: function (frm) {
-		if (frm.doc.workflow_state == 'Approved') {
-			frm.set_read_only();
+		else {
+			frm.fields.forEach((field) => {
+				frm.set_df_property(field.df.fieldname, "read_only", "0");
+			});
 		}
-		frm.reload_doc();
 	},
 });

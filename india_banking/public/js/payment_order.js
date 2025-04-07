@@ -84,15 +84,15 @@ frappe.ui.form.on("Payment Order", {
 			// Define an array of payment sources and their respective triggers
 			const payment_sources = [
 				{
-					label: __("Payment Request"),
+					label: "Payment Request",
 					trigger: "get_payments_from_payment_request",
 				},
 				{
-					label: __("Payment Entry"),
+					label: "Payment Entry",
 					trigger: "get_payments_from_payment_entry",
 				},
 				{
-					label: __("Bank Entry(JV)"),
+					label: "Bank Entry(JV)",
 					trigger: "get_payments_from_journal_entry",
 				},
 			];
@@ -109,13 +109,13 @@ frappe.ui.form.on("Payment Order", {
 						(source.label == "Bank Entry(JV)" && frm.doc.payment_order_type == "Journal Entry")
 					) {
 						frm.add_custom_button(
-							source.label,
+							__(source.label),
 							() => frm.trigger(source.trigger),
 							__("Get Payments from")
 						);
 					} else if (!frm.doc.payment_order_type) {
 						frm.add_custom_button(
-							source.label,
+							__(source.label),
 							() => frm.trigger(source.trigger),
 							__("Get Payments from")
 						);

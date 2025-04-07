@@ -3,7 +3,7 @@ frappe.listview_settings["Purchase Invoice"] = {
 	listview.page.add_action_item(__("Payment Request"), () => {
 	  create_bulk_request(listview, "Purchase Invoice");
 	});
-	listview.page.add_inner_button(__("GoTo Payment Request"), () => {
+	listview.page.add_inner_button(__("Payment Request"), () => {
 	  frappe.set_route("List", "Payment Request");
 	});
   },

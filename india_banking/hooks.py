@@ -24,7 +24,7 @@ doctype_list_js = {
 
 override_doctype_class = {
 	"Payment Order": "india_banking.overrides.payment_order.CustomPaymentOrder",
-	"Payment Request": "india_banking.overrides.payment_request.BankPaymentRequest",
+	# "Payment Request": "india_banking.overrides.payment_request.BankPaymentRequest",
 }
 
 doc_events = {
@@ -40,7 +40,13 @@ doc_events = {
 	"Payment Entry": {
 		"on_cancel": "india_banking.india_banking.doc_events.payment_entry.on_cancel",
 	},
+	"Payment Request": {
+		"validate": "india_banking.overrides.payment_request.validate",
+		"on_submit": "india_banking.overrides.payment_request.on_submit",
+	},
 }
+
+after_migrate = "india_banking.migrate.after_migrate.disable_adhoc_payment"
 
 accounting_dimension_doctypes = [
 	"Payment Order",

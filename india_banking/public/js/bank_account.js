@@ -1,9 +1,6 @@
 frappe.ui.form.on("Bank Account", {
   refresh(frm) {
-    if (
-      frm.doc.is_company_account &&
-      !frm.doc.disabled
-    ) {
+    if (frm.doc.is_company_account && !frm.doc.disabled) {
       frm.add_custom_button(__("Fetch Balance"), function () {
         frappe.call({
           method:
@@ -46,7 +43,7 @@ frappe.ui.form.on("Bank Account", {
             {
               fieldname: "from_date",
               fieldtype: "Date",
-              label: __("From Date")
+              label: __("From Date"),
             },
             {
               fieldtype: "Column Break",
@@ -54,7 +51,7 @@ frappe.ui.form.on("Bank Account", {
             {
               fieldname: "to_date",
               fieldtype: "Date",
-              label: __("To Date")
+              label: __("To Date"),
             },
           ],
           primary_action: () => {
@@ -64,7 +61,7 @@ frappe.ui.form.on("Bank Account", {
               args: {
                 bank_account_name: dialog.get_value("bank_account"),
                 from_date: dialog.get_value("from_date"),
-                to_date: dialog.get_value("to_date")
+                to_date: dialog.get_value("to_date"),
               },
               freeze: true,
               freeze_message: __("Fetching..."),
@@ -75,14 +72,9 @@ frappe.ui.form.on("Bank Account", {
           },
           primary_action_label: __("Fetch"),
         });
-        dialog.show()
+        dialog.show();
       });
     }
-    if (frm.doc.workflow_state == "Approved") {
-      frm.set_read_only();
-    }
-  },
-  onload(frm) {
     if (frm.doc.workflow_state == "Approved") {
       frm.set_read_only();
     }

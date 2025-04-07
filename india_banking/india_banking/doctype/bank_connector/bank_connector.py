@@ -569,6 +569,8 @@ class BankConnector(Document):
 		}
 		payload.doc = doc
 		payload.method = "get_bank_balance"
+		payload.bulk_transaction = self.bulk_transaction
+
 		response = request.post(
 			self.connector_url, headers=self.headers, data=json.dumps(payload)
 		)
@@ -619,6 +621,7 @@ class BankConnector(Document):
 			):
 				bank_transaction_doc = frappe.new_doc("Bank Transaction")
 				bank_transaction_doc.company = bank_account.company
+				bank_transaction_doc.bank_account = bank_account.name
 				bank_transaction_doc.status = "Pending"
 				bank_transaction_doc.date = getdate(statement.transaction_date)
 				bank_transaction_doc.withdrawal = statement.transaction_amount
@@ -644,6 +647,8 @@ class BankConnector(Document):
 		}
 		payload.doc = doc
 		payload.method = "get_bank_statement"
+		payload.bulk_transaction = self.bulk_transaction
+
 		response = request.post(
 			self.connector_url, headers=self.headers, data=json.dumps(payload)
 		)

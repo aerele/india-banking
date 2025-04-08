@@ -198,18 +198,6 @@ def create_payment_request_custom_fields():
 			"insert_after": "remark_section",
 		},
 	]
-	if "hrms" in frappe.get_installed_apps():
-		custom_field.append(
-			{
-				"label": "Salary Slip",
-				"fieldname": "salary_slip",
-				"fieldtype": "Link",
-				"options": "Salary Slip",
-				"read_only": 1,
-				"depends_on": "eval:doc.reference_doctype == 'Payroll Entry'",
-				"insert_after": "reference_name",
-			}
-		)
 
 	create_custom_fields({"Payment Request": custom_field})
 

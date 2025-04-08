@@ -176,12 +176,13 @@ frappe.ui.form.on("Payment Order", {
 			},
 			get_query_filters: {
 				docstatus: 1,
-				name: ["not in", existing_payment_entries],
+				existing_payment_entries: existing_payment_entries,
 				source_doctype: ["!=", "Payment Request"],
 				payment_type: "Pay",
 				mode_of_payment: "Wire Transfer",
 				bank_account: frm.doc.company_bank_account,
 			},
+			get_query_method: "india_banking.overrides.payment_entry.get_payment_entry",
 		});
 	},
 
@@ -235,7 +236,6 @@ frappe.ui.form.on("Payment Order", {
 	set_payment_and_status_buttons(frm) {
 		// Check if the document is in a pending state and user has write permissions
 		if (
-			frm.doc.status === "Pending" &&
 			frm.doc.docstatus === 1 &&
 			frm.has_perm("write")
 		) {
@@ -253,7 +253,6 @@ frappe.ui.form.on("Payment Order", {
 		}
 
 		if (
-			["Pending", "Initiated"].includes(frm.doc.status) &&
 			frm.doc.docstatus === 1 &&
 			frm.has_perm("write")
 		) {

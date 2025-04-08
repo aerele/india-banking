@@ -139,10 +139,7 @@ def make_payment_entries(docname):
 					"payment_term",
 				)
 
-				if (
-					reference.reference_doctype not in ["Payroll Entry"]
-					and not payment_term
-				):
+				if not payment_term:
 					template = frappe.db.get_value(
 						reference.reference_doctype,
 						reference.reference_name,
@@ -214,7 +211,9 @@ def make_payment_entries(docname):
 					else:
 						_append_reference(pe, reference, reference_amount)
 				else:
-					_append_reference(pe, reference, reference_amount, payment_term)
+					_append_reference(
+						pe, reference, reference_amount, payment_term=payment_term
+					)
 		pe.update(
 			{
 				"reference_no": payment_order_doc.name,

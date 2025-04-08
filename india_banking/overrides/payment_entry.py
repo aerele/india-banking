@@ -5,6 +5,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _
 from frappe.model.mapper import get_mapped_doc
+from frappe.query_builder import DocType
 from frappe.utils import get_url_to_form
 
 
@@ -112,3 +113,42 @@ def make_payment_order(source_name, target_doc=None):
 	)
 
 	return doclist
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def get_payment_entry(doctype, txt, searchfield, start, page_len, filters):
+	payment_order = DocType("Payment Order")
+	payment_order_reference = DocType("Payment Order Reference")
+	query = (
+		frappe.qb.from_(payment_order)
+		.left_join(payment_order_reference)
+		.on(payment_order.name == payment_order_reference.parent)
+		.select(
+			payment_order_reference.payment_entry,
+		)
+		.where(
+			payment_order.payment_order_type.eq("Payment Entry")
+			& payment_order.docstatus
+			!= 2
+		)
+	)
+	order_entry = query.run()
+
+	existing_payment_entries = filters["existing_payment_entries"] or []
+	order_entry = [d[0] for d in order_entry] or []
+
+	order_entry += existing_payment_entries
+	if order_entry:
+		filters["name"] = ["not in", order_entry]
+	if "existing_payment_entries" in filters:
+		del filters["existing_payment_entries"]
+
+	payment_entry = (
+		frappe.get_all(
+			"Payment Entry", filters=filters, fields=["name", "party", "paid_amount"]
+		)
+		or []
+	)
+
+	return payment_entry

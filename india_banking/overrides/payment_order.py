@@ -98,6 +98,11 @@ class CustomPaymentOrder(PaymentOrder):
 				)
 
 			payment.mode_of_transfer = mode_of_transfer.mode
+			payment.party_name = frappe.get_value(
+				payment.party_type,
+				payment.party,
+				self.get_party_field_name(payment.party_type),
+			)
 			summary_total += payment.amount
 
 		references_total = 0
@@ -105,21 +110,21 @@ class CustomPaymentOrder(PaymentOrder):
 			reference.party_name = frappe.get_value(
 				reference.party_type,
 				reference.party,
-				self.get_party_field_name(reference),
+				self.get_party_field_name(reference.party_type),
 			)
 			references_total += reference.amount
 
 		if summary_total != references_total:
 			frappe.throw(_("Summary isn't matching the references"))
 
-	def get_party_field_name(self, party):
-		if party.party_type == "Supplier":
+	def get_party_field_name(self, party_type):
+		if party_type == "Supplier":
 			return "supplier_name"
-		elif party.party_type == "Employee":
+		elif party_type == "Employee":
 			return "employee_name"
-		elif party.party_type == "Shareholder":
+		elif party_type == "Shareholder":
 			return "name"
-		elif party.party_type == "Customer":
+		elif party_type == "Customer":
 			return "customer_name"
 		else:
 			return "name"

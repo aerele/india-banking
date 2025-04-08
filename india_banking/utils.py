@@ -79,9 +79,11 @@ def extract_error_message(response_json, show_message=False) -> str:
 				f'{frappe.bold(server_message.get("title", ""))}: {server_message.get("message", "")}'
 			)
 
-		failure_message = failure_message or json.loads(
-			response_json.get("message", "{}").get("message", "{}")
-		).get("errormessage", "")
+		failure_message = failure_message or response_json.get("message", "")
+		if isinstance(failure_message, dict):
+			failure_message = failure_message.get("message", "")
+		if isinstance(failure_message, dict):
+			failure_message = failure_message.get("errormessage", "")
 
 		if show_message and failure_message:
 			frappe.msgprint(title=_("Failure Reason"), msg=failure_message)

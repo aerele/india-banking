@@ -7,12 +7,9 @@ import re
 
 import frappe
 import requests as request
-from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
-	get_accounting_dimensions,
-)
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, cstr, getdate
+from frappe.utils import add_days, cint, cstr, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
@@ -565,10 +562,15 @@ class BankConnector(Document):
 					)
 
 	def get_bank_balance(self, bank_account):
-		payload = {
-			"bank_account_number": bank_account.bank_account_no,
-			"method": "get_bank_balance",
+		payload = frappe._dict({})
+		doc = {
+			"company_bank": bank_account.bank,
+			"company_account_number": bank_account.bank_account_no,
 		}
+		payload.doc = doc
+		payload.method = "get_bank_balance"
+		payload.bulk_transaction = self.bulk_transaction
+
 		response = request.post(
 			self.connector_url, headers=self.headers, data=json.dumps(payload)
 		)
@@ -606,6 +608,82 @@ class BankConnector(Document):
 				pr_doc.check_if_payment_entry_exists()
 				pr_doc.set_as_cancelled()
 				pr_doc.db_set("docstatus", 2)
+
+	def update_bank_transactions(self, statements, bank_account):
+		for statement in statements:
+			statement = frappe._dict(statement)
+			if not frappe.db.exists(
+				"Bank Transaction",
+				{
+					"bank_account": bank_account.name,
+					"reference_number": statement.reference_number,
+				},
+			):
+				bank_transaction_doc = frappe.new_doc("Bank Transaction")
+				bank_transaction_doc.company = bank_account.company
+				bank_transaction_doc.bank_account = bank_account.name
+				bank_transaction_doc.status = "Pending"
+				bank_transaction_doc.date = getdate(statement.transaction_date)
+				bank_transaction_doc.withdrawal = statement.transaction_amount
+				bank_transaction_doc.reference_number = statement.reference_number
+				bank_transaction_doc.save()
+
+	def get_bank_statements(
+		self,
+		bank_account,
+		from_date=None,
+		to_date=None,
+		is_paginated=False,
+		last_tran_id=None,
+	):
+		payload = frappe._dict({})
+		doc = {
+			"company_account_number": bank_account.bank_account_no,
+			"company_bank": bank_account.bank,
+			"from_date": from_date or add_days(getdate(), -1).strftime("%d-%m-%Y"),
+			"to_date": to_date or getdate().strftime("%d-%m-%Y"),
+			"paginated": is_paginated,
+			"last_transaction_id": last_tran_id,
+		}
+		payload.doc = doc
+		payload.method = "get_bank_statement"
+		payload.bulk_transaction = self.bulk_transaction
+
+		response = request.post(
+			self.connector_url, headers=self.headers, data=json.dumps(payload)
+		)
+		# create api request log
+		create_api_log(
+			response, "Get Bank Statement", "Bank Account", bank_account.bank_account_no
+		)
+
+		if response.status_code == 200:
+			response_details = self.get_response_details(response)
+			if response_details.get("server_status") == "Success":
+				bank_statements = response_details.get("bank_statements", [])
+				if bank_statements:
+					if len(bank_statements) > 50:
+						frappe.enqueue(
+							self.update_bank_transactions,
+							queue="long",
+							enqueue_after_commit=True,
+							statements=bank_statements,
+							bank_account=bank_account,
+						)
+						frappe.msgprint(
+							_("Transactions are being updated in the background.")
+						)
+					else:
+						self.update_bank_transactions(
+							bank_statements, bank_account=bank_account
+						)
+						frappe.msgprint(_("The transactions are being updated."))
+		else:
+			frappe.msgprint(
+				title=_("API Failed"),
+				msg=_("Statement Fetch Failed"),
+				indicator="red",
+			)
 
 
 def get_bank_connector(bank_account, company):
@@ -648,3 +726,22 @@ def get_bank_balance(bank_account_name):
 	bank_doc = frappe.get_doc("Bank Account", bank_account_name)
 	bank_connector = get_bank_connector(bank_account_name, bank_doc.company)
 	return bank_connector.get_bank_balance(bank_doc)
+
+
+@frappe.whitelist()
+def get_bank_statements(
+	bank_account_name,
+	from_date=None,
+	to_date=None,
+	is_paginated=False,
+	last_tran_id=None,
+):
+	bank_doc = frappe.get_doc("Bank Account", bank_account_name)
+	bank_connector = get_bank_connector(bank_account_name, bank_doc.company)
+	return bank_connector.get_bank_statements(
+		bank_doc,
+		from_date=from_date,
+		to_date=to_date,
+		is_paginated=is_paginated,
+		last_tran_id=last_tran_id,
+	)

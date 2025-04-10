@@ -264,8 +264,7 @@ frappe.ui.form.on("Payment Order", {
 
 			if (has_initiated_or_non_pending) {
 				frm.dashboard.add_comment(
-					"Payment is already initiated. Check the status using the 'Get Status' button before trying again.",
-					permanent = false
+					"Payment is already initiated. Check the status using the 'Get Status' button before trying again."
 				);
 				frm.add_custom_button(__("Get Status"), () => {
 					frappe.call({

@@ -18,6 +18,7 @@
   "reference_doctype",
   "column_break_4",
   "party",
+  "party_account_currency",
   "reference_name",
   "transaction_details",
   "net_total",
@@ -411,12 +412,19 @@
    "label": "Payment Term",
    "options": "Payment Term",
    "read_only": 1
+  },
+  {
+   "fieldname": "party_account_currency",
+   "fieldtype": "Link",
+   "label": "Party Account Currency",
+   "options": "Currency",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-30 18:19:35.946606",
+ "modified": "2025-04-11 16:47:49.851456",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

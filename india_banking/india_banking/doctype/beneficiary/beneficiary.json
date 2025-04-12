@@ -1,0 +1,205 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-04-10 10:00:00.950229",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "beneficiary_name",
+  "bank_connector",
+  "connector_bank",
+  "column_break_mtbg",
+  "company",
+  "beneficiary_type",
+  "beneficiary_status",
+  "association_id",
+  "lei_code",
+  "bank_account_details_section",
+  "bank_account",
+  "bank",
+  "mobile",
+  "address",
+  "column_break_kgkd",
+  "payment_type",
+  "email",
+  "postal_address_html",
+  "beneficiary_limit_section",
+  "limit_level",
+  "column_break_hfxe",
+  "limit_on_transactions",
+  "limiton_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "BENE.YYYY.#####"
+  },
+  {
+   "fieldname": "beneficiary_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Beneficiary Name",
+   "options": "Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_mtbg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "lei_code",
+   "fieldtype": "Data",
+   "label": "LEI Code",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: !!doc.lei_code",
+   "fieldname": "beneficiary_type",
+   "fieldtype": "Select",
+   "label": "Beneficiary Type",
+   "options": "\nINDIVIDUAL\nCORPORATE"
+  },
+  {
+   "depends_on": "eval: !!doc.bank_connector",
+   "fieldname": "bank_account_details_section",
+   "fieldtype": "Section Break",
+   "label": "Bank Account Details"
+  },
+  {
+   "fieldname": "bank_account",
+   "fieldtype": "Link",
+   "label": "Bank Account",
+   "options": "Bank Account",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "bank_account.mobile_number",
+   "fieldname": "mobile",
+   "fieldtype": "Data",
+   "label": "Mobile"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Link",
+   "label": "Address",
+   "options": "Address",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_kgkd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payment_type",
+   "fieldtype": "Select",
+   "label": "Payment Type",
+   "options": "\nINHOUSE-TRANSFER\nINTERBANK-TRANSFER"
+  },
+  {
+   "fetch_from": "bank_account.email",
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email"
+  },
+  {
+   "depends_on": "eval: !!doc.address",
+   "fieldname": "postal_address_html",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "beneficiary_limit_section",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Beneficiary Limit"
+  },
+  {
+   "fieldname": "limit_level",
+   "fieldtype": "Data",
+   "label": "Limit Level",
+   "options": "\nACCOUNT\nBENEFICIARY\n"
+  },
+  {
+   "fieldname": "column_break_hfxe",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "limit_on_transactions",
+   "fieldtype": "Int",
+   "label": "Limit on Transactions"
+  },
+  {
+   "fieldname": "limiton_amount",
+   "fieldtype": "Currency",
+   "label": "Limiton Amount"
+  },
+  {
+   "fieldname": "bank_connector",
+   "fieldtype": "Link",
+   "label": "Bank Connector",
+   "options": "Bank Connector",
+   "reqd": 1
+  },
+  {
+   "fieldname": "beneficiary_status",
+   "fieldtype": "Select",
+   "label": "Beneficiary Status",
+   "options": "Draft\nSubmitted\nApproved\nRejected\nSuspended"
+  },
+  {
+   "fetch_from": "bank_account.bank",
+   "fetch_if_empty": 1,
+   "fieldname": "bank",
+   "fieldtype": "Link",
+   "label": "Bank",
+   "options": "Bank"
+  },
+  {
+   "fetch_if_empty": 1,
+   "fieldname": "connector_bank",
+   "fieldtype": "Link",
+   "label": "Connector Bank",
+   "options": "Bank"
+  },
+  {
+   "fieldname": "association_id",
+   "fieldtype": "Data",
+   "label": "Association ID"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-10 13:43:35.832850",
+ "modified_by": "Administrator",
+ "module": "India Banking",
+ "name": "Beneficiary",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

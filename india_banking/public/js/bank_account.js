@@ -26,30 +26,59 @@ frappe.ui.form.on('Bank Account', {
 				}
 			};
 		});
-		frm.events.add_benificery_actions(frm)
+		frm.events.add_beneficiary_actions(frm)
 	},
-	add_benificery_actions(frm){
-		debugger
-		frm.add_custom_button("Add Benificery", frm.events.update_benificery_details(frm, "Create"), "Benificery Action")
-		frm.add_custom_button("Update Benificery", frm.events.update_benificery_details(frm, "Update"), "Benificery Action")
-		frm.add_custom_button("Discard Benificery", frm.events.update_benificery_details(frm, "Discard"), "Benificery Action")
-		frm.add_custom_button("Approve Benificery", frm.events.update_benificery_details(frm, "Approve"), "Benificery Action")
-		frm.add_custom_button("Reject Benificery", frm.events.update_benificery_details(frm, "Reject"), "Benificery Action")
-		frm.add_custom_button("Suspend Benificery", frm.events.update_benificery_details(frm, "Suspend"), "Benificery Action")
-	},
-	update_benificery_details(frm, action){
-		frm.call({
-			method: "update_benificery_details",
-			action: action,
-			freeze: 1,
-			freeze_message: "Updating..."
-		})
-	},
-	onload(frm){
-		if (frm.doc.workflow_state == 'Approved') {
-			frm.set_read_only();
+	add_beneficiary_actions(frm){
+		if(!frm.doc.beneficiary) {
+			frm.add_custom_button("Add Beneficiary", ()=>frm.events.add_beneficiary(frm), "Beneficiary Action")
+		}
+		else{
+			frappe.db.get_value("Beneficiary", frm.doc.beneficiary, "beneficiary_status", (r) => {
+				if (r.beneficiary_status == "Draft") {
+					frm.add_custom_button("Submit Beneficiary", ()=>frm.events.submit_beneficiary(frm), "Beneficiary Action")
+				}
+				else if(r.beneficiary_status == 'Submitted') {
+					frm.add_custom_button("Update Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Update"), "Beneficiary Action")
+					frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
+					frm.add_custom_button("Reject Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Reject"), "Beneficiary Action")
+					frm.add_custom_button("Suspend Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Suspend"), "Beneficiary Action")
+				}
+			})
 		}
 	},
+
+	add_beneficiary(frm){
+		add_beneficiary_dialog(frm)
+	},
+
+	submit_beneficiary(frm){
+		frm.call({
+			method: "india_banking.india_banking.doctype.beneficiary.beneficiary.submit_beneficiary",
+			args: {
+				beneficiary_id: frm.doc.beneficiary,
+			},
+			freeze: 1,
+			freeze_message: "Submitting...",
+			callback: function (r) {
+				if (r.message) {
+					frm.reload_doc();
+				}
+			}
+		})
+	},
+
+	update_beneficiary_details(frm, action){
+		frm.call({
+			method: "india_banking.india_banking.doctype.beneficiary.beneficiary.update_beneficiary",
+			args: {
+				beneficiary_id: frm.doc.beneficiary,
+				action: action,
+			},
+			freeze: 1,
+			freeze_message: `${action}ing...`,
+		})
+	},
+
 	after_workflow_action: function (frm) {
 		if (frm.doc.workflow_state == 'Approved') {
 			frm.set_read_only();
@@ -57,3 +86,127 @@ frappe.ui.form.on('Bank Account', {
 		frm.reload_doc();
 	},
 });
+
+// This function creates a dialog to add a beneficiary
+function add_beneficiary_dialog(frm) {
+	d = new frappe.ui.Dialog({
+		title: __('Add Beneficiary'),
+		size: "extra-large",
+		fields: [
+			{
+				fieldname: 'bank_connector',
+				label: __('Bank Connector'),
+				fieldtype: 'Link',
+				options: 'Bank Connector',
+				reqd: 1,
+				onchange() {
+					if (this.value) {
+						frappe.db.get_value('Bank Connector', this.value, 'bank', function (r) {
+							d.set_value('connector_bank', r.bank);
+							if(r.bank == frm.doc.bank){
+								d.set_value('payment_type', "INHOUSE-TRANSFER");
+							}
+							else{
+								d.set_value('payment_type', "INTERBANK-TRANSFER");
+							}
+						});
+
+						if(!this.message) {
+							this.message = __('Beneficiary Name will be fetched from Bank Account if you want to change it please do it manually')
+							frappe.msgprint(this.message);
+						}
+					}
+				},
+				get_query: function () {
+					return {
+						filters: {
+							"company": frm.doc.company,
+						}
+					};
+				}
+			},
+			{
+				fieldtype: 'Column Break'
+			},
+			{
+				fieldname: 'connector_bank',
+				label: __('Connector Bank'),
+				fieldtype: 'Link',
+				options: 'Bank',
+				fetch_from: 'bank_connector.bank',
+				read_only: 1,
+			},
+			{
+				fieldtype: 'Section Break',
+				depends_on: 'eval: !!doc.bank_connector'
+			},
+			{
+				fieldname: 'beneficiary_name',
+				label: __('Beneficiary Name'),
+				fieldtype: 'Data',
+				options: 'Name',
+				reqd: 1,
+			},
+			{
+				fieldname: 'payment_type',
+				label: __('Payment Type'),
+				fieldtype: 'Data',
+				options: 'Name',
+				reqd: 1,
+				read_only: 1,
+			},
+			{
+				fieldname: 'mobile',
+				label: __('Mobile'),
+				fieldtype: 'Data',
+				read_only: 1,
+			},
+			{
+				fieldtype: 'Column Break'
+			},
+			{
+				fieldname: 'bank_account',
+				label: __('Bank Account'),
+				fieldtype: 'Link',
+				options: 'Bank Account',
+				reqd: 1,
+				read_only: 1,
+			},
+			{
+				fieldname: 'bank_account_number',
+				label: __('Bank Account No'),
+				fieldtype: 'Data',
+				read_only: 1,
+				reqd: 1,
+			},
+			{
+				fieldname: 'email',
+				label: __('Email'),
+				fieldtype: 'Data',
+				options: 'Email',
+				read_only: 1,
+			},
+		],
+		primary_action_label: __('Add'),
+		primary_action(values) {
+			frm.call({
+				method: "india_banking.india_banking.doctype.beneficiary.beneficiary.add_beneficiary",
+				args: values,
+				freeze: 1,
+				freeze_message: "Adding...",
+				callback: function (r) {
+					if (r.message) {
+						frm.reload_doc();
+					}
+				}
+			})
+			d.hide();
+		}
+	});
+	d.set_value("bank_account", frm.doc.name);
+	d.set_value("beneficiary_name", frm.doc.account_name.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim());
+	d.set_value("bank_account_number", frm.doc.bank_account_no)
+	d.set_value("mobile", frm.doc.mobile_number)
+	d.set_value("email", frm.doc.email)
+	d.show();
+}

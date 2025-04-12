@@ -1,0 +1,67 @@
+# Copyright (c) 2025, Aerele Technologies Private Limited and contributors
+# For license information, please see license.txt
+
+import frappe
+from frappe.model.document import Document
+
+
+class Beneficiary(Document):
+	def on_update(self):
+		"""Send the beneficiary details to the bank connector"""
+		if self.beneficiary_status != "Draft":
+			return
+		self.submit_beneficiary()
+
+	def submit_beneficiary(self):
+		"""Submit the beneficiary details to the bank connector"""
+		if not self.bank_connector:
+			frappe.throw("Bank Connector not found for this Bank Account")
+
+		bank_connector = frappe.get_doc("Bank Connector", self.bank_connector)
+		bank_connector.post_request(beneficiary_id=self.name)
+
+	def update_beneficiary(self, action=None):
+		"""Update/delete the beneficiary details to the bank connector"""
+		if not self.bank_connector:
+			frappe.throw("Bank Connector not found for this Bank Account")
+
+		bank_connector = frappe.get_doc("Bank Connector", self.bank_connector)
+		bank_connector.post_request(beneficiary_id=self.name, action=action)
+
+	def on_trash(self):
+		"""Delete the beneficiary details from the bank connector"""
+		self.update_beneficiary(action="Discard")
+
+
+@frappe.whitelist()
+def add_beneficiary(**kwargs):
+	bene_doc = frappe.new_doc("Beneficiary")
+	bene_doc.update(kwargs)
+	bene_doc.insert()
+
+	frappe.db.set_value(
+		"Bank Account", kwargs.get("bank_account"), "beneficiary", bene_doc.name
+	)
+	frappe.msgprint(
+		f"Beneficiary {bene_doc.name} added successfully to Bank Account {kwargs.get('bank_account')}",
+		alert=1,
+		indicator="green",
+	)
+	return bene_doc.name
+
+
+@frappe.whitelist()
+def submit_beneficiary(beneficiary_id):
+	"""Submit the beneficiary details to the bank connector"""
+	beneficiary_doc = frappe.get_doc("Beneficiary", beneficiary_id)
+	beneficiary_doc.submit_beneficiary()
+
+
+@frappe.whitelist()
+def update_beneficiary(beneficiary_id, action=None):
+	"""Update the beneficiary details to the bank connector"""
+	if not action:
+		frappe.throw("Action not found")
+
+	beneficiary_doc = frappe.get_doc("Beneficiary", beneficiary_id)
+	beneficiary_doc.update_beneficiary(action=action)

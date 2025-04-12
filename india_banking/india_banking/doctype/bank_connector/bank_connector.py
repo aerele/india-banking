@@ -9,9 +9,17 @@ from india_banking.india_banking.doctype.india_banking_request_log.india_banking
 	create_api_log,
 )
 from frappe import _
+from frappe.utils import add_days, getdate
 
 
 class BankConnector(Document):
+	@property
+	def header(self):
+		return {
+			"Authorization": f"token {self.api_key}:{self.get_password("api_secret")}",
+			"Content-Type": "application/json",
+		}
+
 	def post_request(self, beneficiary_id, action=None):
 		url = f"{self.url}/api/method/india_banking_connector.api.connect"
 
@@ -25,13 +33,9 @@ class BankConnector(Document):
 
 		self.get_payload(payment_payload)
 
-		headers = {
-			"Authorization": f"token {self.api_key}:{self.get_password("api_secret")}",
-			"Content-Type": "application/json",
-		}
 
 		response = requests.request(
-			"POST", url, headers=headers, data=json.dumps(payment_payload)
+			"POST", url, headers=self.header, data=json.dumps(payment_payload)
 		)
 
 		# create api response log
@@ -100,3 +104,82 @@ class BankConnector(Document):
 				as_dict=True
 			)
 		)
+
+	@frappe.whitelist()
+	def get_bank_statements(
+		self,
+		bank_account=None,
+		from_date=None,
+		to_date=None,
+		is_paginated=False,
+		last_tran_id=None,
+	):
+		url = f"{self.url}/api/method/india_banking_connector.api.connect"
+		bank_account = frappe.get_doc("Bank Account", bank_account or self.bank_account)
+		payload = frappe._dict({})
+		doc = {
+			"company_account_number": bank_account.bank_account_no,
+			"company_bank": bank_account.bank,
+			"from_date": from_date or add_days(getdate(), -1).strftime("%d-%m-%Y"),
+			"to_date": to_date or getdate().strftime("%d-%m-%Y"),
+			"paginated": is_paginated,
+			"last_transaction_id": last_tran_id,
+		}
+		payload.doc = doc
+		payload.method = "get_bank_statement"
+		payload.bulk_transaction = self.bulk_transaction
+
+		response = requests.post(
+			url, headers=self.header, data=json.dumps(payload)
+		)
+		# create api request log
+		create_api_log(
+			response, "Get Bank Statement", "Bank Account", bank_account.bank_account_no
+		)
+
+		if response.status_code == 200:
+			response_details = response.json().get("message")
+			if response_details.get("server_status") == "Success":
+				bank_statements = response_details.get("bank_statements", [])
+				if bank_statements:
+					if len(bank_statements) > 50:
+						frappe.enqueue(
+							self.update_bank_transactions,
+							queue="long",
+							enqueue_after_commit=True,
+							statements=bank_statements,
+							bank_account=bank_account,
+						)
+						frappe.msgprint(
+							_("Transactions are being updated in the background.")
+						)
+					else:
+						self.update_bank_transactions(
+							bank_statements, bank_account=bank_account
+						)
+						frappe.msgprint(_("The transactions are being updated."))
+		else:
+			frappe.msgprint(
+				title=_("API Failed"),
+				msg=_("Statement Fetch Failed"),
+				indicator="red",
+			)
+
+	def update_bank_transactions(self, statements, bank_account):
+		for statement in statements:
+			statement = frappe._dict(statement)
+			if not frappe.db.exists(
+				"Bank Transaction",
+				{
+					"bank_account": bank_account.name,
+					"reference_number": statement.reference_number,
+				},
+			):
+				bank_transaction_doc = frappe.new_doc("Bank Transaction")
+				bank_transaction_doc.company = bank_account.company
+				bank_transaction_doc.bank_account = bank_account.name
+				bank_transaction_doc.status = "Pending"
+				bank_transaction_doc.date = getdate(statement.transaction_date)
+				bank_transaction_doc.withdrawal = statement.transaction_amount
+				bank_transaction_doc.reference_number = statement.reference_number
+				bank_transaction_doc.save()

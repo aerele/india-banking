@@ -154,7 +154,8 @@ class CustomPaymentOrder(PaymentOrder):
 		super().on_cancel()
 
 	def on_update(self):
-		self.verify_and_update_summary_references()
+		if self.docstatus == 0:
+			self.verify_and_update_summary_references()
 
 	@frappe.whitelist()
 	def verify_and_update_summary_references(self):

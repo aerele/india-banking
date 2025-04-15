@@ -243,13 +243,14 @@ class BankConnector(Document):
 				for summary in payment_order.summary:
 					status_details = frappe._dict(summary_details.get(summary.name, ""))
 					if status_details.status == "Processed":
-						if status_details.utr_number:
+						if status_details.utr_number and status_details.status not in  ["Rejected", "Failed"]:
 							frappe.db.set_value(
 								"Payment Order Summary",
 								summary.name,
 								{
 									"reference_number": status_details.utr_number,
 									"payment_status": status_details.status,
+									"message": status_details.message,
 									"payment_initiated": 1,
 								},
 							)

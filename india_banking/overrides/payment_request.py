@@ -67,8 +67,9 @@ def on_submit(self, method=None):
 	if not self.grand_total or not self.net_total:
 		frappe.throw(_("Amount cannot be zero"))
 
-	validate_payment_type(self)
-	validate_bank_account(self)
+	if self.payment_request_type == "Outward":
+		validate_payment_type(self)
+		validate_bank_account(self)
 
 
 def validate_payment_type(self):

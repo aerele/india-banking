@@ -240,10 +240,10 @@ def make_bank_payment(docname, otp=None):
 		return {"message": "Payment Initiated"}
 
 	else:
-		get_payment_status(docname)
-		payment_order_doc.reload()
 		count = 0
 		for i in payment_order_doc.summary:
+			get_payment_status(docname, summary_id=i.name)
+			i.reload()
 			if not i.payment_initiated and i.payment_status == "Pending":
 				payment_response = process_payment(
 					i, payment_order_doc
@@ -476,7 +476,7 @@ def update_payment_status(payment_order_doc):
 		frappe.log_error(title='Payment Order Status Update Error', message=frappe.get_traceback())
 
 @frappe.whitelist()
-def get_payment_status(docname):
+def get_payment_status(docname, summary_id=None):
 	payment_order_doc = frappe.get_doc("Payment Order", docname)
 
 	# Fetch the connector information
@@ -496,9 +496,14 @@ def get_payment_status(docname):
 		get_bulk_payment_status(payment_order_doc)
 
 	else:
-		for i in payment_order_doc.summary:
-			if i.payment_status in ["Initiated", "Pending"]:
-				get_response(i, payment_order_doc.company_bank_account, payment_order_doc.company)
+		if summary_id:
+			summary = frappe.get_doc("Payment Order Summary", summary_id)
+			if summary.payment_status in ["Initiated", "Pending"]:
+				get_response(summary, payment_order_doc.company_bank_account, payment_order_doc.company)
+		else:
+			for summary in payment_order_doc.summary:
+				if summary.payment_status in ["Initiated", "Pending"]:
+					get_response(summary, payment_order_doc.company_bank_account, payment_order_doc.company)
 
 		payment_order_doc.reload()
 		update_payment_status(payment_order_doc)

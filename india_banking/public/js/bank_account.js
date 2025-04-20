@@ -38,7 +38,7 @@ frappe.ui.form.on('Bank Account', {
 					frm.add_custom_button("Submit Beneficiary", ()=>frm.events.submit_beneficiary(frm), "Beneficiary Action")
 				}
 				else if(r.beneficiary_status == 'Submitted') {
-					frm.add_custom_button("Update Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Update"), "Beneficiary Action")
+					frm.add_custom_button("Update Beneficiary", ()=>update_beneficiary_dialog(frm), "Beneficiary Action")
 					frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
 					frm.add_custom_button("Reject Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Reject"), "Beneficiary Action")
 					frm.add_custom_button("Suspend Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Suspend"), "Beneficiary Action")
@@ -205,6 +205,127 @@ function add_beneficiary_dialog(frm) {
 	});
 	d.set_value("bank_account", frm.doc.name);
 	d.set_value("beneficiary_name", frm.doc.account_name.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim());
+	d.set_value("bank_account_number", frm.doc.bank_account_no)
+	d.set_value("mobile", frm.doc.mobile_number)
+	d.set_value("email", frm.doc.email)
+	d.show();
+}
+
+// This function creates a dialog to Update a beneficiary
+async function update_beneficiary_dialog(frm) {
+	let fields = ["bank_connector", "connector_bank", "beneficiary_name", "payment_type", "mobile", "bank_account", "email"];
+	let bene_details = {};
+	await frappe.db.get_value("Beneficiary", frm.doc.beneficiary, fields, (r) => {
+		bene_details = r;
+	})
+
+	d = new frappe.ui.Dialog({
+		title: __('Update Beneficiary Details'),
+		size: "extra-large",
+		fields: [
+			{
+				fieldname: 'bank_connector',
+				label: __('Bank Connector'),
+				fieldtype: 'Link',
+				options: 'Bank Connector',
+				read_only: 1,
+			},
+			{
+				fieldtype: 'Column Break'
+			},
+			{
+				fieldname: 'connector_bank',
+				label: __('Connector Bank'),
+				fieldtype: 'Link',
+				options: 'Bank',
+				fetch_from: 'bank_connector.bank',
+				read_only: 1,
+			},
+			{
+				fieldtype: 'Section Break',
+				depends_on: 'eval: !!doc.bank_connector'
+			},
+			{
+				fieldname: 'beneficiary',
+				label: __('Beneficiary'),
+				fieldtype: 'Data',
+				options: 'Name',
+				read_only: 1,
+			},
+			{
+				fieldname: 'beneficiary_name',
+				label: __('Beneficiary Name'),
+				fieldtype: 'Data',
+				options: 'Name',
+				read_only: 1,
+			},
+			{
+				fieldname: 'payment_type',
+				label: __('Payment Type'),
+				fieldtype: 'Data',
+				options: 'Name',
+				read_only: 1,
+			},
+			{
+				fieldname: 'mobile',
+				label: __('Mobile'),
+				fieldtype: 'Data',
+				read_only: 1,
+			},
+			{
+				fieldtype: 'Column Break'
+			},
+			{
+				fieldname: 'bank_account',
+				label: __('Bank Account'),
+				fieldtype: 'Link',
+				options: 'Bank Account',
+				read_only: 1,
+			},
+			{
+				fieldname: 'bank_account_number',
+				label: __('Bank Account No'),
+				fieldtype: 'Data',
+				read_only: 1,
+			},
+			{
+				fieldname: 'email',
+				label: __('Email'),
+				fieldtype: 'Data',
+				options: 'Email',
+				read_only: 1,
+			},
+			{
+				fieldname: 'action',
+				label: __('Action'),
+				fieldtype: 'Data',
+				default: "Update",
+				hidden: 1,
+
+			}
+		],
+		primary_action_label: __('Update'),
+		primary_action(values) {
+			frm.call({
+				method: "india_banking.india_banking.doctype.beneficiary.beneficiary.update_beneficiary_details",
+				args: values,
+				freeze: 1,
+				freeze_message: "updateing...",
+				callback: function (r) {
+					if (r.message) {
+						frm.reload_doc();
+					}
+				}
+			})
+			d.hide();
+		}
+	});
+	d.set_value("bank_connector", bene_details.bank_connector);
+	d.set_value("connector_bank", bene_details.connector_bank);
+	d.set_value("beneficiary", frm.doc.beneficiary);
+	d.set_value("payment_type", bene_details.payment_type);
+	d.set_value("beneficiary_name", bene_details.beneficiary_name);
+	d.set_value("bank_account", frm.doc.name);
 	d.set_value("bank_account_number", frm.doc.bank_account_no)
 	d.set_value("mobile", frm.doc.mobile_number)
 	d.set_value("email", frm.doc.email)

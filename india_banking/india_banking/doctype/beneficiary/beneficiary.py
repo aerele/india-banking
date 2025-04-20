@@ -65,3 +65,19 @@ def update_beneficiary(beneficiary_id, action=None):
 
 	beneficiary_doc = frappe.get_doc("Beneficiary", beneficiary_id)
 	beneficiary_doc.update_beneficiary(action=action)
+
+
+@frappe.whitelist()
+def update_beneficiary_details(**beneficiary_details):
+	frappe.log(beneficiary_details)
+	"""Update the beneficiary details to the bank connector"""
+	if not beneficiary_details.get("action"):
+		frappe.throw("Action not found")
+
+	if beneficiary_id:=beneficiary_details.get("beneficiary"):
+		beneficiary_doc = frappe.get_doc("Beneficiary", beneficiary_id)
+		beneficiary_doc.update(beneficiary_details)
+		beneficiary_doc.save()
+
+	beneficiary_doc = frappe.get_doc("Beneficiary", beneficiary_id)
+	beneficiary_doc.update_beneficiary(action=beneficiary_details.get("action"))

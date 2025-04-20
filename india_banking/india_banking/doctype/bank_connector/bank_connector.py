@@ -26,13 +26,12 @@ class BankConnector(Document):
 		payment_payload = frappe._dict(frappe.get_doc("Beneficiary", beneficiary_id).as_dict(convert_dates_to_str=True))
 
 		payment_payload.method = "update_beneficiary_details"
-		payment_payload.action = action
 
 		if action != "Submit" and payment_payload.beneficiary_status == "Draft":
-			self.post_request(beneficiary_id, action="Submit")
+			return self.post_request(beneficiary_id, action="Submit")
 
 		self.get_payload(payment_payload)
-
+		payment_payload.action = action
 
 		response = requests.request(
 			"POST", url, headers=self.header, data=json.dumps(payment_payload)

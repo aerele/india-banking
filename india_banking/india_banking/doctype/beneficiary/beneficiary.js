@@ -2,10 +2,6 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Beneficiary", {
-    refresh: function(frm) {
-        frm.disable_save();
-        cur_frm.disable_form()
-    },
     bank_connector: function(frm) {
         if(frm.doc.bank_connector) {
             frappe.db.get_value('Bank Connector', frm.doc.bank_connector, 'bank', function(r) {

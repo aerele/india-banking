@@ -45,13 +45,17 @@ class BankConnector(Document):
 		if response.ok:
 			response_details = response.json().get("message")
 
-			if association_id:= response_details.get("association_id"):
+			if response_details.get("status") == "success" and (association_id:= response_details.get("association_id")):
 				frappe.db.set_value("Beneficiary", beneficiary_id, "association_id", association_id)
 				frappe.db.set_value("Beneficiary", beneficiary_id, "beneficiary_status", "Submitted")
 				frappe.msgprint(response_details.get("message"), alert=1, indicator="green")
 			elif response_details.get("status") == "success":
 				self.update_beneficiary_status(beneficiary_id, action=action)
 				frappe.msgprint(response_details.get("message", "Completed"), alert=1, indicator="green")
+			elif response_details.get("status") == "Request Failure":
+				frappe.throw(
+					response_details.get("message", "Request Failed")
+				)
 			else:
 				error = response_details.get("error", "")
 				if error:

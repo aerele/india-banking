@@ -69,7 +69,6 @@ def update_beneficiary(beneficiary_id, action=None):
 
 @frappe.whitelist()
 def update_beneficiary_details(**beneficiary_details):
-	frappe.log(beneficiary_details)
 	"""Update the beneficiary details to the bank connector"""
 	if not beneficiary_details.get("action"):
 		frappe.throw("Action not found")

@@ -35,13 +35,18 @@ frappe.ui.form.on('Bank Account', {
 		else{
 			frappe.db.get_value("Beneficiary", frm.doc.beneficiary, "beneficiary_status", (r) => {
 				if (r.beneficiary_status == "Draft") {
-					frm.add_custom_button("Submit Beneficiary", ()=>frm.events.submit_beneficiary(frm), "Beneficiary Action")
+					frm.add_custom_button("Add Beneficiary", ()=>frm.events.submit_beneficiary(frm), "Beneficiary Action")
 				}
 				else if(r.beneficiary_status == 'Submitted') {
-					frm.add_custom_button("Update Beneficiary", ()=>update_beneficiary_dialog(frm), "Beneficiary Action")
 					frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
 					frm.add_custom_button("Reject Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Reject"), "Beneficiary Action")
+				}
+				else if(['Approved', 'Rejected'].includes(r.beneficiary_status)) {
+					frm.add_custom_button("Update Beneficiary", ()=>update_beneficiary_dialog(frm), "Beneficiary Action")
 					frm.add_custom_button("Suspend Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Suspend"), "Beneficiary Action")
+				}
+				else if(r.beneficiary_status == 'Suspended') {
+					frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
 				}
 			})
 		}
@@ -68,6 +73,11 @@ frappe.ui.form.on('Bank Account', {
 	},
 
 	update_beneficiary_details(frm, action){
+		let action_map = {
+			"Approve": "Approving",
+			"Reject": "Rejecting",
+			"Suspend": "Suspending"
+		}
 		frm.call({
 			method: "india_banking.india_banking.doctype.beneficiary.beneficiary.update_beneficiary",
 			args: {
@@ -75,7 +85,7 @@ frappe.ui.form.on('Bank Account', {
 				action: action,
 			},
 			freeze: 1,
-			freeze_message: `${action}ing...`,
+			freeze_message: `${action_map[action]}...`,
 		})
 	},
 
@@ -112,7 +122,7 @@ function add_beneficiary_dialog(frm) {
 						});
 
 						if(!this.message) {
-							this.message = __('Beneficiary Name will be fetched from Bank Account if you want to change it please do it manually')
+							this.message = __('The Beneficiary Name will be fetched from the bank account. If you wish to change it, please update it manually.')
 							frappe.msgprint(this.message);
 						}
 					}
@@ -186,6 +196,75 @@ function add_beneficiary_dialog(frm) {
 				options: 'Email',
 				read_only: 1,
 			},
+			{
+				label: __('Beneficiary Limit Details'),
+				fieldtype: 'Section Break',
+				depends_on: 'eval: !!doc.bank_connector'
+			},
+			{
+				fieldname: 'limit_level',
+				label: __('Limit Level'),
+				fieldtype: 'Select',
+				options: 'NONE\nACCOUNT\nBENEFICIARY',
+				default: "NONE",
+				description: __('Select the limit level for the beneficiary.<br>1. NONE: No limit<br>2.ACCOUNT: Limit is set on the bank account monthly<br>3. BENEFICIARY: Limit is set on the beneficiary daily'),
+				onchange() {
+					if (this.value) {
+						if(this.value == "NONE"){
+							d.set_value("limit_frequency", "")
+						}else if(this.value == "ACCOUNT"){
+							if(!d.get_value("limit_on_transactions")){
+								d.set_value("limit_on_transactions", 300)
+							}
+							if(!d.get_value("limit_on_amount")){
+								d.set_value("limit_on_amount", 100000000)
+							}
+							if(!d.get_value("limit_frequency")){
+								d.set_value("limit_frequency", "MONTHLY")
+							}
+						}
+						else if(this.value == "BENEFICIARY"){
+							if(!d.get_value("limit_on_transactions")){
+								d.set_value("limit_on_transactions", 10)
+							}
+							if(!d.get_value("limit_on_amount")){
+								d.set_value("limit_on_amount", 1000000)
+							}
+							if(!d.get_value("limit_frequency")){
+								d.set_value("limit_frequency", "DAILY")
+							}
+						}
+					}
+				},
+			},
+			{
+				fieldtype: 'Column Break'
+			},
+			{
+				fieldname: 'limit_frequency',
+				label: __('Limit Frequency'),
+				fieldtype: 'Select',
+				options: '\nDAILY\nMONTHLY',
+				depends_on: 'eval: doc.limit_level != "NONE"',
+				read_only: 1,
+			},
+			{
+				fieldname: 'limit_on_transactions',
+				label: __('No of Transactions'),
+				fieldtype: 'Int',
+				default: 0,
+				description: __('Enter the number of transactions allowed for the beneficiary. eg. 100'),
+				depends_on: 'eval: doc.limit_level != "NONE"',
+			},
+			{
+				fieldname: 'limit_on_amount',
+				label: __('Limit on amount'),
+				fieldtype: 'Currency',
+				options: 'Currency',
+				default: 0,
+				description: __('Enter the limit on amount allowed for the beneficiary. eg. 100000'),
+				depends_on: 'eval: doc.limit_level != "NONE"',
+			},
 		],
 		primary_action_label: __('Add'),
 		primary_action(values) {
@@ -213,7 +292,7 @@ function add_beneficiary_dialog(frm) {
 
 // This function creates a dialog to Update a beneficiary
 async function update_beneficiary_dialog(frm) {
-	let fields = ["bank_connector", "connector_bank", "beneficiary_name", "payment_type", "mobile", "bank_account", "email"];
+	let fields = ["bank_connector", "connector_bank", "beneficiary_name", "payment_type", "mobile", "bank_account", "email", "limit_level", "limit_frequency", "limit_on_transactions", "limit_on_amount"];
 	let bene_details = {};
 	await frappe.db.get_value("Beneficiary", frm.doc.beneficiary, fields, (r) => {
 		bene_details = r;
@@ -301,8 +380,76 @@ async function update_beneficiary_dialog(frm) {
 				fieldtype: 'Data',
 				default: "Update",
 				hidden: 1,
-
-			}
+			},
+			{
+				label: __('Beneficiary Limit Details'),
+				fieldtype: 'Section Break',
+				depends_on: 'eval: !!doc.bank_connector'
+			},
+			{
+				fieldname: 'limit_level',
+				label: __('Limit Level'),
+				fieldtype: 'Select',
+				options: 'NONE\nACCOUNT\nBENEFICIARY',
+				default: "NONE",
+				description: __('Select the limit level for the beneficiary.<br>1. NONE: No limit<br>2.ACCOUNT: Limit is set on the bank account monthly<br>3. BENEFICIARY: Limit is set on the beneficiary daily'),
+				onchange() {
+					if (this.value) {
+						if(this.value == "NONE"){
+							d.set_value("limit_frequency", "")
+						}else if(this.value == "ACCOUNT"){
+							if(!d.get_value("limit_on_transactions")){
+								d.set_value("limit_on_transactions", 300)
+							}
+							if(!d.get_value("limit_on_amount")){
+								d.set_value("limit_on_amount", 100000000)
+							}
+							if(!d.get_value("limit_frequency")){
+								d.set_value("limit_frequency", "MONTHLY")
+							}
+						}
+						else if(this.value == "BENEFICIARY"){
+							if(!d.get_value("limit_on_transactions")){
+								d.set_value("limit_on_transactions", 10)
+							}
+							if(!d.get_value("limit_on_amount")){
+								d.set_value("limit_on_amount", 1000000)
+							}
+							if(!d.get_value("limit_frequency")){
+								d.set_value("limit_frequency", "DAILY")
+							}
+						}
+					}
+				},
+			},
+			{
+				fieldtype: 'Column Break'
+			},
+			{
+				fieldname: 'limit_frequency',
+				label: __('Limit Frequency'),
+				fieldtype: 'Select',
+				options: '\nDAILY\nMONTHLY',
+				depends_on: 'eval: doc.limit_level != "NONE"',
+				read_only: 1,
+			},
+			{
+				fieldname: 'limit_on_transactions',
+				label: __('No of Transactions'),
+				fieldtype: 'Int',
+				default: 0,
+				description: __('Enter the number of transactions allowed for the beneficiary. eg. 100'),
+				depends_on: 'eval: doc.limit_level != "NONE"',
+			},
+			{
+				fieldname: 'limit_on_amount',
+				label: __('Limit on amount'),
+				fieldtype: 'Currency',
+				options: 'Currency',
+				default: 0,
+				description: __('Enter the limit on amount allowed for the beneficiary. eg. 100000'),
+				depends_on: 'eval: doc.limit_level != "NONE"',
+			},
 		],
 		primary_action_label: __('Update'),
 		primary_action(values) {
@@ -310,11 +457,9 @@ async function update_beneficiary_dialog(frm) {
 				method: "india_banking.india_banking.doctype.beneficiary.beneficiary.update_beneficiary_details",
 				args: values,
 				freeze: 1,
-				freeze_message: "updateing...",
+				freeze_message: "updating...",
 				callback: function (r) {
-					if (r.message) {
-						frm.reload_doc();
-					}
+					frm.reload_doc();
 				}
 			})
 			d.hide();
@@ -329,5 +474,9 @@ async function update_beneficiary_dialog(frm) {
 	d.set_value("bank_account_number", frm.doc.bank_account_no)
 	d.set_value("mobile", frm.doc.mobile_number)
 	d.set_value("email", frm.doc.email)
+	d.set_value("limit_level", bene_details.limit_level);
+	d.set_value("limit_frequency", bene_details.limit_frequency)
+	d.set_value("limit_on_transactions", bene_details.limit_on_transactions)
+	d.set_value("limit_on_amount", bene_details.limit_on_amount)
 	d.show();
 }

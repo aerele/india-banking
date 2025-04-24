@@ -212,6 +212,8 @@ function add_beneficiary_dialog(frm) {
 					if (this.value) {
 						if(this.value == "NONE"){
 							d.set_value("limit_frequency", "")
+							d.set_value("limit_on_amount", 0)
+							d.set_value("limit_on_transactions", 0)
 						}else if(this.value == "ACCOUNT"){
 							if(!d.get_value("limit_on_transactions")){
 								d.set_value("limit_on_transactions", 300)
@@ -219,9 +221,7 @@ function add_beneficiary_dialog(frm) {
 							if(!d.get_value("limit_on_amount")){
 								d.set_value("limit_on_amount", 100000000)
 							}
-							if(!d.get_value("limit_frequency")){
-								d.set_value("limit_frequency", "MONTHLY")
-							}
+							d.set_value("limit_frequency", "MONTHLY")
 						}
 						else if(this.value == "BENEFICIARY"){
 							if(!d.get_value("limit_on_transactions")){
@@ -230,9 +230,7 @@ function add_beneficiary_dialog(frm) {
 							if(!d.get_value("limit_on_amount")){
 								d.set_value("limit_on_amount", 1000000)
 							}
-							if(!d.get_value("limit_frequency")){
-								d.set_value("limit_frequency", "DAILY")
-							}
+							d.set_value("limit_frequency", "DAILY")
 						}
 					}
 				},
@@ -396,7 +394,6 @@ async function update_beneficiary_dialog(frm) {
 				onchange() {
 					if (this.value) {
 						if(this.value == "NONE"){
-							d.set_value("limit_frequency", "")
 						}else if(this.value == "ACCOUNT"){
 							if(!d.get_value("limit_on_transactions")){
 								d.set_value("limit_on_transactions", 300)
@@ -404,9 +401,7 @@ async function update_beneficiary_dialog(frm) {
 							if(!d.get_value("limit_on_amount")){
 								d.set_value("limit_on_amount", 100000000)
 							}
-							if(!d.get_value("limit_frequency")){
-								d.set_value("limit_frequency", "MONTHLY")
-							}
+							d.set_value("limit_frequency", "MONTHLY")
 						}
 						else if(this.value == "BENEFICIARY"){
 							if(!d.get_value("limit_on_transactions")){
@@ -415,9 +410,7 @@ async function update_beneficiary_dialog(frm) {
 							if(!d.get_value("limit_on_amount")){
 								d.set_value("limit_on_amount", 1000000)
 							}
-							if(!d.get_value("limit_frequency")){
-								d.set_value("limit_frequency", "DAILY")
-							}
+							d.set_value("limit_frequency", "DAILY")
 						}
 					}
 				},

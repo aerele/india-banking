@@ -128,7 +128,7 @@
    "fieldname": "limit_level",
    "fieldtype": "Select",
    "label": "Limit Level",
-   "options": "\nACCOUNT\nBENEFICIARY",
+   "options": "\nNONE\nACCOUNT\nBENEFICIARY",
    "read_only": 1
   },
   {
@@ -192,7 +192,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-25 02:46:38.387150",
+ "modified": "2025-04-25 03:12:24.818257",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Beneficiary",

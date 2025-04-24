@@ -75,6 +75,15 @@ def update_beneficiary_details(**beneficiary_details):
 
 	if beneficiary_id:=beneficiary_details.get("beneficiary"):
 		beneficiary_doc = frappe.get_doc("Beneficiary", beneficiary_id)
+		if beneficiary_details.get("limit_level") == "NONE":
+			beneficiary_details.update(
+				{
+					"limit_frequency": "",
+					"limit_on_amount": 0,
+					"limit_on_transactions": 0,
+				}
+			)
+
 		beneficiary_doc.update(beneficiary_details)
 		beneficiary_doc.save()
 

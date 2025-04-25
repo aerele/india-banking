@@ -28,9 +28,14 @@ class Beneficiary(Document):
 		bank_connector = frappe.get_doc("Bank Connector", self.bank_connector)
 		bank_connector.post_request(beneficiary_id=self.name, action=action)
 
-	def on_trash(self):
-		"""Delete the beneficiary details from the bank connector"""
+	@frappe.whitelist()
+	def discard_beneficiary(self):
 		self.update_beneficiary(action="Discard")
+
+	def on_trash(self):
+		if self.beneficiary_status != "Draft":
+			frappe.throw("Beneficiary cannot be deleted")
+
 
 
 @frappe.whitelist()

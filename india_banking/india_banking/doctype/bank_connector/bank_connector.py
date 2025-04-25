@@ -73,7 +73,16 @@ class BankConnector(Document):
 		elif action == "Suspend":
 			frappe.db.set_value("Beneficiary", beneficiary_id, "beneficiary_status", "Suspended")
 		elif action == "Discard":
-			frappe.db.delete("Beneficiary", beneficiary_id)
+			frappe.db.set_value("Beneficiary", beneficiary_id, {
+				"beneficiary_status": "Discarded",
+				"docstatus": 2,
+			})
+			bank_account = frappe.get_value("Beneficiary", beneficiary_id, "bank_account")
+			if bank_account:
+				frappe.db.set_value("Bank Account", bank_account, {
+					"beneficiary": "",
+					"workflow_state": "Pending",
+				})
 		else:
 			frappe.throw(_("Invalid Action"))
 		frappe.msgprint(_("Beneficiary Status Updated"), alert=1, indicator="green")

@@ -2,6 +2,28 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Beneficiary", {
+    refresh: function(frm) {
+        frm.add_custom_button(__('Discard Beneficiary'), function() {
+            if(frm.doc.beneficiary_status != "Rejected") {
+                frappe.throw(__('You can only discard a rejected Beneficiary'));
+            }
+            frappe.confirm(__('Are you sure you want to discard this beneficiary?'),
+                function() {
+                    frm.call({
+                        method: "discard_beneficiary",
+                        doc: frm.doc,
+                        freeze: true,
+                        freeze_message: __('Discarding Beneficiary...'),
+                        callback: function(r) {
+                            if (r.message) {
+                                frm.reload_doc();
+                            }
+                        }
+                    });
+                });
+        }, __('Actions'))
+        .addClass('btn-danger')
+    },
     bank_connector: function(frm) {
         if(frm.doc.bank_connector) {
             frappe.db.get_value('Bank Connector', frm.doc.bank_connector, 'bank', function(r) {

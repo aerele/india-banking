@@ -26,6 +26,14 @@ frappe.ui.form.on('Bank Account', {
 				}
 			};
 		});
+		frm.set_query("beneficiary", function() {
+			return {
+				filters: {
+					company: frm.doc.company,
+					docstatus: ["!=", 2],
+				}
+			};
+		});
 		frm.events.add_beneficiary_actions(frm)
 	},
 	add_beneficiary_actions(frm){
@@ -34,6 +42,8 @@ frappe.ui.form.on('Bank Account', {
 		}
 		else{
 			frappe.db.get_value("Beneficiary", frm.doc.beneficiary, "beneficiary_status", (r) => {
+				let bene_status_tag = `<span class="indicator-pill no-indicator-dot whitespace-nowrap blue"><span>Beneficiary Status: ${r.beneficiary_status}</span></span>`
+				$(`[title="${frm.doc.name}"]`).parent().append(bene_status_tag);
 				if (r.beneficiary_status == "Draft") {
 					frm.add_custom_button("Add Beneficiary", ()=>frm.events.submit_beneficiary(frm), "Beneficiary Action")
 				}
@@ -43,7 +53,9 @@ frappe.ui.form.on('Bank Account', {
 				}
 				else if(['Approved', 'Rejected'].includes(r.beneficiary_status)) {
 					frm.add_custom_button("Update Beneficiary", ()=>update_beneficiary_dialog(frm), "Beneficiary Action")
-					frm.add_custom_button("Suspend Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Suspend"), "Beneficiary Action")
+					if(r.beneficiary_status == 'Approved') {
+						frm.add_custom_button("Suspend Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Suspend"), "Beneficiary Action")
+					}
 				}
 				else if(r.beneficiary_status == 'Suspended') {
 					frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
@@ -65,9 +77,7 @@ frappe.ui.form.on('Bank Account', {
 			freeze: 1,
 			freeze_message: "Submitting...",
 			callback: function (r) {
-				if (r.message) {
-					frm.reload_doc();
-				}
+				frm.reload_doc();
 			}
 		})
 	},
@@ -86,6 +96,9 @@ frappe.ui.form.on('Bank Account', {
 			},
 			freeze: 1,
 			freeze_message: `${action_map[action]}...`,
+			callback: function (r) {
+				frm.reload_doc();
+			}
 		})
 	},
 

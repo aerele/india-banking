@@ -153,7 +153,7 @@
    "fieldname": "beneficiary_status",
    "fieldtype": "Select",
    "label": "Beneficiary Status",
-   "options": "Draft\nSubmitted\nApproved\nRejected\nSuspended"
+   "options": "Draft\nSubmitted\nApproved\nRejected\nSuspended\nDiscarded"
   },
   {
    "fetch_from": "bank_account.bank",
@@ -192,7 +192,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-25 03:12:24.818257",
+ "modified": "2025-04-25 12:23:34.565024",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Beneficiary",

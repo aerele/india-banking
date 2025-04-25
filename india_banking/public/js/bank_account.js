@@ -42,8 +42,13 @@ frappe.ui.form.on('Bank Account', {
 		}
 		else{
 			frappe.db.get_value("Beneficiary", frm.doc.beneficiary, "beneficiary_status", (r) => {
-				let bene_status_tag = `<span class="indicator-pill no-indicator-dot whitespace-nowrap blue"><span>Beneficiary Status: ${r.beneficiary_status}</span></span>`
-				$(`[title="${frm.doc.name}"]`).parent().append(bene_status_tag);
+				let bene_status_tag = `<span id="bene-status" class="indicator-pill no-indicator-dot whitespace-nowrap blue"><span>Beneficiary Status: ${r.beneficiary_status}</span></span>`
+				if($('#bene-status').length>0){
+					$('#bene-status').remove();
+					$(`[title="${frm.doc.name}"]`).parent().append(bene_status_tag);
+				}else{
+					$(`[title="${frm.doc.name}"]`).parent().append(bene_status_tag);
+				}
 				if (r.beneficiary_status == "Draft") {
 					frm.add_custom_button("Add Beneficiary", ()=>frm.events.submit_beneficiary(frm), "Beneficiary Action")
 				}

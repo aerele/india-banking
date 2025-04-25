@@ -37,6 +37,8 @@
   "column_break_11",
   "iban",
   "branch_code",
+  "beneficiary",
+  "beneficiary_name",
   "swift_number",
   "accounting_dimensions_section",
   "cost_center",
@@ -217,7 +219,7 @@
    "label": "Branch Code"
   },
   {
-   "fetch_from": "bank.swift_number",
+   "fetch_if_empty": 1,
    "fieldname": "swift_number",
    "fieldtype": "Read Only",
    "label": "SWIFT Number"
@@ -429,12 +431,32 @@
    "fieldtype": "Data",
    "label": "Salary Slip",
    "read_only": 1
+  },
+  {
+   "fetch_from": "bank_account.beneficiary",
+   "fetch_if_empty": 1,
+   "fieldname": "beneficiary",
+   "fieldtype": "Link",
+   "label": "Beneficiary",
+   "mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer'",
+   "no_copy": 1,
+   "options": "Beneficiary"
+  },
+  {
+   "fetch_from": "beneficiary.beneficiary_name",
+   "fetch_if_empty": 1,
+   "fieldname": "beneficiary_name",
+   "fieldtype": "Data",
+   "label": "Beneficiary Name",
+   "mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer'",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-02-24 03:31:34.171217",
+ "modified": "2025-04-25 16:27:06.821039",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

@@ -15,6 +15,8 @@
   "message",
   "reference_number",
   "bank_account",
+  "beneficiary",
+  "beneficiary_name",
   "accounting_section",
   "account",
   "tax_withholding_category",
@@ -171,7 +173,6 @@
    "fieldname": "reference_name",
    "fieldtype": "Data",
    "label": "Reference Name",
-   "options": "reference_doctype",
    "read_only": 1
   },
   {
@@ -191,12 +192,29 @@
    "fieldtype": "Data",
    "label": "Journal Entry Account",
    "read_only": 1
+  },
+  {
+   "fetch_from": "bank_account.beneficiary",
+   "fetch_if_empty": 1,
+   "fieldname": "beneficiary",
+   "fieldtype": "Link",
+   "label": "Beneficiary",
+   "options": "Beneficiary",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "beneficiary.beneficiary_name",
+   "fetch_if_empty": 1,
+   "fieldname": "beneficiary_name",
+   "fieldtype": "Data",
+   "label": "Beneficiary Name",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-09-26 11:13:44.056821",
+ "modified": "2025-04-25 17:58:36.837965",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Payment Order Summary",

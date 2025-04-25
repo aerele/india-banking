@@ -38,14 +38,25 @@ frappe.ui.form.on('Bank Payment Request', {
 			};
 		});
 
+		frm.set_query("beneficiary", function() {
+			return {
+				filters: {
+					"bank_account": frm.doc.bank_account,
+					"beneficiary_status": "Approved"
+				}
+			};
+		});
+
 		setTimeout(() => {
 			frm.trigger('toggle_custom_button')
 		}, 500);
-		frm
-        .add_custom_button("Goto Payment Order", function () {
-          frappe.set_route("List", "Payment Order");
-        })
-        .addClass("btn-primary");
+		if (frm.doc.docstatus == 1) {
+			frm
+			.add_custom_button("Goto Payment Order", function () {
+			frappe.set_route("List", "Payment Order");
+			})
+			.addClass("btn-primary");
+		}
 	},
 	toggle_custom_button(frm){
 		if(frm.doc.status == "Initiated") {

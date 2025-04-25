@@ -27,9 +27,9 @@
   "postal_address_html",
   "beneficiary_limit_section",
   "limit_level",
-  "limit_on_transactions",
   "column_break_hfxe",
   "limit_frequency",
+  "limit_on_transactions",
   "limit_on_amount"
  ],
  "fields": [
@@ -94,8 +94,7 @@
    "fieldname": "address",
    "fieldtype": "Link",
    "label": "Address",
-   "options": "Address",
-   "read_only": 1
+   "options": "Address"
   },
   {
    "fieldname": "column_break_kgkd",
@@ -128,8 +127,7 @@
    "fieldname": "limit_level",
    "fieldtype": "Select",
    "label": "Limit Level",
-   "options": "\nNONE\nACCOUNT\nBENEFICIARY",
-   "read_only": 1
+   "options": "\nNONE\nACCOUNT\nBENEFICIARY"
   },
   {
    "fieldname": "column_break_hfxe",
@@ -137,10 +135,10 @@
   },
   {
    "default": "0",
+   "depends_on": "eval: !!doc.limit_frequency",
    "fieldname": "limit_on_transactions",
    "fieldtype": "Int",
-   "label": "Limit on Transactions",
-   "read_only": 1
+   "label": "No of Transactions"
   },
   {
    "fieldname": "bank_connector",
@@ -177,22 +175,21 @@
   },
   {
    "default": "0",
+   "depends_on": "eval: !!doc.limit_frequency",
    "fieldname": "limit_on_amount",
    "fieldtype": "Currency",
-   "label": "Limit on Amount",
-   "read_only": 1
+   "label": "Limit on Amount"
   },
   {
    "fieldname": "limit_frequency",
    "fieldtype": "Select",
    "label": "Limit Frequency",
-   "options": "\nDAILY\nMONTHLY",
-   "read_only": 1
+   "options": "\nDAILY\nMONTHLY"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-25 12:23:34.565024",
+ "modified": "2025-04-25 16:48:04.969269",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Beneficiary",

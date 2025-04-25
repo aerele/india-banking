@@ -20,6 +20,9 @@ frappe.listview_settings["Bank Payment Request"] = {
 	},
 	onload: function (listview) {
 		listview.page.add_action_item(__("Payment Order"), ()=>{create_bulk_order(listview)});
+		listview.page.add_inner_button(__("Payment Order"), () => {
+			frappe.set_route("List", "Payment Order");
+		  });
 	}
 };
 
@@ -57,7 +60,7 @@ const create_bulk_order = function (listview) {
 				  frappe.msgprint("Payment order created successfully");
 				  cur_list.refresh();
 				},
-				5000
+				3000
 			  )
 			}
 		  });

@@ -11,6 +11,7 @@
   "default_email_format",
   "notify_party",
   "allow_unreconcile",
+  "enable_bank_account_workflow",
   "bulk_creation_configurations_section",
   "submit_bank_payment_request",
   "column_break_xfzu",
@@ -100,12 +101,18 @@
   {
    "fieldname": "column_break_xfzu",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_bank_account_workflow",
+   "fieldtype": "Check",
+   "label": "Enable workflow(Bank Account)"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-21 12:46:59.524532",
+ "modified": "2025-04-25 16:38:06.589867",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

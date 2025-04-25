@@ -80,4 +80,6 @@ PAYMENT_SUMMARY_FIELDS = [
 	"reference_name",
 	"payment_entry",
 	"journal_entry_account",
+	"beneficiary",
+	"beneficiary_name",
 ]

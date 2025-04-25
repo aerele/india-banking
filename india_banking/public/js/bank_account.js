@@ -41,8 +41,12 @@ frappe.ui.form.on('Bank Account', {
 			frm.add_custom_button("Add Beneficiary", ()=>frm.events.add_beneficiary(frm), "Beneficiary Action")
 		}
 		else{
+			let indicator_color = "";
+			if(frm.doc.workflow_state == "Approved"){
+				indicator_color = "green";
+			}
 			frappe.db.get_value("Beneficiary", frm.doc.beneficiary, "beneficiary_status", (r) => {
-				let bene_status_tag = `<span id="bene-status" class="indicator-pill no-indicator-dot whitespace-nowrap blue"><span>Beneficiary Status: ${r.beneficiary_status}</span></span>`
+				let bene_status_tag = `<span id="bene-status" class="indicator-pill no-indicator-dot whitespace-nowrap ${ indicator_color || "red"}"><span>Beneficiary Status: ${r.beneficiary_status}</span></span>`
 				if($('#bene-status').length>0){
 					$('#bene-status').remove();
 					$(`[title="${frm.doc.name}"]`).parent().append(bene_status_tag);

@@ -23,6 +23,7 @@ frappe.ui.form.on("Beneficiary", {
                 });
         }, __('Actions'))
         .addClass('btn-danger')
+        frm.disable_form()
     },
     bank_connector: function(frm) {
         if(frm.doc.bank_connector) {

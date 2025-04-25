@@ -36,6 +36,21 @@ class Beneficiary(Document):
 		if self.beneficiary_status != "Draft":
 			frappe.throw("Beneficiary cannot be deleted")
 
+	def is_beneficiary_approved(self):
+		"""Check the beneficiary status"""
+		if self.beneficiary_status == "Approved":
+			return True
+		elif self.beneficiary_status == "Draft":
+			frappe.throw("Beneficiary is in Draft state")
+		elif self.beneficiary_status == "Submitted":
+			frappe.throw("Beneficiary is submitted")
+		elif self.beneficiary_status == "Rejected":
+			frappe.throw("Beneficiary is rejected")
+		elif self.beneficiary_status == "Discarded":
+			frappe.throw("Beneficiary is discarded")
+		else:
+			frappe.throw(f"Invalid Beneficiary status({self.beneficiary_status})")
+
 
 
 @frappe.whitelist()

@@ -42,10 +42,10 @@ frappe.ui.form.on('Bank Account', {
 		}
 		else{
 			let indicator_color = "";
-			if(frm.doc.workflow_state == "Approved"){
-				indicator_color = "green";
-			}
 			frappe.db.get_value("Beneficiary", frm.doc.beneficiary, "beneficiary_status", (r) => {
+				if(r.beneficiary_status == "Approved"){
+					indicator_color = "green";
+				}
 				let bene_status_tag = `<span id="bene-status" class="indicator-pill no-indicator-dot whitespace-nowrap ${ indicator_color || "red"}"><span>Beneficiary Status: ${r.beneficiary_status}</span></span>`
 				if($('#bene-status').length>0){
 					$('#bene-status').remove();

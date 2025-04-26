@@ -34,6 +34,10 @@ frappe.ui.form.on('Bank Account', {
 				}
 			};
 		});
+		if(frm.doc.workflow_state == "Approved"){
+			frm.disable_form()
+		}
+		$('#bene-status')?.remove();
 		frm.events.add_beneficiary_actions(frm)
 	},
 	add_beneficiary_actions(frm){

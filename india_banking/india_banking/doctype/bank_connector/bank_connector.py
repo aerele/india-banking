@@ -195,3 +195,21 @@ class BankConnector(Document):
 				bank_transaction_doc.withdrawal = statement.transaction_amount
 				bank_transaction_doc.reference_number = statement.reference_number
 				bank_transaction_doc.save()
+
+@frappe.whitelist()
+def get_bank_statements(
+	bank_account=None,
+	from_date=None,
+	to_date=None,
+	is_paginated=False,
+	last_tran_id=None,
+):
+	"""Get bank statements from the connector"""
+	bank_connector = frappe.get_doc("Bank Connector", bank_account)
+	bank_connector.get_bank_statements(
+		bank_account=bank_account,
+		from_date=from_date,
+		to_date=to_date,
+		is_paginated=is_paginated,
+		last_tran_id=last_tran_id,
+	)

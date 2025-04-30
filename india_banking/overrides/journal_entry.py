@@ -7,73 +7,15 @@ from frappe.query_builder import DocType
 from frappe.query_builder.functions import Sum
 from frappe.utils import get_url_to_form
 
+from india_banking.utils import validate_party_bank_account_details
+
 
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None, args=None):
 	from frappe.model.mapper import get_mapped_doc
 
-	def validate_party_bank_account(bank_entry=None):
-		if not bank_entry:
-			return
-
-		JournalEntryAccount = DocType("Journal Entry Account")
-		BankAccount = DocType("Bank Account")
-
-		bank_account_query = (
-			frappe.qb.from_(JournalEntryAccount)
-			.left_join(BankAccount)
-			.on(JournalEntryAccount.party == BankAccount.party)
-			.select(
-				JournalEntryAccount.party_type,
-				JournalEntryAccount.party,
-				BankAccount.name.as_("bank_account"),
-			)
-			.where(
-				(JournalEntryAccount.parent == bank_entry)
-				& (
-					JournalEntryAccount.payment_status.notin(
-						["Paid", "Ordered", "Payment Ordered"]
-					)
-				)
-				& (
-					(BankAccount.name.isnull())
-					| (BankAccount.disabled == 1)
-					| (BankAccount.is_default == 0)
-				)
-			)
-			.groupby(JournalEntryAccount.party)
-		)
-
-		non_bank_account_party = bank_account_query.run(as_dict=1)
-
-		msg = ""
-		for party_details in non_bank_account_party:
-			if (
-				party_details
-				and (party_type := party_details.get("party_type"))
-				and (party := party_details.get("party"))
-			):
-				if not party_details.get("bank_account"):
-					msg += (
-						f"<b>{party_type}-{party}</b> does not have a bank account.<br>"
-					)
-				else:
-					msg += (
-						f"<b>{party_type}-{party}</b> has no default bank account.<br>"
-					)
-		if msg:
-			frappe.msgprint(
-				_(
-					"We can see Some bank entries are missing bank account details and have been ignored. Please update the bank account information and try again.</br></br><p style='color:red'><b>Missing Details are below</b></p>"
-					+ msg
-				),
-				title=_("Missing Bank Account"),
-				indicator="orange",
-			)
-
 	def update_bank_entry(source, target):
 		JournalEntryAccount = DocType("Journal Entry Account")
-		BankAccount = DocType("Bank Account")
 
 		select_field = [
 			"name",
@@ -87,14 +29,9 @@ def make_payment_order(source_name, target_doc=None, args=None):
 		]
 		select_field.extend(get_accounting_dimensions())
 
-		# Validate party does NOT have a valid Bank Account
-		validate_party_bank_account(source.name)
-
 		# Build the query
 		query = (
 			frappe.qb.from_(JournalEntryAccount)
-			.join(BankAccount)
-			.on(JournalEntryAccount.party == BankAccount.party)
 			.select(
 				*[
 					getattr(JournalEntryAccount, field.split(" as ")[0]).as_(
@@ -104,17 +41,15 @@ def make_payment_order(source_name, target_doc=None, args=None):
 					else getattr(JournalEntryAccount, field)
 					for field in select_field
 				],
-				BankAccount.name.as_("party_bank_account"),
 			)
 			.where(
 				(JournalEntryAccount.parent == source.name)
+				& (JournalEntryAccount.party_type != "")
 				& (
 					JournalEntryAccount.payment_status.notin(
 						["Paid", "Ordered", "Payment Ordered"]
 					)
 				)
-				& (BankAccount.disabled == 0)
-				& (BankAccount.is_default == 1)
 			)
 			.groupby(JournalEntryAccount.name)
 		)
@@ -131,10 +66,32 @@ def make_payment_order(source_name, target_doc=None, args=None):
 				for dimension in get_accounting_dimensions()
 			}
 
-		for journal_account in journal_accounts:
-			bank_account = frappe.get_doc(
-				"Bank Account", journal_account.party_bank_account
+		def _get_party_bank_account(party_type, party):
+			party_bank_account = frappe.db.get_value(
+				"Bank Account",
+				{
+					"party_type": party_type,
+					"party": party,
+					"is_default": 1,
+				},
 			)
+			if not party_bank_account:
+				party_bank_account = frappe.db.get_value(
+					"Bank Account",
+					{
+						"party_type": party_type,
+						"party": party,
+					},
+				)
+			if not party_bank_account:
+				frappe.throw(
+					_(
+						"Default Bank Account is missing for {0} - {1}".format(
+							party_type, party
+						)
+					)
+				)
+			bank_account = frappe.get_doc("Bank Account", party_bank_account)
 			if frappe.db.get_single_value(
 				"India Banking Settings", "activate_workflow_on_bank_account"
 			):
@@ -143,31 +100,28 @@ def make_payment_order(source_name, target_doc=None, args=None):
 						title=_("Cannot proceed with un-approved bank account"),
 						msg=_(
 							"{}-{}- Bank Account <a href='{}'>{}</a>".format(
-								journal_account.party_type,
-								journal_account.party,
-								get_url_to_form(
-									"Bank Account", journal_account.party_bank_account
-								),
-								frappe.bold(journal_account.party_bank_account),
+								party_type,
+								party,
+								get_url_to_form("Bank Account", bank_account.name),
+								frappe.bold(bank_account.name),
 							)
 						),
 					)
-
 			if bank_account.currency != "INR":
 				frappe.throw(
 					title=_("The party bank account currency should be in INR."),
 					msg=_(
 						"{}-{}- Bank Account <a href='{}'>{}</a>".format(
-							journal_account.party_type,
-							journal_account.party,
-							get_url_to_form(
-								"Bank Account", journal_account.party_bank_account
-							),
-							frappe.bold(journal_account.party_bank_account),
+							party_type,
+							party,
+							get_url_to_form("Bank Account", bank_account.name),
+							frappe.bold(bank_account.name),
 						)
 					),
 				)
+			return party_bank_account
 
+		for journal_account in journal_accounts:
 			journal_account = frappe._dict(journal_account)
 			details = {
 				"reference_doctype": "Journal Entry",
@@ -177,12 +131,15 @@ def make_payment_order(source_name, target_doc=None, args=None):
 				"party_type": journal_account.party_type,
 				"party": journal_account.party,
 				"mode_of_payment": "",
-				"bank_account": journal_account.party_bank_account,
 				"account": journal_account.account,
 				"project": journal_account.project,
 				"cost_center": journal_account.cost_center,
 			}
 			details.update(_update_dimensions(journal_account))
+			if not validate_party_bank_account_details(details, update=True):
+				details["bank_account"] = _get_party_bank_account(
+					journal_account.party_type, journal_account.party
+				)
 
 			target.append("references", details)
 
@@ -221,6 +178,7 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 			)
 			& (JournalEntry.voucher_type == "Bank Entry")
 			& (JournalEntryAccount.against_account == filters.company_account)
+			& (JournalEntryAccount.debit > 0)
 		)
 		.groupby(JournalEntry.name, JournalEntry.company, JournalEntry.voucher_type)
 		.select(

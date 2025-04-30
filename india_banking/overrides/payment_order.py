@@ -10,6 +10,7 @@ from frappe.utils import get_link_to_form, getdate
 
 from india_banking.default import PAYMENT_SUMMARY_FIELDS
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
+from india_banking.utils import validate_party_bank_account_details
 
 
 class CustomPaymentOrder(PaymentOrder):
@@ -288,9 +289,17 @@ def get_party_summary(
 		summary_line_item = {
 			k: v for k, v in zip(_get_unique_key(summarise_field_only=True), key)
 		}
+		if not summary_line_item["bank_account"]:
+			if not validate_party_bank_account_details(summary_line_item, update=True):
+				frappe.throw(
+					_(
+						f"Bank Account is not set for {summary_line_item['party_type']} - {summary_line_item['party']}"
+					)
+				)
 		party_bank = frappe.db.get_value(
 			"Bank Account", summary_line_item["bank_account"], "bank"
 		)
+
 		company_bank = frappe.db.get_value("Bank Account", company_bank_account, "bank")
 
 		summary_line_item.update(

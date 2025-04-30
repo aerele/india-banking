@@ -12,6 +12,8 @@ from erpnext.accounts.party import get_party_bank_account
 from frappe import _
 from frappe.utils import get_url_to_form, getdate
 
+from india_banking.utils import validate_party_bank_account_details
+
 
 class BankPaymentRequest(PaymentRequest):
 	def validate(self):
@@ -65,7 +67,13 @@ class BankPaymentRequest(PaymentRequest):
 				"is_default": 1,
 				"disabled": 0,
 			}
-			self.bank_account = frappe.get_value("Bank Account", filters, "name")
+			if bank_account := frappe.get_value("Bank Account", filters, "name"):
+				frappe.msgprint(
+					"The default bank account is set to {}".format(
+						frappe.bold(bank_account)
+					)
+				)
+				self.bank_account = bank_account
 
 		if self.bank_account:
 			self.mode_of_payment = "Wire Transfer"
@@ -74,13 +82,12 @@ class BankPaymentRequest(PaymentRequest):
 		if not self.grand_total or not self.net_total:
 			frappe.throw(_("Amount cannot be zero"))
 
-		self.validate_payment_type()
-		self.validate_bank_account()
-
 		if not self.is_adhoc:
 			super().on_submit()
 		else:
 			if self.payment_request_type == "Outward":
+				self.validate_payment_type()
+				self.validate_bank_account()
 				self.db_set("status", "Initiated")
 
 	def validate_payment_type(self):
@@ -119,6 +126,10 @@ class BankPaymentRequest(PaymentRequest):
 			)
 
 	def validate_bank_account(self):
+		if not self.bank_account:
+			if validate_party_bank_account_details(self, update=True):
+				return
+
 		bank_account = get_party_bank_account(self.party_type, self.party)
 		if not self.bank_account:
 			if not bank_account:

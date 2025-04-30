@@ -5,6 +5,9 @@ import frappe
 from frappe import _
 
 from india_banking.default import ALLOWED_PAYMENT_DOCTYPE
+from india_banking.india_banking.doctype.party_bank_account_field_map.party_bank_account_field_map import (
+	get_party_bank_fields,
+)
 
 
 @frappe.whitelist()
@@ -161,3 +164,33 @@ def get_party_bank_account(party_type, party):
 		filters.update({"workflow_state": workflow})
 
 	return frappe.db.get_value("Bank Account", filters)
+
+
+def validate_party_bank_account_details(target, update=False):
+	if (party_type := target.get("party_type")) and (party_name := target.get("party")):
+		party_bank_fields = get_party_bank_fields(party_type)
+		if not party_bank_fields:
+			return False
+
+		party = frappe.get_doc(party_type, party_name)
+		for target_field, source_field in party_bank_fields.items():
+			if not hasattr(party, source_field):
+				frappe.throw(
+					_("Please set <b>{}</b> for {} - {}").format(
+						source_field.replace("custom_", "").replace("_", " ").title(),
+						party_type,
+						frappe.bold(party_name),
+					)
+				)
+			elif not party.get(source_field):
+				frappe.throw(
+					_("Mandatory Field Required <b>{}</b> for {} - {}").format(
+						source_field.replace("custom_", "").replace("_", " ").title(),
+						party_type,
+						frappe.bold(party_name),
+					)
+				)
+			else:
+				if update:
+					target.update({target_field: party.get(source_field)})
+		return True

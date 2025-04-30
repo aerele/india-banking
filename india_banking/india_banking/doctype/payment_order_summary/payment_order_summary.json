@@ -106,7 +106,7 @@
    "label": "Bank Account",
    "options": "Bank Account",
    "read_only": 1,
-   "reqd": 1
+   "reqd": 0
   },
   {
    "fieldname": "accounting_section",

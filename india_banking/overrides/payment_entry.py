@@ -8,6 +8,10 @@ from frappe.model.mapper import get_mapped_doc
 from frappe.query_builder import DocType
 from frappe.utils import get_url_to_form
 
+from india_banking.india_banking.doctype.party_bank_account_field_map.party_bank_account_field_map import (
+	get_party_bank_fields,
+)
+
 
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None):
@@ -25,6 +29,8 @@ def make_payment_order(source_name, target_doc=None):
 			}
 
 		def _get_default_bank_account(party_type, party):
+			if get_party_bank_fields(party_type):
+				return ""
 			party_bank_account = get_party_bank_account(party_type, party)
 			if not party_bank_account:
 				frappe.throw(
@@ -120,7 +126,7 @@ def make_payment_order(source_name, target_doc=None):
 def get_payment_entry(doctype, txt, searchfield, start, page_len, filters):
 	payment_order = DocType("Payment Order")
 	payment_order_reference = DocType("Payment Order Reference")
-	query = (
+	pe_query = (
 		frappe.qb.from_(payment_order)
 		.left_join(payment_order_reference)
 		.on(payment_order.name == payment_order_reference.parent)
@@ -133,10 +139,28 @@ def get_payment_entry(doctype, txt, searchfield, start, page_len, filters):
 			!= 2
 		)
 	)
-	order_entry = query.run()
+	pe_query_entry = pe_query.run()
+	re_query = (
+		frappe.qb.from_(payment_order)
+		.left_join(payment_order_reference)
+		.on(payment_order.name == payment_order_reference.parent)
+		.select(
+			payment_order_reference.reference_name.as_("payment_entry"),
+		)
+		.where(
+			payment_order.payment_order_type.eq("Payment Entry")
+			& payment_order_reference.reference_doctype.eq("Payment Entry")
+			& payment_order.docstatus
+			!= 2
+		)
+	)
+	re_query_entry = re_query.run()
 
 	existing_payment_entries = filters["existing_payment_entries"] or []
-	order_entry = [d[0] for d in order_entry] or []
+	pe_query_entry = [d[0] for d in pe_query_entry] or []
+	re_query_entry = [d[0] for d in re_query_entry] or []
+
+	order_entry = pe_query_entry + re_query_entry
 
 	order_entry += existing_payment_entries
 	if order_entry:

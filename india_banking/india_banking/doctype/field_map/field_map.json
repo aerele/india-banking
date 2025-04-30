@@ -1,0 +1,40 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-30 15:13:31.060260",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "bank_account_field",
+  "party_bank_account_field"
+ ],
+ "fields": [
+  {
+   "fieldname": "bank_account_field",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bank Account Field ",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "party_bank_account_field",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Party Bank Account Field ",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-30 15:51:47.123922",
+ "modified_by": "Administrator",
+ "module": "India Banking",
+ "name": "Field Map",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

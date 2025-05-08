@@ -20,7 +20,11 @@ from erpnext.accounts.utils import get_account_currency
 from frappe import _, scrub
 from frappe.model.document import Document
 from frappe.query_builder.functions import Abs, Sum
-from frappe.utils import flt, today
+from frappe.utils import cstr, flt, today
+
+from india_banking.utils import add_background_job
+
+ENQUEUE_LIMIT = 50
 
 
 def execute(filters=None):
@@ -44,6 +48,7 @@ class CustomPayableReport(ReceivablePayableReport):
 			)
 			self.get_columns()
 			self.get_data()
+			self.order_term_details = {}
 			return self.columns, self.data
 		return super().run(args)
 
@@ -358,11 +363,13 @@ class CustomPayableReport(ReceivablePayableReport):
 				PO.advance_paid,
 				PO.cost_center,
 				PO.schedule_date,
+				PO.payment_terms_template,
 				(PO.grand_total - PO.advance_paid).as_("outstanding"),
 			)
 			.where(PO.docstatus.eq(1))
 			.where(PO.status.notin(["Completed", "Closed", "On Hold"]))
 			.where(PO.per_billed < 100)
+			.where((PO.grand_total - PO.advance_paid) > 0)
 			.orderby(PO.name)
 		)
 
@@ -382,7 +389,7 @@ class CustomPayableReport(ReceivablePayableReport):
 
 	def allocate_order_outstanding_based_on_payment_terms(self, order_data):
 		for row in order_data:
-			if self.filters.based_on_payment_terms:
+			if self.filters.based_on_payment_terms and row.payment_terms_template:
 				self.set_order_term_details(row)
 			else:
 				(
@@ -391,6 +398,7 @@ class CustomPayableReport(ReceivablePayableReport):
 				) = self.get_payment_requested_amount(
 					"Purchase Order", row.purchase_order
 				)
+				row["order_grand_total"] = row["ordered"]
 				row["outstanding"] -= row.requested_amount
 				self.data.append(row)
 
@@ -422,18 +430,28 @@ class CustomPayableReport(ReceivablePayableReport):
 		original_row = row
 
 		if len(order_terms_details) == 1 and order_terms_details[0].payment_term:
-			self.append_order_payment_term(
+			term_row = self.get_term_row(
 				order_terms_details[0], original_row, company_currency
 			)
+			self.data.append(term_row)
 			return
+		term_rows = []
 
+		total_term_outstanding = 0
 		for terms_details in order_terms_details:
 			term = frappe._dict(row)
-			self.append_order_payment_term(
+			term_row = self.get_term_row(
 				term, terms_details, original_row, company_currency
 			)
+			term_rows.append(term_row)
+			total_term_outstanding += term_row["outstanding"]
 
-	def append_order_payment_term(self, term, terms_details, row, company_currency):
+		# ignores invalid orders
+		if total_term_outstanding <= row["outstanding"]:
+			for term_row in term_rows:
+				self.data.append(term_row)
+
+	def get_term_row(self, term, terms_details, row, company_currency):
 		ordered = terms_details.base_payment_amount
 		paid_amount = terms_details.base_paid_amount
 
@@ -463,10 +481,10 @@ class CustomPayableReport(ReceivablePayableReport):
 			ordered
 			- paid_amount
 			- terms_details.discounted_amount
-			- term.requested_amount,
+			- term.requested_amount
 		)
 
-		self.data.append(term)
+		return term
 
 
 @frappe.whitelist()
@@ -495,8 +513,8 @@ def create_bulk_payment_request(invoices, filters=None) -> Document:
 		if not _is_valid_invoice(invoice):
 			continue
 
-		outstanding = flt(invoice.outstanding_in_account_currency) - (
-			flt(invoice.requested_amount)
+		outstanding = flt(invoice.outstanding_in_account_currency) - flt(
+			invoice.requested_amount
 		)
 		payment_details = {
 			"payment_request_type": "Outward",
@@ -519,9 +537,23 @@ def create_bulk_payment_request(invoices, filters=None) -> Document:
 
 		if not outstanding:
 			zero_outstanding += 1
+		if not outstanding:
+			zero_outstanding += 1
+		else:
+			if len(invoices) > ENQUEUE_LIMIT:
+				job_id = invoice.voucher_no + cstr(invoice.payment_term)
+				job_name = invoice.voucher_no + "-" + cstr(invoice.payment_term)
+				method = make_payment_request
+				add_background_job(job_id, job_name, method, **payment_details)
+			else:
+				make_payment_request(**payment_details)
+			count += 1
 
 	if count:
-		frappe.msgprint("{} Row Updated".format(count))
+		msg = "{} Row Updated".format(count)
+		if len(invoices) > ENQUEUE_LIMIT:
+			msg = "{} Row added in background job".format(count)
+		frappe.msgprint(msg)
 	if not count and zero_outstanding:
 		frappe.msgprint("No more outstanding invoice to Pay")
 
@@ -550,14 +582,23 @@ def create_bulk_payment_request_for_order(orders, filters=None):
 			"payment_term": order.payment_term,
 		}
 
-		if make_payment_request(**payment_details):
-			count += 1
-
 		if not order.outstanding:
 			zero_outstanding += 1
+		else:
+			if len(orders) > ENQUEUE_LIMIT:
+				job_id = order.purchase_order + cstr(order.payment_term)
+				job_name = order.purchase_order + "-" + cstr(order.payment_term)
+				method = make_payment_request
+				add_background_job(job_id, job_name, method, **payment_details)
+			else:
+				make_payment_request(**payment_details)
+			count += 1
 
 	if count:
-		frappe.msgprint("{} Row Updated".format(count))
+		msg = "{} Row Updated".format(count)
+		if len(orders) > ENQUEUE_LIMIT:
+			msg = "{} Row added in background job".format(count)
+		frappe.msgprint(msg)
 	if not count and zero_outstanding:
 		frappe.msgprint("No more outstanding invoice to Pay")
 

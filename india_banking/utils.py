@@ -1,8 +1,10 @@
 import ast
 import json
+import re
 
 import frappe
 from frappe import _
+from frappe.utils.background_jobs import is_job_enqueued
 
 from india_banking.default import ALLOWED_PAYMENT_DOCTYPE
 
@@ -165,3 +167,26 @@ def get_party_bank_account(party_type, party):
 		filters.update({"workflow_state": workflow})
 
 	return frappe.db.get_value("Bank Account", filters)
+
+
+def add_background_job(job_id, job_name, method, **kwargs):
+	def _add_queue(job_id, job_name, method, **kwargs):
+		frappe.enqueue(
+			method,
+			**kwargs,
+			job_id=job_id,
+			job_name=job_name,
+			enqueue_after_commit=True,
+		)
+
+	job_id = "".join(re.findall(r"[0-9a-zA-Z]", job_id))[-10:] + "-" + job_name
+
+	if not frappe.db.exists("RQ Job", job_id):
+		_add_queue(job_id, job_name, method, **kwargs)
+
+	elif (rq_job := frappe.db.exists("RQ Job", job_id)) and not is_job_enqueued(job_id):
+		frappe.get_doc("RQ Job", rq_job).delete()
+		frappe.clear_cache(doctype="RQ Job")
+		_add_queue(job_id, job_name, method, **kwargs)
+
+	return True

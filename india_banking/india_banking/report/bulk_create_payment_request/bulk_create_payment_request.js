@@ -130,6 +130,7 @@ frappe.query_reports["Bulk Create Payment Request"] = {
       fieldname: "based_on_payment_terms",
       label: __("Based On Payment Terms"),
       fieldtype: "Check",
+      default: 1,
     },
     {
       fieldname: "show_remarks",
@@ -227,9 +228,9 @@ frappe.query_reports["Bulk Create Payment Request"] = {
       frappe.set_route("List", "Payment Request");
     });
 
-    report.page.add_inner_button(__("Accounts Payable Summary"), function () {
+    report.page.add_inner_button(__("Accounts Payable"), function () {
       var filters = report.get_values();
-      frappe.set_route("query-report", "Accounts Payable Summary", {
+      frappe.set_route("query-report", "Accounts Payable", {
         company: filters.company,
       });
     });

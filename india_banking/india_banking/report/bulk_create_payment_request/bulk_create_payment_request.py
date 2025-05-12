@@ -513,9 +513,7 @@ def create_bulk_payment_request(invoices, filters=None) -> Document:
 		if not _is_valid_invoice(invoice):
 			continue
 
-		outstanding = flt(invoice.outstanding_in_account_currency) - flt(
-			invoice.requested_amount
-		)
+		outstanding = flt(invoice.outstanding) - flt(invoice.requested_amount)
 		payment_details = {
 			"payment_request_type": "Outward",
 			"company": filters.get("company"),
@@ -528,15 +526,9 @@ def create_bulk_payment_request(invoices, filters=None) -> Document:
 			"reference_doctype": invoice.voucher_type,
 			"reference_name": invoice.voucher_no,
 			"net_total": outstanding,
-			"based_on_payment_term": invoice.based_on_payment_term,
 			"payment_term": invoice.payment_term,
 		}
 
-		if make_payment_request(**payment_details):
-			count += 1
-
-		if not outstanding:
-			zero_outstanding += 1
 		if not outstanding:
 			zero_outstanding += 1
 		else:

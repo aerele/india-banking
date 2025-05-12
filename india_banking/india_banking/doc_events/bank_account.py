@@ -22,8 +22,13 @@ def update_party_transaction_currency(doc):
 		currency_field = (
 			"salary_currency" if doc.party_type == "Employee" else "default_currency"
 		)
-		doc.currency = frappe.get_value(
-			doc.party_type, doc.party, currency_field
-		) or frappe.db.get_value("Company", doc.company, "default_currency")
+		if frappe.get_meta(doc.party_type).has_field("default_currency"):
+			doc.currency = frappe.get_value(
+				doc.party_type, doc.party, currency_field
+			) or frappe.db.get_value("Company", doc.company, "default_currency")
+		else:
+			doc.currency = frappe.db.get_value(
+				"Company", doc.company, "default_currency"
+			)
 	elif doc.is_company_account:
 		doc.currency = frappe.db.get_value("Company", doc.company, "default_currency")

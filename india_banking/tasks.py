@@ -50,7 +50,7 @@ def update_payment_status_for_processed_payment():
 			& (PaymentOrderSummary.payment_date.isnotnull())
 		)
 		.distinct()
-	).run(pluck=True, debug=1)
+	).run(pluck=True)
 
 	for payment_order in payment_orders:
 		payment_order = frappe.get_doc("Payment Order", payment_order)

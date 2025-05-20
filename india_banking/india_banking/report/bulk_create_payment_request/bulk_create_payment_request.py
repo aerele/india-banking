@@ -430,7 +430,7 @@ class CustomPayableReport(ReceivablePayableReport):
 		original_row = row
 
 		if len(order_terms_details) == 1 and order_terms_details[0].payment_term:
-			term = frappe._dict(order_terms_details[0])
+			term = frappe._dict(original_row)
 			term_row = self.get_term_row(
 				term, order_terms_details[0], original_row, company_currency
 			)

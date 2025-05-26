@@ -3,17 +3,18 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
 from frappe import _
-from frappe.query_builder import DocType
+from frappe.query_builder import Case, DocType
 from frappe.query_builder.functions import Sum
 from frappe.utils import get_url_to_form
+from pypika.terms import ExistsCriterion
 
 
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None, args=None):
 	from frappe.model.mapper import get_mapped_doc
 
-	def validate_party_bank_account(bank_entry=None):
-		if not bank_entry:
+	def validate_party_bank_account(journal=None, party_type=None, party=None):
+		if not journal:
 			return
 
 		JournalEntryAccount = DocType("Journal Entry Account")
@@ -29,16 +30,13 @@ def make_payment_order(source_name, target_doc=None, args=None):
 				BankAccount.name.as_("bank_account"),
 			)
 			.where(
-				(JournalEntryAccount.parent == bank_entry)
-				& (
-					JournalEntryAccount.payment_status.notin(
-						["Paid", "Ordered", "Payment Ordered"]
-					)
-				)
+				(JournalEntryAccount.parent.eq(journal))
+				& (JournalEntryAccount.party_type.eq(party_type))
+				& (BankAccount.party.eq(party))
 				& (
 					(BankAccount.name.isnull())
-					| (BankAccount.disabled == 1)
-					| (BankAccount.is_default == 0)
+					| (BankAccount.disabled.eq(1))
+					| (BankAccount.is_default.eq(0))
 				)
 			)
 			.groupby(JournalEntryAccount.party)
@@ -72,54 +70,97 @@ def make_payment_order(source_name, target_doc=None, args=None):
 			)
 
 	def update_bank_entry(source, target):
+		JournalEntry = DocType("Journal Entry")
 		JournalEntryAccount = DocType("Journal Entry Account")
-		BankAccount = DocType("Bank Account")
 
-		select_field = [
-			"name",
-			"account",
-			"cost_center",
-			"project",
-			"debit as amount",
-			"party",
-			"party_type",
-			"parent as journal",
-		]
-		select_field.extend(get_accounting_dimensions())
-
-		# Validate party does NOT have a valid Bank Account
-		validate_party_bank_account(source.name)
-
-		# Build the query
 		query = (
-			frappe.qb.from_(JournalEntryAccount)
-			.join(BankAccount)
-			.on(JournalEntryAccount.party == BankAccount.party)
+			frappe.qb.from_(JournalEntry)
+			.join(JournalEntryAccount)
+			.on(JournalEntry.name == JournalEntryAccount.parent)
 			.select(
-				*[
-					getattr(JournalEntryAccount, field.split(" as ")[0]).as_(
-						field.split(" as ")[1]
+				JournalEntryAccount.name,
+				JournalEntry.name.as_("journal"),
+				JournalEntryAccount.party,
+				JournalEntryAccount.party_type,
+				JournalEntryAccount.account,
+				JournalEntryAccount.cost_center,
+				JournalEntryAccount.project,
+				Sum(
+					Case()
+					.when(
+						JournalEntryAccount.party.isnotnull(),
+						JournalEntryAccount.credit,
 					)
-					if " as " in field
-					else getattr(JournalEntryAccount, field)
-					for field in select_field
-				],
-				BankAccount.name.as_("party_bank_account"),
+					.else_(0)
+				).as_("credit_with_party"),
+				Sum(
+					Case()
+					.when(
+						JournalEntryAccount.party.isnotnull(), JournalEntryAccount.debit
+					)
+					.else_(0)
+				).as_("debit_with_party"),
 			)
 			.where(
-				(JournalEntryAccount.parent == source.name)
+				(JournalEntry.docstatus == 1)
+				& (JournalEntry.voucher_type.eq("Bank Entry"))
 				& (
-					JournalEntryAccount.payment_status.notin(
-						["Paid", "Ordered", "Payment Ordered"]
-					)
-				)
-				& (BankAccount.disabled == 0)
-				& (BankAccount.is_default == 1)
+					JournalEntryAccount.account != target.account
+				)  # Exclude company account rows
+				& (JournalEntry.name == source_name)
 			)
-			.groupby(JournalEntryAccount.name)
+			.groupby(
+				JournalEntryAccount.parent,
+				JournalEntryAccount.party,
+				JournalEntryAccount.account,
+			)
+			.orderby(JournalEntryAccount.idx)
 		)
 
-		journal_accounts = query.run(as_dict=True)
+		data = query.run(as_dict=True)
+
+		ordered_bank_entries = frappe.get_all(
+			"Payment Order Reference",
+			filters={
+				"docstatus": ["in", [0, 1]],
+				"reference_doctype": "Journal Entry",
+				"parent": ["!=", target.name],
+			},
+			fields=["reference_doctype", "reference_name", "journal_entry_account"],
+			order_by="idx",
+			as_list=True,
+		)
+
+		new_data = []
+		for entry in data:
+			if (
+				"Journal Entry",
+				entry.journal,
+				entry.name,
+			) in ordered_bank_entries:
+				continue
+
+			entry["amount"] = entry["debit_with_party"] - entry["credit_with_party"]
+			if entry["amount"] > 0:
+				validate_party_bank_account(
+					journal=entry.journal,
+					party_type=entry.party_type,
+					party=entry.party,
+				)
+				entry["party_bank_account"] = frappe.get_value(
+					"Bank Account",
+					{
+						"party_type": entry.party_type,
+						"party": entry.party,
+						"is_default": 1,
+						"disabled": 0,
+					},
+					"name",
+				)
+				if entry["party_bank_account"]:
+					new_data.append(entry)
+
+		journal_accounts = new_data
 
 		target.payment_order_type = "Journal Entry"
 		target.docstaus = 0
@@ -205,6 +246,7 @@ def make_payment_order(source_name, target_doc=None, args=None):
 @frappe.validate_and_sanitize_search_inputs
 def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict):
 	filters = frappe._dict(filters)
+
 	JournalEntry = DocType("Journal Entry")
 	JournalEntryAccount = DocType("Journal Entry Account")
 
@@ -212,35 +254,83 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 		frappe.qb.from_(JournalEntry)
 		.join(JournalEntryAccount)
 		.on(JournalEntry.name == JournalEntryAccount.parent)
-		.where(
-			(JournalEntry.docstatus == 1)
-			& (
-				JournalEntryAccount.payment_status.notin(
-					["Paid", "Ordered", "Payment Ordered"]
-				)
-			)
-			& (JournalEntry.voucher_type == "Bank Entry")
-			& (JournalEntryAccount.against_account == filters.company_account)
-		)
-		.groupby(JournalEntry.name, JournalEntry.company, JournalEntry.voucher_type)
 		.select(
-			JournalEntry.name,
+			JournalEntryAccount.name.as_("journal_entry_account"),
 			JournalEntry.company,
 			Sum(JournalEntryAccount.debit).as_("total"),
 			JournalEntry.voucher_type,
+			JournalEntry.name,
+			JournalEntryAccount.party,
+			JournalEntryAccount.party_type,
+			Sum(
+				Case()
+				.when(JournalEntryAccount.party.isnotnull(), JournalEntryAccount.credit)
+				.else_(0)
+			).as_("credit_with_party"),
+			Sum(
+				Case()
+				.when(JournalEntryAccount.party.isnotnull(), JournalEntryAccount.debit)
+				.else_(0)
+			).as_("debit_with_party"),
+		)
+		.where(
+			(JournalEntry.docstatus == 1)
+			& (JournalEntry.voucher_type.eq("Bank Entry"))
+			& (
+				ExistsCriterion(
+					frappe.qb.from_(JournalEntryAccount)
+					.select("name")
+					.where(
+						(JournalEntryAccount.parent == JournalEntry.name)
+						& (JournalEntryAccount.account == filters.company_account)
+					)
+				)
+			)
+			& (JournalEntryAccount.account != filters.company_account)
+		)
+		.groupby(
+			JournalEntryAccount.parent,
+			JournalEntryAccount.party,
+			JournalEntryAccount.account,
 		)
 	)
 
-	if filters:
-		if filters.docs:
-			existing_entries = tuple(filters.docs or [])
-			query = query.where(JournalEntry.name.notin(existing_entries))
-		if filters.company:
-			query = query.where(JournalEntry.company == filters.company)
+	if searchfield:
+		if searchfield == "name":
+			query = query.where(JournalEntry.name.like(f"%{txt}%"))
 
-	if txt:
-		query = query.where(JournalEntry.name.like(f"%{txt}%"))
+	data = query.run(as_dict=as_dict)
 
-	bank_entries = query.run(as_dict=as_dict)
+	ordered_bank_entries = frappe.get_all(
+		"Payment Order Reference",
+		filters={
+			"docstatus": ["in", [0, 1]],
+			"reference_doctype": "Journal Entry",
+			"parent": ["!=", filters.get("payment_order", "")],
+		},
+		fields=["reference_doctype", "reference_name", "journal_entry_account"],
+		order_by="idx",
+		as_list=True,
+	)
 
-	return bank_entries
+	new_data = {}
+	for entry in data:
+		if (
+			"Journal Entry",
+			entry.name,
+			entry.journal_entry_account,
+		) not in ordered_bank_entries and (entry.name not in filters.docs):
+			if entry.debit_with_party - entry.credit_with_party <= 0:
+				continue
+
+			if entry.name in new_data:
+				new_data[entry.name]["total"] += (
+					entry.debit_with_party - entry.credit_with_party
+				)
+			else:
+				new_data[entry.name] = entry
+				new_data[entry.name]["total"] = (
+					entry.debit_with_party - entry.credit_with_party
+				)
+
+	return [values for entry, values in new_data.items() if values["total"] > 0]

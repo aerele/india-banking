@@ -188,6 +188,7 @@ frappe.ui.form.on("Payment Order", {
 
 	get_payments_from_journal_entry(frm) {
 		erpnext.utils.map_current_doc({
+			size: "extra-large",
 			method: "india_banking.overrides.journal_entry.make_payment_order",
 			source_doctype: "Journal Entry",
 			target: frm,
@@ -225,8 +226,9 @@ frappe.ui.form.on("Payment Order", {
 				return {
 					query: "india_banking.overrides.journal_entry.get_bank_entry",
 					filters: {
-						docs: existing_journal_entries,
 						company_account: frm.doc.account,
+						docs: existing_journal_entries,
+						payment_order: frm.doc.name,
 					},
 				};
 			},
@@ -264,8 +266,7 @@ frappe.ui.form.on("Payment Order", {
 
 			if (has_initiated_or_non_pending) {
 				frm.dashboard.add_comment(
-					"Payment is already initiated. Check the status using the 'Get Status' button before trying again.",
-					permanent = false
+					"Payment is already initiated. Check the status using the 'Get Status' button before trying again."
 				);
 				frm.add_custom_button(__("Get Status"), () => {
 					frappe.call({

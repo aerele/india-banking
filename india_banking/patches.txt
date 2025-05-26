@@ -3,3 +3,4 @@ india_banking.patches.v1_0.update_custom_fields
 
 [post_model_sync]
 india_banking.patches.v15_0.remove_payroll_entry_custom_fields #31032025
+india_banking.patches.v15_0.create_payment_ref_details_ #2605251923

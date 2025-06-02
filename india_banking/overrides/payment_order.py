@@ -99,11 +99,6 @@ class CustomPaymentOrder(PaymentOrder):
 				)
 
 			payment.mode_of_transfer = mode_of_transfer.mode
-			payment.party_name = frappe.get_value(
-				payment.party_type,
-				payment.party,
-				self.get_party_field_name(payment.party_type),
-			)
 			summary_total += payment.amount
 
 		references_total = 0
@@ -111,21 +106,21 @@ class CustomPaymentOrder(PaymentOrder):
 			reference.party_name = frappe.get_value(
 				reference.party_type,
 				reference.party,
-				self.get_party_field_name(reference.party_type),
+				self.get_party_field_name(reference),
 			)
 			references_total += reference.amount
 
 		if summary_total != references_total:
 			frappe.throw(_("Summary isn't matching the references"))
 
-	def get_party_field_name(self, party_type):
-		if party_type == "Supplier":
+	def get_party_field_name(self, party):
+		if party.party_type == "Supplier":
 			return "supplier_name"
-		elif party_type == "Employee":
+		elif party.party_type == "Employee":
 			return "employee_name"
-		elif party_type == "Shareholder":
+		elif party.party_type == "Shareholder":
 			return "name"
-		elif party_type == "Customer":
+		elif party.party_type == "Customer":
 			return "customer_name"
 		else:
 			return "name"
@@ -140,6 +135,7 @@ class CustomPaymentOrder(PaymentOrder):
 				make_payment_entries(self.name)
 
 			self.update_payment_status()
+			self.update_payment_reference_details()
 
 	def on_update_after_submit(self):
 		frappe.throw(_("You cannot modify a payment order"))
@@ -234,17 +230,46 @@ class CustomPaymentOrder(PaymentOrder):
 
 		if ref_field and ref_doc_field:
 			for d in self.references:
-				doctype = (
-					self.payment_order_type + " Account"
-					if self.payment_order_type == "Journal Entry"
-					else self.payment_order_type
-				)
+				doctype = self.payment_order_type
+				if self.payment_order_type == "Journal Entry":
+					doctype = "Journal Entry Account"
+					if cancel:
+						status = "Failed"
 				frappe.db.set_value(
 					doctype,
 					d.get(ref_doc_field),
 					ref_field,
 					status,
 				)
+
+	def update_payment_reference_details(self):
+		# [(source field, target field, scrubbed value)]
+		ref_field_map = {
+			"Journal Entry": [
+				(
+					"name",
+					"reference_details",
+					frappe.scrub(self.payment_order_type) + "_account",
+				)
+			],
+		}
+		ref_fields_and_ref_doc_fields = ref_field_map.get(
+			self.payment_order_type, (None, None, None)
+		)
+		for source_field, ref_field, ref_doc_field in ref_fields_and_ref_doc_fields:
+			if ref_field and ref_doc_field:
+				for d in self.references:
+					doctype = (
+						self.payment_order_type + " Account"
+						if self.payment_order_type == "Journal Entry"
+						else self.payment_order_type
+					)
+					frappe.db.set_value(
+						doctype,
+						d.get(ref_doc_field),
+						ref_field,
+						d.get(source_field, "") if source_field else "",
+					)
 
 
 @frappe.whitelist()

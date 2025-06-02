@@ -188,6 +188,7 @@ frappe.ui.form.on("Payment Order", {
 
 	get_payments_from_journal_entry(frm) {
 		erpnext.utils.map_current_doc({
+			size: "extra-large",
 			method: "india_banking.overrides.journal_entry.make_payment_order",
 			source_doctype: "Journal Entry",
 			target: frm,
@@ -225,8 +226,9 @@ frappe.ui.form.on("Payment Order", {
 				return {
 					query: "india_banking.overrides.journal_entry.get_bank_entry",
 					filters: {
-						docs: existing_journal_entries,
 						company_account: frm.doc.account,
+						docs: existing_journal_entries,
+						payment_order: frm.doc.name,
 					},
 				};
 			},

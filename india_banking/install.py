@@ -93,9 +93,17 @@ def create_journal_entry_custom_fields():
 				"insert_after": "payment_details",
 			},
 			{
+				"label": "Reference Details",
+				"fieldname": "reference_details",
+				"fieldtype": "Data",
+				"no_copy": 1,
+				"read_only": 1,
+				"insert_after": "payment_status",
+			},
+			{
 				"fieldname": "payment_details_column_break",
 				"fieldtype": "Column Break",
-				"insert_after": "payment_status",
+				"insert_after": "reference_details",
 			},
 			{
 				"label": "Reference Number",

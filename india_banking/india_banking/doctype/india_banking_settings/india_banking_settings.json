@@ -24,6 +24,7 @@
  ],
  "fields": [
   {
+   "default": "Voucher",
    "fieldname": "summarise_payment_based_on",
    "fieldtype": "Select",
    "label": "Summarise Payment Based On",
@@ -40,13 +41,13 @@
    "label": "Notify Party"
   },
   {
-   "default": "1",
+   "default": "0",
    "fieldname": "activate_workflow_on_bank_account",
    "fieldtype": "Check",
    "label": "Activate Workflow on Bank Account"
   },
   {
-   "default": "1",
+   "default": "0",
    "description": "If more than 10 payments need to be initiated to the bank, they will be processed in the background. This prevents delays caused by long bank response times.",
    "fieldname": "enable_payment_in_the_background",
    "fieldtype": "Check",
@@ -129,7 +130,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-03-12 16:13:24.156102",
+ "modified": "2025-06-02 13:06:19.052680",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

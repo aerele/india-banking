@@ -207,12 +207,6 @@ frappe.ui.form.on("Payment Order", {
 					options: "Bank Entry",
 					hidden: true,
 				},
-				{
-					fieldtype: "Currency",
-					label: "Amount",
-					fieldname: "total",
-					hidden: true,
-				},
 			],
 			get_query: function () {
 				// Extract unique reference names from the references table

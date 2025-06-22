@@ -1,5 +1,8 @@
 import frappe
 from india_banking.india_banking.default import DEFAULT_MODE_OF_TRANSFERS, STD_BANK_LIST
+from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+import click
+
 
 def execute():
     update_payment_order_fields_options()
@@ -12,6 +15,7 @@ def after_install():
 	create_default_bank()
 	create_default_mode_of_transfers()
 	create_default_payment_type()
+	create_bank_account_custom_fields()
 
 def create_default_mode_of_transfers():
 	for mot in DEFAULT_MODE_OF_TRANSFERS:
@@ -72,3 +76,28 @@ def create_default_payment_type():
 			"doctype": "Payment Type",
 			"payment_type": "Pay"
 		}).insert(ignore_permissions=True, ignore_mandatory=True)
+
+
+def create_bank_account_custom_fields():
+	fields = {
+		"Bank Account": [
+			{
+				"label": "Beneficiary Details",
+				"fieldname": "beneficiary_details_tab",
+				"fieldtype": "Tab Break",
+				"insert_after": "mask",
+				"module": "India Banking",
+			},
+			{
+				"label": "Beneficiaries",
+				"fieldname": "beneficiaries",
+				"fieldtype": "Table",
+				"options": "Beneficiaries",
+				"insert_after": "beneficiary_details_tab",
+				"module": "India Banking",
+			},
+		]
+	}
+
+	create_custom_fields(fields)
+	click.secho(" -> Custom Fields in a Bank Account installed successfully", fg="green")

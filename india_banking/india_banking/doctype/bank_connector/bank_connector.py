@@ -9,14 +9,14 @@ from india_banking.india_banking.doctype.india_banking_request_log.india_banking
 	create_api_log,
 )
 from frappe import _
-from frappe.utils import add_days, getdate
+from frappe.utils import add_days, getdate, flt
 
 
 class BankConnector(Document):
 	@property
 	def header(self):
 		return {
-			"Authorization": f"token {self.api_key}:{self.get_password("api_secret")}",
+			"Authorization": f"token {self.api_key}:{self.get_password('api_secret')}",
 			"Content-Type": "application/json",
 		}
 
@@ -193,6 +193,10 @@ class BankConnector(Document):
 				bank_transaction_doc.status = "Pending"
 				bank_transaction_doc.date = getdate(statement.transaction_date)
 				bank_transaction_doc.withdrawal = statement.transaction_amount
+				if flt(statement.transaction_amount) < 0:
+					bank_transaction_doc.withdrawal = statement.transaction_amount
+				else:
+					bank_transaction_doc.deposit = statement.transaction_amount
 				bank_transaction_doc.reference_number = statement.reference_number
 				bank_transaction_doc.save()
 

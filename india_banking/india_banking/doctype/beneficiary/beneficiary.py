@@ -10,8 +10,22 @@ class Beneficiary(Document):
 		"""Send the beneficiary details to the bank connector"""
 		if self.beneficiary_status != "Draft":
 			return
-		self.submit_beneficiary()
 
+	def validate(self):
+		if frappe.db.exists(
+			"Beneficiary", {
+				"company": self.company,
+				"party_type": self.party_type,
+				"party": self.party,
+				"bank_connector": self.bank_connector,
+				"name": ["!=", self.name],
+			}
+		):
+			frappe.throw(
+				"Beneficiary already exists for this Company, Party Type, Party and Bank Connector"
+			)
+
+	@frappe.whitelist()
 	def submit_beneficiary(self):
 		"""Submit the beneficiary details to the bank connector"""
 		if not self.bank_connector:
@@ -20,6 +34,7 @@ class Beneficiary(Document):
 		bank_connector = frappe.get_doc("Bank Connector", self.bank_connector)
 		bank_connector.post_request(beneficiary_id=self.name)
 
+	@frappe.whitelist()
 	def update_beneficiary(self, action=None):
 		"""Update/delete the beneficiary details to the bank connector"""
 		if not self.bank_connector:
@@ -105,7 +120,13 @@ def update_beneficiary_details(**beneficiary_details):
 			)
 
 		beneficiary_doc.update(beneficiary_details)
+		beneficiary_doc.beneficiary_status = "Modified"
 		beneficiary_doc.save()
-
-	beneficiary_doc = frappe.get_doc("Beneficiary", beneficiary_id)
-	beneficiary_doc.update_beneficiary(action=beneficiary_details.get("action"))
+	try:
+		beneficiary_doc = frappe.get_doc("Beneficiary", beneficiary_id)
+		beneficiary_doc.update_beneficiary(action=beneficiary_details.get("action"))
+	except Exception:
+		frappe.log_error(
+			f"Error while updating beneficiary {beneficiary_id} with action {beneficiary_details.get('action')}",
+			frappe.get_traceback(with_context=True),
+		)

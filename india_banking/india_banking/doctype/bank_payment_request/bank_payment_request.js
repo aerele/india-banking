@@ -12,6 +12,12 @@ frappe.ui.form.on('Bank Payment Request', {
 		});
 	},
 
+	onload_post_render: function(frm) {
+		if (frm.doc.__islocal && frm.doc.bank_account) {
+			frm.events.get_default_beneficiary(frm);
+		}
+	},
+
 	refresh(frm) {
 		frm.set_query("payment_type", function() {
 			return {
@@ -42,6 +48,18 @@ frappe.ui.form.on('Bank Payment Request', {
 			return {
 				filters: {
 					"bank_account": frm.doc.bank_account,
+					"beneficiary_status": "Approved"
+				}
+			};
+		});
+
+		frm.set_query("beneficiary", function() {
+			return {
+				filters: {
+					"bank_account": frm.doc.bank_account,
+					"company": frm.doc.company,
+					"party_type": frm.doc.party_type,
+					"party": frm.doc.party,
 					"beneficiary_status": "Approved"
 				}
 			};
@@ -116,7 +134,21 @@ frappe.ui.form.on('Bank Payment Request', {
 				};
 			});
 		}
-	}
+	},
+	bank_account (frm) {
+		if (frm.doc.mode_of_payment == "Wire Transfer") {
+			frm.events.get_default_beneficiary(frm);
+		}
+	},
+	get_default_beneficiary(frm) {
+		frm.call("get_default_beneficiary").then((r) => {
+			if (r.message) {
+				frm.set_value("beneficiary", r.message);
+			} else {
+				frappe.msgprint(__("No approved beneficiary found for the selected bank account."));
+			}
+		});
+	},
 });
 
 const get_bank_query_conditions = function(frm) {

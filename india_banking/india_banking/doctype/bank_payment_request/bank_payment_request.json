@@ -109,13 +109,15 @@
    "fieldname": "party_type",
    "fieldtype": "Link",
    "label": "Party Type",
-   "options": "DocType"
+   "options": "DocType",
+   "reqd": 1
   },
   {
    "fieldname": "party",
    "fieldtype": "Dynamic Link",
    "label": "Party",
-   "options": "party_type"
+   "options": "party_type",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_4",
@@ -437,7 +439,7 @@
    "fetch_if_empty": 1,
    "fieldname": "beneficiary",
    "fieldtype": "Link",
-   "label": "Beneficiary",
+   "label": "Receiver Code",
    "mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer'",
    "no_copy": 1,
    "options": "Beneficiary"
@@ -447,7 +449,7 @@
    "fetch_if_empty": 1,
    "fieldname": "beneficiary_name",
    "fieldtype": "Data",
-   "label": "Beneficiary Name",
+   "label": "Receiver Name",
    "mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer'",
    "no_copy": 1,
    "read_only": 1
@@ -456,7 +458,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-25 16:27:06.821039",
+ "modified": "2025-06-23 00:21:40.031547",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

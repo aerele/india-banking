@@ -57,6 +57,23 @@ class BankPaymentRequest(PaymentRequest):
 			if self.reference_doctype or self.reference_name:
 				frappe.throw("Payments with references cannot be marked as ad-hoc")
 
+		if not self.beneficiary:
+			self.beneficiary = self.get_default_beneficiary()
+
+	@frappe.whitelist()
+	def get_default_beneficiary(self):
+		"""
+		Get the default beneficiary for the bank account
+		"""
+		if not self.bank_account:
+			return ""
+
+		return frappe.get_value("Beneficiaries", {
+				"company": self.company,
+				"parent": self.bank_account
+			},
+			"beneficiary"
+		)
 
 	def validate_bank_account(self):
 		if self.mode_of_payment == "Wire Transfer" and not self.bank_account:
@@ -91,47 +108,40 @@ class BankPaymentRequest(PaymentRequest):
 						)
 					),
 				)
-			elif not bank_account.beneficiary:
-				frappe.throw(
-					title=_("beneficiary Mandatory"),
-					msg=_(
-						"Beneficiary Missing for Bank Account <a href='{}'>{}</a>".format(
-							get_url_to_form("Bank Account", bank_account.name),
-							frappe.bold(bank_account),
-						)
-					),
-				)
-			elif self.beneficiary != bank_account.beneficiary:
-				frappe.throw(
-					title=_("Beneficiary Mismatch"),
-					msg=_(
-						"Beneficiary <a href='{}'>{}</a> is not valid for Bank Account <a href='{}'>{}</a>".format(
-							get_url_to_form("Beneficiary", self.beneficiary),
-							frappe.bold(self.beneficiary),
-							get_url_to_form("Bank Account", bank_account.name),
-							frappe.bold(bank_account),
-						)
-					),
-				)
 
-		if self.bank_account:
-			bank_account_company = frappe.db.get_value(
-				"Bank Account", self.bank_account, "company"
-			)
-			if self.company != bank_account_company:
-				frappe.throw(
-					_(
-						"Bank Account <b>{0}</b> is not valid for company <b>{1}</b>".format(
-							self.bank_account, self.company
-						)
-					)
-				)
 
 	def validate_beneficiary_details(self):
 		if not self.beneficiary:
-			frappe.throw(frappe._("Beneficiary is missing for Bank Account {0}").format(self.bank_account))
+			frappe.throw(frappe._("Receiver details are missing for Bank Account {0}").format(self.bank_account))
 
-		frappe.get_doc("Beneficiary", self.beneficiary).is_beneficiary_approved()
+		if not self.beneficiary:
+			frappe.throw(
+				title=_(" Mandatory"),
+				msg=_(
+					"Receiver details are Missing for Bank Account <a href='{}'>{}</a>".format(
+						get_url_to_form("Bank Account", self.bank_account),
+						frappe.bold(self.bank_account),
+					)
+				),
+			)
+		elif self.beneficiary:
+			if not frappe.db.exists("Beneficiaries", {
+				"parent": self.bank_account,
+				"beneficiary": self.beneficiary,
+				"company": self.company,
+			}):
+				frappe.throw(
+					title=_("Receiver details are Mismatch"),
+					msg=_(
+						"Receiver details are <a href='{}'>{}</a> is not valid for Bank Account <a href='{}'>{}</a>".format(
+							get_url_to_form("Beneficiary", self.beneficiary),
+							frappe.bold(self.beneficiary),
+							get_url_to_form("Bank Account", self.bank_account),
+							frappe.bold(self.bank_account),
+						)
+					),
+				)
+			frappe.get_doc("Beneficiary", self.beneficiary).is_beneficiary_approved()
 
 	def validate_payment_request_amount(self):
 		if self.reference_doctype in ["Payroll Entry"]:
@@ -397,7 +407,10 @@ def make_bank_payment_request(**args):
 			args.success_list.append(bpr.name)
 
 		if frappe.get_single("India Banking Settings").submit_bank_payment_request:
-			bpr.submit()
+			try:
+				bpr.submit()
+			except Exception:
+				bpr.db_set("docstatus", 0, update_modified=False)
 
 	if args.return_doc:
 		return bpr

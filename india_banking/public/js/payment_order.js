@@ -15,7 +15,9 @@ frappe.ui.form.on('Payment Order', {
 				},
 			};
 		});
-		cur_frm.trigger("set_default_company_bank_account");
+		if(frm.is_new()){
+			cur_frm.trigger("set_default_company_bank_account");
+		}
 		if (frm.is_new()) {
 			frappe.db
 			  .get_single_value(

@@ -1,20 +1,24 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "naming_series:",
+ "autoname": "field:beneficiary",
  "creation": "2025-04-10 10:00:00.950229",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "naming_series",
-  "beneficiary_name",
+  "company",
   "bank_connector",
   "connector_bank",
   "column_break_mtbg",
-  "company",
-  "beneficiary_type",
   "beneficiary_status",
+  "beneficiary_details_section",
+  "party_type",
+  "beneficiary",
   "association_id",
+  "column_break_dmuy",
+  "party",
+  "beneficiary_name",
+  "beneficiary_type",
   "lei_code",
   "bank_account_details_section",
   "bank_account",
@@ -22,6 +26,7 @@
   "mobile",
   "address",
   "column_break_kgkd",
+  "bank_account_no",
   "payment_type",
   "email",
   "postal_address_html",
@@ -34,16 +39,10 @@
  ],
  "fields": [
   {
-   "fieldname": "naming_series",
-   "fieldtype": "Select",
-   "label": "Series",
-   "options": "BENE.YYYY.#####"
-  },
-  {
    "fieldname": "beneficiary_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Beneficiary Name",
+   "label": "Receiver Name",
    "options": "Name",
    "reqd": 1
   },
@@ -55,7 +54,8 @@
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
-   "options": "Company"
+   "options": "Company",
+   "reqd": 1
   },
   {
    "fieldname": "lei_code",
@@ -71,7 +71,7 @@
    "options": "\nINDIVIDUAL\nCORPORATE"
   },
   {
-   "depends_on": "eval: !!doc.bank_connector",
+   "depends_on": "eval: !!doc.party",
    "fieldname": "bank_account_details_section",
    "fieldtype": "Section Break",
    "label": "Bank Account Details",
@@ -119,15 +119,17 @@
    "fieldtype": "HTML"
   },
   {
+   "depends_on": "eval: !!doc.beneficiary && !!doc.beneficiary_name",
    "fieldname": "beneficiary_limit_section",
    "fieldtype": "Section Break",
    "label": "Beneficiary Limit"
   },
   {
+   "default": "NONE",
    "fieldname": "limit_level",
    "fieldtype": "Select",
    "label": "Limit Level",
-   "options": "\nNONE\nACCOUNT\nBENEFICIARY"
+   "options": "NONE\nACCOUNT\nBENEFICIARY"
   },
   {
    "fieldname": "column_break_hfxe",
@@ -148,12 +150,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "beneficiary_status",
-   "fieldtype": "Select",
-   "label": "Beneficiary Status",
-   "options": "Draft\nSubmitted\nApproved\nRejected\nSuspended\nDiscarded"
-  },
-  {
    "fetch_from": "bank_account.bank",
    "fetch_if_empty": 1,
    "fieldname": "bank",
@@ -162,16 +158,19 @@
    "options": "Bank"
   },
   {
+   "fetch_from": "bank_connector.bank",
    "fetch_if_empty": 1,
    "fieldname": "connector_bank",
    "fieldtype": "Link",
    "label": "Connector Bank",
-   "options": "Bank"
+   "options": "Bank",
+   "read_only": 1
   },
   {
    "fieldname": "association_id",
    "fieldtype": "Data",
-   "label": "Association ID"
+   "label": "Association ID",
+   "read_only": 1
   },
   {
    "default": "0",
@@ -181,19 +180,67 @@
    "label": "Limit on Amount"
   },
   {
+   "depends_on": "eval: !!doc.limit_frequency",
    "fieldname": "limit_frequency",
    "fieldtype": "Select",
    "label": "Limit Frequency",
    "options": "\nDAILY\nMONTHLY"
+  },
+  {
+   "fieldname": "beneficiary",
+   "fieldtype": "Data",
+   "label": "Receiver Code",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "depends_on": "eval: !!doc.bank_connector",
+   "fieldname": "beneficiary_details_section",
+   "fieldtype": "Section Break",
+   "label": "Beneficiary Details"
+  },
+  {
+   "fieldname": "column_break_dmuy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Supplier",
+   "fieldname": "party_type",
+   "fieldtype": "Link",
+   "label": "Party Type",
+   "options": "DocType",
+   "reqd": 1
+  },
+  {
+   "fieldname": "party",
+   "fieldtype": "Dynamic Link",
+   "label": "Party",
+   "options": "party_type",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "depends_on": "eval: !cur_frm.doc.__islocal",
+   "fieldname": "beneficiary_status",
+   "fieldtype": "Select",
+   "label": "Beneficiary Status",
+   "options": "Draft\nSubmitted\nModified\nApproved\nRejected\nSuspended\nDiscarded"
+  },
+  {
+   "fetch_from": "bank_account.bank_account_no",
+   "fetch_if_empty": 1,
+   "fieldname": "bank_account_no",
+   "fieldtype": "Data",
+   "label": "Bank Account No"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-25 16:48:04.969269",
+ "modified": "2025-06-22 23:24:04.249478",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Beneficiary",
- "naming_rule": "By \"Naming Series\" field",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {

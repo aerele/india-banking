@@ -14,9 +14,6 @@ frappe.ui.form.on('Bank Account', {
 				})
 			});
 		}
-		if (frm.doc.workflow_state == 'Approved') {
-			frm.set_read_only();
-		}
 		frm.set_query("cost_center", function() {
 			return {
 				filters: {
@@ -26,19 +23,22 @@ frappe.ui.form.on('Bank Account', {
 				}
 			};
 		});
-		frm.set_query("beneficiary", function() {
+		frm.set_query("beneficiary", "beneficiaries", function(frm, cdt ,cdn) {
+			let doc = locals[cdt][cdn];
 			return {
 				filters: {
-					company: frm.doc.company,
-					docstatus: ["!=", 2],
+					company: doc.company,
+					party_type: cur_frm.doc.party_type,
+					party: cur_frm.doc.party,
+					beneficiary_status: "Approved",
 				}
 			};
 		});
 		if(frm.doc.workflow_state == "Approved"){
 			frm.disable_form()
 		}
-		$('#bene-status')?.remove();
-		frm.events.add_beneficiary_actions(frm)
+		// $('#bene-status')?.remove();
+		// frm.events.add_beneficiary_actions(frm)
 	},
 	add_beneficiary_actions(frm){
 		if(!frm.doc.beneficiary) {
@@ -119,7 +119,6 @@ frappe.ui.form.on('Bank Account', {
 		if (frm.doc.workflow_state == 'Approved') {
 			frm.set_read_only();
 		}
-		frm.reload_doc();
 	},
 });
 

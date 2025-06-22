@@ -2,7 +2,7 @@ import frappe, json
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 
-from frappe.utils import get_datetime, get_link_to_form, getdate
+from frappe.utils import get_datetime, get_link_to_form, getdate, get_url_to_form
 import re
 from india_banking.india_banking.doctype.bank_payment_request.bank_payment_request import get_existing_bank_entry
 from india_banking.india_banking.doc_events.payroll_entry import make_bank_entries
@@ -10,6 +10,7 @@ from india_banking.india_banking.default import PAYMENT_SUMMARY_FIELDS
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
+from frappe import _
 
 class CustomPaymentOrder(PaymentOrder):
 	def before_submit(self):
@@ -37,6 +38,7 @@ class CustomPaymentOrder(PaymentOrder):
 
 	def validate(self):
 		self.validate_summary()
+		self.validate_beneficiary_details()
 		for payment_info in self.summary:
 			if payment_info.mode_of_transfer == "RTGS" and payment_info.amount >= 500000000:
 				lei_number = frappe.db.get_value(payment_info.party_type, payment_info.party, "lei_number")
@@ -44,6 +46,42 @@ class CustomPaymentOrder(PaymentOrder):
 					frappe.throw(f"LEI Number required for payment > 50 Cr. For {payment_info.party_type} - {payment_info.party} - {payment_info.amount}")
 			if "A2A" in payment_info.mode_of_transfer and payment_info.bank != self.company_bank:
 				frappe.throw(f"Invalid mode of transfer for {payment_info.party_type} - {payment_info.party} at <b>row #{payment_info.idx}</b>")
+			if payment_info.bank == self.company_bank and  "A2A" not in payment_info.mode_of_transfer:
+				frappe.throw(f"Invalid mode of transfer for {payment_info.party_type} - {payment_info.party} at <b>row #{payment_info.idx}</b>. A2A is only allowed for inter-bank transfers")
+
+	def validate_beneficiary_details(self):
+		for payment_info in self.summary:
+			if not payment_info.beneficiary:
+				frappe.throw(frappe._("Receiver details are missing for Bank Account {0}").format(payment_info.bank_account))
+
+			if not payment_info.beneficiary:
+				frappe.throw(
+					title=_(" Mandatory"),
+					msg=_(
+						"Receiver details are Missing for Bank Account <a href='{}'>{}</a>".format(
+							get_url_to_form("Bank Account", self.bank_account),
+							frappe.bold(self.bank_account),
+						)
+					),
+				)
+			elif payment_info.beneficiary:
+				if not frappe.db.exists("Beneficiaries", {
+					"parent": payment_info.bank_account,
+					"beneficiary": payment_info.beneficiary,
+					"company": self.company,
+				}):
+					frappe.throw(
+						title=_("Receiver details are Mismatch"),
+						msg=_(
+							"Receiver details are <a href='{}'>{}</a> is not valid for Bank Account <a href='{}'>{}</a>".format(
+								get_url_to_form("Beneficiary", payment_info.beneficiary),
+								frappe.bold(payment_info.beneficiary),
+								get_url_to_form("Bank Account", payment_info.bank_account),
+								frappe.bold(payment_info.bank_account),
+							)
+						),
+					)
+				frappe.get_doc("Beneficiary", payment_info.beneficiary).is_beneficiary_approved()
 
 
 	def validate_summary(self):
@@ -283,6 +321,7 @@ def get_mode_of_transfer(amount, party_bank, company_bank):
 				"minimum_limit": ["<=", amount],
 				"maximum_limit": [">", amount],
 				"is_bank_specific": 0,
+				"disabled": 0,
 			},
 			order_by="priority asc",
 		)

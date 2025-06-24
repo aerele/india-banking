@@ -57,7 +57,6 @@ frappe.ui.form.on("Beneficiary", {
 		frm.set_query("bank_account", function() {
 			return {
 				filters: {
-					company: frm.doc.company,
 					party_type: frm.doc.party_type,
 					party: frm.doc.party,
 				}

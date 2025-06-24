@@ -141,7 +141,6 @@ frappe.ui.form.on('Bank Payment Request', {
 		}
 	},
 	get_default_beneficiary(frm) {
-		debugger
 		frm.call("get_default_beneficiary").then((r) => {
 			if (r.message) {
 				frm.set_value("beneficiary", r.message);

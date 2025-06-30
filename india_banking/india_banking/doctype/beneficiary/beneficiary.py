@@ -3,9 +3,17 @@
 
 import frappe
 from frappe.model.document import Document
-
+from frappe.utils import cstr
 
 class Beneficiary(Document):
+	@frappe.whitelist()
+	def get_last_max_number(self):
+		last_max_number = frappe.db.sql("""
+			SELECT MAX(CAST(SUBSTRING_INDEX(beneficiary, ' ', 1) AS UNSIGNED))
+			FROM `tabBeneficiary`""")
+		frappe.log_error("Max-get_last_max_number", last_max_number)
+		return last_max_number[0][0] + 1 if last_max_number else ""
+
 	def on_update(self):
 		"""Send the beneficiary details to the bank connector"""
 		if self.beneficiary_status != "Draft":
@@ -18,6 +26,7 @@ class Beneficiary(Document):
 				"party_type": self.party_type,
 				"party": self.party,
 				"bank_connector": self.bank_connector,
+				"bank_account": self.bank_account,
 				"name": ["!=", self.name],
 			}
 		):

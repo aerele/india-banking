@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:beneficiary",
+ "autoname": "hash",
  "creation": "2025-04-10 10:00:00.950229",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -190,8 +190,7 @@
    "fieldname": "beneficiary",
    "fieldtype": "Data",
    "label": "Receiver Code",
-   "reqd": 1,
-   "unique": 1
+   "reqd": 1
   },
   {
    "depends_on": "eval: !!doc.bank_connector",
@@ -236,11 +235,11 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-22 23:24:04.249478",
+ "modified": "2025-06-30 18:57:54.459814",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Beneficiary",
- "naming_rule": "By fieldname",
+ "naming_rule": "Random",
  "owner": "Administrator",
  "permissions": [
   {
@@ -256,7 +255,10 @@
    "write": 1
   }
  ],
+ "search_fields": "beneficiary, beneficiary_name",
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "beneficiary"
 }

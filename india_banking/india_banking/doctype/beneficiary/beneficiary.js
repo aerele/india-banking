@@ -2,6 +2,12 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Beneficiary", {
+	onload_post_render(frm){
+		if(frm.is_new()){
+		frm.call("get_last_max_number").then((res)=>{if(!res.exc){
+			frm.set_value("beneficiary", res.message)
+		}})}
+	},
 	refresh: function(frm) {
 		frm.events.add_filters(frm);
 		frm.events.add_beneficiary_actions(frm);

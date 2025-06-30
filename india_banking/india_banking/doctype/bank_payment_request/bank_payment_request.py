@@ -929,24 +929,15 @@ def make_bulk_bank_payment_request(data, doctype):
 
 def get_party_bank_account_with_cost_center(party_type, party, cost_center=None):
 	"""Get party bank account with cost center validation"""
-	filters = {
-		"party_type": party_type,
-		"party": party,
-		"is_default": 1,
-	}
+	bank_account = get_party_bank_account(party_type, party)
+	if not bank_account:
+		frappe.throw(frappe._("Default Bank Account is missing for {0} - {1}").format(party_type, party))
 	if cost_center:
-		filters["cost_center"] = cost_center
-
-	party_account_with_cost_center = frappe.db.get_value("Bank Account", filters, "name")
-	msg = frappe._("Default Bank Account is missing for {0} - {1}").format(party_type, party)
-	if cost_center:
-			msg = frappe._("Default Bank Account is missing for {0} - {1}({2})").format(
-				party_type, party, frappe.bold(cost_center)
-			)
-	if not party_account_with_cost_center:
-		frappe.throw(msg)
-
-	return party_account_with_cost_center
+		bank_cost_center = frappe.db.get_value("Bank Account", bank_account, "cost_center")
+		if bank_cost_center and bank_cost_center != ref_doc.cost_center:
+			msg = frappe._("Default Bank Account is missing for {0} - {1} -> ({2})").format(party_type, party, frappe.bold(cost_center))
+			frappe.throw(msg)
+	return bank_account
 
 
 @frappe.whitelist()

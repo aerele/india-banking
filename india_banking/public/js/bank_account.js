@@ -23,13 +23,14 @@ frappe.ui.form.on('Bank Account', {
 				}
 			};
 		});
-		frm.set_query("beneficiary", "beneficiaries", function(frm, cdt ,cdn) {
+		frm.set_query("receiver_id", "beneficiaries", function(frm, cdt ,cdn) {
 			let doc = locals[cdt][cdn];
 			return {
 				filters: {
 					company: doc.company,
 					party_type: cur_frm.doc.party_type,
 					party: cur_frm.doc.party,
+					bank_account: cur_frm.doc.name,
 					beneficiary_status: "Approved",
 				}
 			};

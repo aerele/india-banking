@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "company",
+  "receiver_id",
   "beneficiary",
   "beneficiary_name"
  ],
@@ -19,24 +20,31 @@
    "options": "Company"
   },
   {
+   "fetch_from": "receiver_id.beneficiary",
    "fieldname": "beneficiary",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Receiver Code",
-   "options": "Beneficiary"
+   "label": "Receiver Code"
   },
   {
-   "fetch_from": "beneficiary.beneficiary_name",
+   "fetch_from": "receiver_id.beneficiary_name",
    "fieldname": "beneficiary_name",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Receiver Name"
+  },
+  {
+   "fieldname": "receiver_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Receiver ID",
+   "options": "Beneficiary"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-23 00:13:00.277107",
+ "modified": "2025-06-30 19:13:05.003926",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Beneficiaries",

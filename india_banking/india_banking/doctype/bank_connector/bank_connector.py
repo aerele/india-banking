@@ -75,7 +75,11 @@ class BankConnector(Document):
 				"company_account_number": bank_account.bank_account_no,
 				"company_bank_account_name": bank_account.account_name,
 				"company_ifsc": bank_account.branch_code,
+				"account_currency": bank_account.currency,
 				"mobile_number": bank_account.mobile_number,
+				"company_address": json.dumps(
+					get_bank_address_details(payment_order.company_bank_account)
+				),
 			}
 		)
 		payment_payload.method = self.get("action", "") or action

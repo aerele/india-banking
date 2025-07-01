@@ -15,8 +15,8 @@
   "column_break_mdgf",
   "api_key",
   "api_secret",
-  "bulk_transaction",
-  "bank_integration_type"
+  "bank_integration_type",
+  "bulk_transaction"
  ],
  "fields": [
   {
@@ -82,14 +82,13 @@
    "default": "API",
    "fieldname": "bank_integration_type",
    "fieldtype": "Select",
-   "label": "Bank Integration Type",
-   "options": "API\nH2H",
-   "sort_options": 1
+   "label": "Integration Type",
+   "options": "API\nH2H"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-22 13:36:44.818199",
+ "modified": "2025-06-23 03:59:17.233639",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Connector",

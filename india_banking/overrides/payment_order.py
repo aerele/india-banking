@@ -254,7 +254,7 @@ class CustomPaymentOrder(PaymentOrder):
 			],
 		}
 		ref_fields_and_ref_doc_fields = ref_field_map.get(
-			self.payment_order_type, (None, None, None)
+			self.payment_order_type, [(None, None, None)]
 		)
 		for source_field, ref_field, ref_doc_field in ref_fields_and_ref_doc_fields:
 			if ref_field and ref_doc_field:

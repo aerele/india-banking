@@ -134,6 +134,7 @@ class CustomPaymentOrder(PaymentOrder):
 				make_payment_entries(self.name)
 
 			self.update_payment_status()
+			self.update_payment_reference_details()
 
 	def on_update_after_submit(self):
 		frappe.throw(_("You cannot modify a payment order"))
@@ -228,17 +229,46 @@ class CustomPaymentOrder(PaymentOrder):
 
 		if ref_field and ref_doc_field:
 			for d in self.references:
-				doctype = (
-					self.payment_order_type + " Account"
-					if self.payment_order_type == "Journal Entry"
-					else self.payment_order_type
-				)
+				doctype = self.payment_order_type
+				if self.payment_order_type == "Journal Entry":
+					doctype = "Journal Entry Account"
+					if cancel:
+						status = "Failed"
 				frappe.db.set_value(
 					doctype,
 					d.get(ref_doc_field),
 					ref_field,
 					status,
 				)
+
+	def update_payment_reference_details(self):
+		# [(source field, target field, scrubbed value)]
+		ref_field_map = {
+			"Journal Entry": [
+				(
+					"name",
+					"reference_details",
+					frappe.scrub(self.payment_order_type) + "_account",
+				)
+			],
+		}
+		ref_fields_and_ref_doc_fields = ref_field_map.get(
+			self.payment_order_type, [(None, None, None)]
+		)
+		for source_field, ref_field, ref_doc_field in ref_fields_and_ref_doc_fields:
+			if ref_field and ref_doc_field:
+				for d in self.references:
+					doctype = (
+						self.payment_order_type + " Account"
+						if self.payment_order_type == "Journal Entry"
+						else self.payment_order_type
+					)
+					frappe.db.set_value(
+						doctype,
+						d.get(ref_doc_field),
+						ref_field,
+						d.get(source_field, "") if source_field else "",
+					)
 
 
 @frappe.whitelist()
@@ -283,9 +313,16 @@ def get_party_summary(
 		summary_line_item = {
 			k: v for k, v in zip(_get_unique_key(summarise_field_only=True), key)
 		}
+		if not summary_line_item["bank_account"]:
+			frappe.throw(
+				_(
+					f"Bank account is not set for {summary_line_item['party_type']} - {summary_line_item['party']}."
+				)
+			)
 		party_bank = frappe.db.get_value(
 			"Bank Account", summary_line_item["bank_account"], "bank"
 		)
+
 		company_bank = frappe.db.get_value("Bank Account", company_bank_account, "bank")
 
 		summary_line_item.update(

@@ -40,6 +40,9 @@ doc_events = {
 	"Payment Entry": {
 		"on_cancel": "india_banking.india_banking.doc_events.payment_entry.on_cancel",
 	},
+	"Journal Entry": {
+		"on_cancel": "india_banking.india_banking.doc_events.journal_entry.on_cancel",
+	},
 }
 
 accounting_dimension_doctypes = [

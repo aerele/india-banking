@@ -82,6 +82,12 @@ class CustomPaymentOrder(PaymentOrder):
 						f"Invalid mode of transfer for {payment.party_type} - {payment.party} at <b>row #{payment.idx}</b>"
 					)
 				)
+			if payment.bank == self.company_bank and "A2A" not in mode_of_transfer.mode:
+				frappe.throw(
+					_(
+						f"Invalid mode of transfer for {payment.party_type} - {payment.party} at <b>row #{payment.idx}</b>. A2A is required for intra-bank transfers."
+					)
+				)
 
 			if not mode_of_transfer:
 				frappe.throw(_("Define a specific mode of transfer or a default one"))
@@ -134,7 +140,6 @@ class CustomPaymentOrder(PaymentOrder):
 				make_payment_entries(self.name)
 
 			self.update_payment_status()
-			self.update_payment_reference_details()
 
 	def on_update_after_submit(self):
 		frappe.throw(_("You cannot modify a payment order"))

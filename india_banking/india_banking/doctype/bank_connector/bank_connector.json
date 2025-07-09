@@ -15,6 +15,7 @@
   "column_break_mdgf",
   "api_key",
   "api_secret",
+  "bank_integration_type",
   "bulk_transaction"
  ],
  "fields": [
@@ -76,6 +77,14 @@
    "fieldname": "bulk_transaction",
    "fieldtype": "Check",
    "label": "Bulk Transaction"
+  },
+  {
+   "default": "API",
+   "fieldname": "bank_integration_type",
+   "fieldtype": "Select",
+   "label": "Integration Type",
+   "options": "API\nH2H",
+   "hidden": 1
   }
  ],
  "index_web_pages_for_search": 1,

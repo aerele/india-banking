@@ -74,22 +74,18 @@ def extract_error_message(response_json, show_message=False) -> str:
 		)
 		failure_message = ""
 
-		# Check if the response contains a server error message
 		server_message = response_json.get("_server_messages", "[]")
 		if server_message and (server_message := json.loads(server_message)):
-			server_message = json.loads(server_message[0]) or {}
-			failure_message = server_message.get("message", "")
+			server_message = json.loads(server_message[0])
+			failure_message = _(
+				f'{frappe.bold(server_message.get("title", ""))}: {server_message.get("message", "")}'
+			)
 
-		if isinstance(response_json.get("message", {}), dict):
-			failure_message = failure_message or response_json.get("message", {}).get(
-				"errormessage", ""
-			)
-			failure_message = failure_message or response_json.get("message", {}).get(
-				"error", ""
-			)
-			failure_message = failure_message or response_json.get("message", {}).get(
-				"message", ""
-			)
+		failure_message = failure_message or response_json.get("message", "")
+		if isinstance(failure_message, dict):
+			failure_message = failure_message.get("message", "")
+		if isinstance(failure_message, dict):
+			failure_message = failure_message.get("errormessage", "")
 
 		if show_message and failure_message:
 			frappe.msgprint(title=_("Failure Reason"), msg=failure_message)

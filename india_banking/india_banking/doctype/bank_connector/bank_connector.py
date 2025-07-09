@@ -4,6 +4,7 @@
 import ast
 import json
 import re
+import time
 
 import frappe
 import requests as request
@@ -44,8 +45,15 @@ class BankConnector(Document):
 		}
 
 	@property
+	def integration_type(self):
+		return {
+			"H2H": "india_banking_h2h",
+			"API": "india_banking_connector",
+		}.get(self.bank_integration_type, "india_banking_connector")
+
+	@property
 	def connector_url(self):
-		return f"{self.url}/api/method/india_banking_connector.api.connect"
+		return f"{self.url}/api/method/{self.integration_type}.api.connect"
 
 	def check_otp_enabled(self, otp=None):
 		if (self.bank, self.bulk_transaction) in OTP_ENABLED_BANK and otp is None:
@@ -67,7 +75,11 @@ class BankConnector(Document):
 				"company_account_number": bank_account.bank_account_no,
 				"company_bank_account_name": bank_account.account_name,
 				"company_ifsc": bank_account.branch_code,
+				"account_currency": bank_account.currency,
 				"mobile_number": bank_account.mobile_number,
+				"company_address": json.dumps(
+					get_bank_address_details(payment_order.company_bank_account)
+				),
 			}
 		)
 		payment_payload.method = self.get("action", "") or action
@@ -99,8 +111,7 @@ class BankConnector(Document):
 
 		if otp:
 			self.verify_otp(payment_order, otp)
-
-		if self.bulk_transaction:
+		if self.bank_integration_type == "H2H" or self.bulk_transaction:
 			url = self.connector_url
 			headers = self.headers
 
@@ -134,14 +145,20 @@ class BankConnector(Document):
 
 		if self.action == "initiate_payment":
 			msg = _("Payment Initiated")
-			if not self.bulk_transaction:
+			if self.bank_integration_type == "API" or (not self.bulk_transaction):
 				msg = _(f"{self.success_count} Payment(s) Initiated")
-			frappe.msgprint(msg)
+			if not frappe.flags.error_message:
+				frappe.msgprint(msg)
+			else:
+				frappe.msgprint(frappe.flags.error_message)
+				frappe.flags.error_message = ""
 
 	def verify_response(self, response, payment_order):
 		if self.action == "initiate_payment":
 			self.verify_payment_response(response, payment_order)
 		elif self.action == "get_payment_status":
+			time.sleep(1)  # User intreaction time
+
 			self.verify_status_response(response, payment_order)
 
 		self.update_payment_status(payment_order)
@@ -225,8 +242,9 @@ class BankConnector(Document):
 				)
 
 			else:
-				extract_error_message(response.json(), show_message=True)
-
+				frappe.flags.error_message = extract_error_message(
+					response.json(), show_message=False
+				)
 		else:
 			frappe.throw(_("Connection Failed"))
 
@@ -243,7 +261,7 @@ class BankConnector(Document):
 				for summary in payment_order.summary:
 					status_details = frappe._dict(summary_details.get(summary.name, ""))
 					if status_details.status == "Processed":
-						if status_details.utr_number and status_details.status not in  ["Rejected", "Failed"]:
+						if status_details.utr_number:
 							frappe.db.set_value(
 								"Payment Order Summary",
 								summary.name,

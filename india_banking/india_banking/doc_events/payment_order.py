@@ -1067,24 +1067,23 @@ def process_bank_payment_requests(payment_order_summary):
 	failed_prs = []
 	for ref in payment_order_doc.references:
 		ref_key = (
-			ref.party_type,
-			ref.party,
-			ref.bank_account,
-			ref.account,
-			ref.cost_center,
-			ref.project,
-			ref.tax_withholding_category,
-			ref.reference_doctype,
+			ref.party_type or "",
+			ref.party or "",
+			ref.bank_account or "",
+			ref.account or "",
+			ref.cost_center or "",
+			ref.project or "",
+			ref.tax_withholding_category or "",
+			ref.reference_doctype or "",
 		)
 		if key == ref_key:
 			failed_prs.append(ref.bank_payment_request)
-
 	for pr in failed_prs:
 		pr_doc = frappe.get_doc("Bank Payment Request", pr)
 		if pr_doc.docstatus == 1:
 			pr_doc.check_if_payment_entry_exists()
-			pr_doc.set_as_cancelled()
-			pr_doc.db_set("docstatus", 2)
+			pr_doc.db_set("status", "Failed")
+			pr_doc.db_set("failed_reason", pos.payment_status)
 
 
 def get_refrence_number_for_bank_entry(payment_info):

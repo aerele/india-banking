@@ -52,6 +52,7 @@
   "column_break_9",
   "payment_gateway_account",
   "status",
+  "failed_reason",
   "make_sales_invoice",
   "section_break_10",
   "payment_url",
@@ -460,12 +461,18 @@
    "mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer'",
    "no_copy": 1,
    "options": "Beneficiary"
+  },
+  {
+   "fieldname": "failed_reason",
+   "fieldtype": "Long Text",
+   "label": "Failed Reason",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-30 21:34:38.478331",
+ "modified": "2025-07-09 11:52:39.207384",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

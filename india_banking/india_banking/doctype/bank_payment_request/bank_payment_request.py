@@ -622,13 +622,15 @@ def get_existing_payment_request_amount(ref_dt, ref_dn, submitted= True, update=
 	Get the existing Bank payment request which are unpaid or partially paid for payment channel other than Phone
 	and get the summation of existing paid Bank payment request for Phone payment channel.
 	"""
-			
+
 	docstatus = 1 if submitted else 0
 
 	where_conditions = "AND payment_term = '{0}'".format(payment_term.replace("%", "%%")) if payment_term  else "AND payment_term is null"
 
 	if salary_slip:
 		where_conditions += " AND salary_slip = '{0}'".format(salary_slip.replace("%", "%%"))
+	if submitted:
+		where_conditions += " AND status != 'Failed'"
 
 	existing_payment_request_amount = frappe.db.sql(
 		"""

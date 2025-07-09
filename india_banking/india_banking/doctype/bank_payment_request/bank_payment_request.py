@@ -28,7 +28,7 @@ class BankPaymentRequest(PaymentRequest):
 	def validate_adhoc_payment(self):
 		if self.is_adhoc and not frappe.db.exists("Ad Hoc Comapny", {"company": self.company, "allow_ad_hoc": 1, "parent": 'India Banking Settings'}):
 			frappe.throw(f"Ad hoc payments are not Accepted for <b>Company - {self.company}</b>")
-		
+
 		if self.party_type == "Employee" and self.party:
 			if not frappe.get_value("Employee", self.party, "advance_payment_allowance"):
 				frappe.throw("Employee Advance Payment Allowance Not Enabled")
@@ -57,23 +57,50 @@ class BankPaymentRequest(PaymentRequest):
 			if self.reference_doctype or self.reference_name:
 				frappe.throw("Payments with references cannot be marked as ad-hoc")
 
-		if not self.beneficiary:
-			self.beneficiary = self.get_default_beneficiary()
+		if self.docstatus == 0:
+			self.update_default_beneficiary()
 
 	@frappe.whitelist()
 	def get_default_beneficiary(self):
+		if not self.bank_account:
+			return ""
+		bene_details =  frappe.get_value("Beneficiaries", {
+				 "company": self.company,
+				"parent": self.bank_account
+			},
+			[
+				"receiver_id",
+				"beneficiary",
+				"beneficiary_name"
+			],
+			as_dict = 1
+		)
+		if bene_details:
+			return bene_details.receiver_id
+
+
+	@frappe.whitelist()
+	def update_default_beneficiary(self):
 		"""
-		Get the default beneficiary for the bank account
+		Update the default beneficiary for the bank account
 		"""
 		if not self.bank_account:
 			return ""
 
-		return frappe.get_value("Beneficiaries", {
+		bene_details =  frappe.get_value("Beneficiaries", {
 				"company": self.company,
 				"parent": self.bank_account
 			},
-			"beneficiary"
+			[
+			"receiver_id",
+			"beneficiary",
+			"beneficiary_name"
+			], as_dict = 1
 		)
+		if bene_details:
+			self.receiver_id = bene_details.receiver_id
+			self.beneficiary = bene_details.beneficiary
+			self.beneficiary_name = bene_details.beneficiary_name
 
 	def validate_bank_account(self):
 		if self.mode_of_payment == "Wire Transfer" and not self.bank_account:
@@ -111,9 +138,6 @@ class BankPaymentRequest(PaymentRequest):
 
 
 	def validate_beneficiary_details(self):
-		if not self.beneficiary:
-			frappe.throw(frappe._("Receiver details are missing for Bank Account {0}").format(self.bank_account))
-
 		if not self.beneficiary:
 			frappe.throw(
 				title=_(" Mandatory"),
@@ -482,6 +506,7 @@ def set_missing_values(source, target):
 			"cost_center": source.cost_center,
 			"project": source.project,
 			"tax_withholding_category": source.tax_withholding_category,
+			"receiver_id": source.receiver_id,
 			"beneficiary": source.beneficiary,
 			"beneficiary_name": source.beneficiary_name,
 		},
@@ -930,13 +955,25 @@ def make_bulk_bank_payment_request(data, doctype):
 def get_party_bank_account_with_cost_center(party_type, party, cost_center=None):
 	"""Get party bank account with cost center validation"""
 	bank_account = get_party_bank_account(party_type, party)
-	if not bank_account:
-		frappe.throw(frappe._("Default Bank Account is missing for {0} - {1}").format(party_type, party))
 	if cost_center:
-		bank_cost_center = frappe.db.get_value("Bank Account", bank_account, "cost_center")
-		if bank_cost_center and bank_cost_center != ref_doc.cost_center:
-			msg = frappe._("Default Bank Account is missing for {0} - {1} -> ({2})").format(party_type, party, frappe.bold(cost_center))
-			frappe.throw(msg)
+		bank_account_with_cost_center = frappe.db.get_value(
+			"Bank Account",
+			{
+				"party_type": party_type,
+				"party": party,
+				"is_default": 1,
+				"cost_center": cost_center
+			}
+		)
+		if bank_account_with_cost_center:
+			bank_account = bank_account_with_cost_center
+
+	if cost_center and not bank_account:
+		msg = frappe._("Default Bank Account is missing for {0} - {1} -> ({2})").format(party_type, party, frappe.bold(cost_center))
+		frappe.throw(msg)
+	elif not bank_account:
+		frappe.throw(frappe._("Default Bank Account is missing for {0} - {1}").format(party_type, party))
+
 	return bank_account
 
 

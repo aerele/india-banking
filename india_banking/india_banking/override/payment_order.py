@@ -74,14 +74,14 @@ class CustomPaymentOrder(PaymentOrder):
 						title=_("Receiver details are Mismatch"),
 						msg=_(
 							"Receiver details are <a href='{}'>{}</a> is not valid for Bank Account <a href='{}'>{}</a>".format(
-								get_url_to_form("Beneficiary", payment_info.beneficiary),
-								frappe.bold(payment_info.beneficiary),
+								get_url_to_form("Beneficiary", payment_info.receiver_id),
+								frappe.bold(payment_info.receiver_id),
 								get_url_to_form("Bank Account", payment_info.bank_account),
 								frappe.bold(payment_info.bank_account),
 							)
 						),
 					)
-				frappe.get_doc("Beneficiary", payment_info.beneficiary).is_beneficiary_approved()
+				frappe.get_doc("Beneficiary", payment_info.receiver_id).is_beneficiary_approved()
 
 
 	def validate_summary(self):

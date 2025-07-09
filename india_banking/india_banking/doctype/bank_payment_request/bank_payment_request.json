@@ -37,6 +37,7 @@
   "column_break_11",
   "iban",
   "branch_code",
+  "receiver_id",
   "beneficiary",
   "beneficiary_name",
   "swift_number",
@@ -435,15 +436,15 @@
    "read_only": 1
   },
   {
+   "fetch_from": "receiver_id.beneficiary",
    "fieldname": "beneficiary",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Receiver Code",
    "mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer'",
-   "no_copy": 1,
-   "options": "Beneficiary"
+   "no_copy": 1
   },
   {
-   "fetch_from": "beneficiary.beneficiary_name",
+   "fetch_from": "receiver_id.beneficiary_name",
    "fetch_if_empty": 1,
    "fieldname": "beneficiary_name",
    "fieldtype": "Data",
@@ -451,12 +452,20 @@
    "mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer'",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "receiver_id",
+   "fieldtype": "Link",
+   "label": "Receiver ID",
+   "mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer'",
+   "no_copy": 1,
+   "options": "Beneficiary"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-24 15:29:39.412745",
+ "modified": "2025-06-30 21:34:38.478331",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

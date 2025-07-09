@@ -15,6 +15,7 @@
   "message",
   "reference_number",
   "bank_account",
+  "receiver_id",
   "beneficiary",
   "beneficiary_name",
   "accounting_section",
@@ -195,9 +196,8 @@
   },
   {
    "fieldname": "beneficiary",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Receiver Code",
-   "options": "Beneficiary",
    "read_only": 1
   },
   {
@@ -205,12 +205,18 @@
    "fieldtype": "Data",
    "label": "Receiver Name",
    "read_only": 1
+  },
+  {
+   "fieldname": "receiver_id",
+   "fieldtype": "Link",
+   "label": "Receiver ID",
+   "options": "Beneficiary"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-23 00:48:12.852610",
+ "modified": "2025-06-30 22:52:33.167088",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Payment Order Summary",

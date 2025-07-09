@@ -85,46 +85,46 @@ frappe.ui.form.on('Payment Order', {
 			//		}
 			//	});
 			//}, __("Get from"));
-			//frm.add_custom_button(__('Bank Entry (JV)'), function() {
-			//	erpnext.utils.map_current_doc({
-			//		method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
-			//		source_doctype: "Journal Entry",
-			//		target: frm,
-			//		args: {"ref_doctype": "Journal Entry"},
-			//		setters: [
-			//			{
-			//				fieldtype: "Link",
-			//				label: "Company",
-			//				fieldname: "company",
-			//				options: "Company",
-			//				default: frappe.defaults.get_user_default("company")
-			//			},
-			//			{
-			//				fieldtype: "Select",
-			//				label: "Entry Type",
-			//				fieldname: "voucher_type",
-			//				options: "Bank Entry",
-			//				hidden: 1
-			//			},
-			//			{
-			//				fieldtype: "Currency",
-			//				label: "Amount",
-			//				fieldname: "total",
-			//				hidden: 1
-			//			}
-			//		],
-			//		get_query: function () {
-			//			let docs = frm.doc.references?.map((doc)=>{return doc.reference_name})
-			//			let unique_accounts =  [...new Set(docs)]
-			//			return {
-			//				query: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.get_bank_entry",
-			//				filters: {
-			//					docs: unique_accounts
-			//				},
-			//			};
-			//		},
-			//	});
-			//}, __("Get from"));
+			frm.add_custom_button(__('Bank Entry (JV)'), function() {
+				erpnext.utils.map_current_doc({
+					method: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.make_payment_order",
+					source_doctype: "Journal Entry",
+					target: frm,
+					args: {"ref_doctype": "Journal Entry"},
+					setters: [
+						{
+							fieldtype: "Link",
+							label: "Company",
+							fieldname: "company",
+							options: "Company",
+							default: frappe.defaults.get_user_default("company")
+						},
+						{
+							fieldtype: "Select",
+							label: "Entry Type",
+							fieldname: "voucher_type",
+							options: "Bank Entry",
+							hidden: 1
+						},
+						{
+							fieldtype: "Currency",
+							label: "Amount",
+							fieldname: "total",
+							hidden: 1
+						}
+					],
+					get_query: function () {
+						let docs = frm.doc.references?.map((doc)=>{return doc.reference_name})
+						let unique_accounts =  [...new Set(docs)]
+						return {
+							query: "india_banking.india_banking.doctype.bank_payment_request.bank_payment_request.get_bank_entry",
+							filters: {
+								docs: unique_accounts
+							},
+						};
+					},
+				});
+			}, __("Get from"));
 		}
 		if (frm.doc.docstatus===1 && frm.doc.payment_order_type==='Bank Payment Request') {
 			frm.remove_custom_button(__('Create Payment Entries'));

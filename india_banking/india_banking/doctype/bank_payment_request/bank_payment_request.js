@@ -44,16 +44,7 @@ frappe.ui.form.on('Bank Payment Request', {
 			};
 		});
 
-		frm.set_query("beneficiary", function() {
-			return {
-				filters: {
-					"bank_account": frm.doc.bank_account,
-					"beneficiary_status": "Approved"
-				}
-			};
-		});
-
-		frm.set_query("beneficiary", function() {
+		frm.set_query("receiver_id", function() {
 			return {
 				filters: {
 					"bank_account": frm.doc.bank_account,
@@ -143,7 +134,7 @@ frappe.ui.form.on('Bank Payment Request', {
 	get_default_beneficiary(frm) {
 		frm.call("get_default_beneficiary").then((r) => {
 			if (r.message) {
-				frm.set_value("beneficiary", r.message);
+				frm.set_value("receiver_id", r.message);
 			} else {
 				frappe.msgprint(__("No approved beneficiary found for the selected bank account."));
 			}

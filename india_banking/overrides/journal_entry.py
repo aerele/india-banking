@@ -222,8 +222,7 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 			JournalEntry.voucher_type,
 		)
 		.where(
-			(JournalEntry.name.notin(ordered_bank_entries))
-			& (JournalEntry.docstatus == 1)
+			(JournalEntry.docstatus == 1)
 			& (JournalEntry.voucher_type.eq("Bank Entry"))
 			& (
 				ExistsCriterion(
@@ -258,5 +257,7 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 	if searchfield:
 		if searchfield == "name":
 			query = query.where(JournalEntry.name.like(f"%{txt}%"))
+	if ordered_bank_entries:
+		query = query.where(JournalEntry.name.notin(ordered_bank_entries))
 
 	return query.run(as_dict=as_dict)

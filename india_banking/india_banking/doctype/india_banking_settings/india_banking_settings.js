@@ -13,6 +13,13 @@ frappe.ui.form.on("India Banking Settings", {
     frm.get_field("allowed_payment_doctypes").$wrapper.click(() => {
       update_allow_doctypes(frm);
     });
+    frm.set_query("doctype_name", "doctype_naming_series", () => {
+      return {
+        filters: {
+          name: ["in", ["Payment Request", "Payment Order", "Payment Entry"]],
+        },
+      };
+    });
   },
 });
 

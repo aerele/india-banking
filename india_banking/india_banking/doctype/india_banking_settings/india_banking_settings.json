@@ -5,19 +5,24 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "basic_configuration_tab",
   "summarise_payment_based_on",
   "enable_payment_in_the_background",
   "use_payment_order_date_as_payment_entry_date",
   "allow_future_date_payment_order",
   "column_break_wjye",
-  "activate_workflow_on_bank_account",
   "allowed_payment_doctypes",
+  "auto_update_configurations_tab",
   "automatic_update_configuration_section",
   "update_payment_status",
   "status_check",
   "retry_period",
   "column_break_laug",
   "update_posting_date_as_payment_date",
+  "doctype_customization_tab",
+  "activate_workflow_on_bank_account",
+  "doctype_naming_series",
+  "payment_notifications_tab",
   "payment_notifications_section",
   "notify_party",
   "payment_notification"
@@ -67,7 +72,6 @@
    "label": "Auto Update Payment Status"
   },
   {
-   "collapsible": 1,
    "fieldname": "automatic_update_configuration_section",
    "fieldtype": "Section Break",
    "label": "Auto Update Configurations"
@@ -94,7 +98,6 @@
    "options": "Every 20 Minutes\nEvery Hour\nEvery Day at Midnight"
   },
   {
-   "collapsible": 1,
    "fieldname": "payment_notifications_section",
    "fieldtype": "Section Break",
    "label": "Payment Notifications "
@@ -124,12 +127,38 @@
    "fieldname": "allow_future_date_payment_order",
    "fieldtype": "Check",
    "label": "Allow future Date Payment Order"
+  },
+  {
+   "fieldname": "doctype_naming_series",
+   "fieldtype": "Table",
+   "label": "Doctype Naming Series",
+   "options": "Naming Series Map"
+  },
+  {
+   "fieldname": "doctype_customization_tab",
+   "fieldtype": "Tab Break",
+   "label": "DocType Configuration"
+  },
+  {
+   "fieldname": "auto_update_configurations_tab",
+   "fieldtype": "Tab Break",
+   "label": "Auto Update Configurations"
+  },
+  {
+   "fieldname": "payment_notifications_tab",
+   "fieldtype": "Tab Break",
+   "label": "Payment Notifications "
+  },
+  {
+   "fieldname": "basic_configuration_tab",
+   "fieldtype": "Tab Break",
+   "label": "Basic Configuration"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-07-18 11:23:25.499306",
+ "modified": "2025-07-18 15:52:13.042530",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

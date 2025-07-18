@@ -190,3 +190,24 @@ def add_background_job(job_id, job_name, method, **kwargs):
 		_add_queue(job_id, job_name, method, **kwargs)
 
 	return True
+
+
+def get_bank_payment_naming_series(company, doctype):
+	return frappe.get_value(
+		"Naming Series Map", {"company": company, "doctype_name": doctype}, "series"
+	)
+
+
+def update_series(doc, method=None):
+	if doc.doctype == "Payment Request" and doc.payment_request_type != "Outward":
+		return
+
+	if doc.doctype == "Payment Entry" and doc.payment_type != "Pay":
+		return
+
+	series = get_bank_payment_naming_series(company=doc.company, doctype=doc.doctype)
+	if series and series != doc.naming_series:
+		doc.naming_series = series
+		frappe.msgprint(
+			"Naming Series updated based on India Banking settings.", alert=True
+		)

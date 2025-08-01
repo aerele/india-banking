@@ -180,21 +180,31 @@ class BankConnector(Document):
 	def update_bank_transactions(self, statements, bank_account):
 		for statement in statements:
 			statement = frappe._dict(statement)
-			if not frappe.db.exists(
-				"Bank Transaction",
-				{
-					"bank_account": bank_account.name,
-					"reference_number": statement.reference_number,
-				},
-			):
+			filters = {
+				"bank_account": bank_account.name,
+			}
+			if statement.reference_number:
+				filters["reference_number"] = statement.reference_number
+			else:
+				filters["description"] = statement.transaction_description
+
+			exists = frappe.db.exists(
+					"Bank Transaction",
+					{
+						"bank_account": bank_account.name,
+						"reference_number": statement.reference_number,
+					},
+				)
+
+			if not exists:
 				bank_transaction_doc = frappe.new_doc("Bank Transaction")
 				bank_transaction_doc.company = bank_account.company
 				bank_transaction_doc.bank_account = bank_account.name
 				bank_transaction_doc.status = "Pending"
 				bank_transaction_doc.date = getdate(statement.transaction_date)
-				bank_transaction_doc.withdrawal = statement.transaction_amount
+				bank_transaction_doc.description = statement.transaction_description
 				if flt(statement.transaction_amount) < 0:
-					bank_transaction_doc.withdrawal = statement.transaction_amount
+					bank_transaction_doc.withdrawal = abs(flt(statement.transaction_amount))
 				else:
 					bank_transaction_doc.deposit = statement.transaction_amount
 				bank_transaction_doc.reference_number = statement.reference_number

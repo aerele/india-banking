@@ -65,7 +65,7 @@ class BankPaymentRequest(PaymentRequest):
 		if not self.bank_account:
 			return ""
 		bene_details =  frappe.get_value("Beneficiaries", {
-				 "company": self.company,
+				"company": self.company,
 				"parent": self.bank_account
 			},
 			[
@@ -165,7 +165,7 @@ class BankPaymentRequest(PaymentRequest):
 						)
 					),
 				)
-			frappe.get_doc("Beneficiary", self.beneficiary).is_beneficiary_approved()
+			frappe.get_doc("Beneficiary", self.receiver_id).is_beneficiary_approved()
 
 	def validate_payment_request_amount(self):
 		if self.reference_doctype in ["Payroll Entry"]:
@@ -313,10 +313,23 @@ def get_employee_payemnt_details(journal_accounts):
 @frappe.whitelist(allow_guest=True)
 def make_bank_payment_request(**args):
 	"""Make Bank payment request"""
-
 	args = frappe._dict(args)
 
 	ref_doc = frappe.get_doc(args.dt, args.dn)
+
+	if ref_doc.on_hold:
+		return
+
+	allow = False
+	if "Local Admin" in frappe.get_roles():
+		allow = True
+	elif frappe.session.user == "Administrator":
+		allow = True
+	elif ["Partly Paid", "Overdue"].includes(ref_doc.status):
+		allow = True
+	if not allow:
+		return
+
 	gateway_account = PR.get_gateway_details(args) or frappe._dict()
 
 	grand_total = get_amount(ref_doc, gateway_account.get("payment_account"))

@@ -969,8 +969,11 @@ def get_response(payment_info, company_bank_account, company):
 								"reference_number": response_data.utr_number,
 							},
 						)
-
-					notify_party(payment_info, response_data)
+					try:
+						if response_data.status != payment_info.payment_status:
+							notify_party(payment_info, response_data)
+					except:
+						frappe.log_error("Payment Notification Failed")
 
 				frappe.db.set_value(
 					"Payment Order Summary",

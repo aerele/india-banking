@@ -34,6 +34,7 @@ doctype_js = {
 	"Payment Type": "public/js/payment_type.js",
 	"Bank Account": "public/js/bank_account.js",
 	"Payroll Entry": "public/js/payroll_entry.js",
+	"Bank Transaction": "public/js/bank_transaction.js",
 }
 
 doctype_list_js = {

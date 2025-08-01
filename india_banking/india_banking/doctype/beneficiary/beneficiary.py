@@ -28,6 +28,7 @@ class Beneficiary(Document):
 				"bank_connector": self.bank_connector,
 				"bank_account": self.bank_account,
 				"name": ["!=", self.name],
+				"beneficiary_status": ["!=", "Discarded"]
 			}
 		):
 			frappe.throw(

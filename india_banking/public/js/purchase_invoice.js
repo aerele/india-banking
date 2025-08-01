@@ -39,6 +39,17 @@ const make_bank_payment_request = function (frm) {
 };
 
 const enable_bank_payment_request = function (frm) {
+  let can_enable = false
+  if(frappe.user_roles.includes("Local Admin")){
+     can_enable = true
+  }else if(frappe.user.name === "Administrator"){
+     can_enable = true
+  }else if(["Partly Paid", "Overdue"].includes(frm.doc.status)){
+     can_enable = true
+  }
+  if(!can_enable){
+     return;
+  }
   frappe.call({
     method: "india_banking.utils.is_bank_payment_request_enabled",
     args: {

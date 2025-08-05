@@ -188,13 +188,7 @@ class BankConnector(Document):
 			else:
 				filters["description"] = statement.transaction_description
 
-			exists = frappe.db.exists(
-					"Bank Transaction",
-					{
-						"bank_account": bank_account.name,
-						"reference_number": statement.reference_number,
-					},
-				)
+			exists = frappe.db.exists("Bank Transaction", filters)
 
 			if not exists:
 				bank_transaction_doc = frappe.new_doc("Bank Transaction")
@@ -209,6 +203,7 @@ class BankConnector(Document):
 					bank_transaction_doc.deposit = statement.transaction_amount
 				bank_transaction_doc.reference_number = statement.reference_number
 				bank_transaction_doc.save()
+
 
 @frappe.whitelist()
 def get_bank_statements(

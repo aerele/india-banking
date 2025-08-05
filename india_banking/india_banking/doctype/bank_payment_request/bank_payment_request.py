@@ -19,7 +19,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
 from frappe.utils.data import flt, today
-from frappe.utils import get_url_to_form
+from frappe.utils import get_url_to_form, getdate
 from pymysql.err import OperationalError as FieldNotFoundError
 
 
@@ -316,17 +316,19 @@ def make_bank_payment_request(**args):
 	args = frappe._dict(args)
 
 	ref_doc = frappe.get_doc(args.dt, args.dn)
-
-	if ref_doc.on_hold:
-		return
-
 	allow = False
+	if ref_doc.on_hold:
+		# return hold invoice
+		if getdate(ref_doc.release_date) <= getdate():
+			allow = True
+
 	if "Local Admin" in frappe.get_roles():
 		allow = True
 	elif frappe.session.user == "Administrator":
 		allow = True
-	elif ["Partly Paid", "Overdue"].includes(ref_doc.status):
+	elif ref_doc.status in ["Partly Paid", "Overdue"]:
 		allow = True
+
 	if not allow:
 		return
 

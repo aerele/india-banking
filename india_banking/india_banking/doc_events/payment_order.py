@@ -6,7 +6,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 )
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
 from frappe import _, parse_json
-from frappe.utils import flt, nowdate
+from frappe.utils import add_days, flt, getdate, nowdate
 
 
 @frappe.whitelist()
@@ -19,6 +19,18 @@ def cancel_pending_payments(data):
 		d = parse_json(d)
 		if d.row_name:
 			if d.status == "Failed":
+				if (
+					frappe.db.get_value(
+						"Payment Order Summary", d.row_name, "payment_status"
+					)
+					== "Initiated"
+				):
+					if not is_payment_expired(
+						frappe.db.get_value(
+							"Payment Order Summary", d.row_name, "payment_date"
+						)
+					):
+						continue
 				frappe.db.set_value(
 					"Payment Order Summary",
 					d.row_name,
@@ -33,8 +45,17 @@ def cancel_pending_payments(data):
 				process_payment_requests(d.row_name)
 
 				success_count += 1
-	if success_count:
-		frappe.msgprint(_(f"{success_count} payment(s) updated"))
+
+	frappe.msgprint(_(f"{success_count} payment(s) updated"))
+
+
+def is_payment_expired(payment_date):
+	payment_expiry_days = frappe.get_single(
+		"India Banking Settings"
+	).payment_expiry_days
+	if not payment_expiry_days:
+		return False
+	return getdate(payment_date) < add_days(getdate(), -(payment_expiry_days))
 
 
 def process_payment_requests(payment_order_summary):

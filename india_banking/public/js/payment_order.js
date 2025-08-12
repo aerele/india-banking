@@ -67,7 +67,7 @@ frappe.ui.form.on("Payment Order", {
 
 	set_pending_payment_cancel_button(frm) {
 		const has_pending_payment = frm.doc.summary?.filter(
-			(item) => item.payment_status == "Pending"
+			(item) =>  ["Pending", "Initiated"].includes(item.payment_status)
 		).length;
 		if (
 			has_pending_payment &&
@@ -258,14 +258,16 @@ frappe.ui.form.on("Payment Order", {
 		) {
 			const has_initiated_or_non_pending = frm.doc.summary.some(
 				(item) =>
-					item.payment_status === "Initiated" ||
-					item.payment_status !== "Pending"
+					item.payment_status !== "Failed" &&
+					(
+						item.payment_status === "Initiated" ||
+						item.payment_status !== "Pending"
+					)
 			);
 
 			if (has_initiated_or_non_pending) {
 				frm.dashboard.add_comment(
-					"Payment is already initiated. Check the status using the 'Get Status' button before trying again.",
-					permanent = false
+					"Payment is already initiated. Check the status using the 'Get Status' button before trying again."
 				);
 				frm.add_custom_button(__("Get Status"), () => {
 					frappe.call({
@@ -407,6 +409,9 @@ frappe.ui.form.on("Payment Order", {
 });
 
 const show_update_status_dialog = function (frm) {
+	if(!frappe.user_roles.includes("Payment Manager")){
+		frappe.throw("No permission to change the payment details")
+	}
 	frm.data = [];
 	const dialog = new frappe.ui.Dialog({
 		title: __("Pending Payments"),

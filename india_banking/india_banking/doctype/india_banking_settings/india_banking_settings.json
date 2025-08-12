@@ -11,6 +11,7 @@
   "allow_future_date_payment_order",
   "column_break_wjye",
   "activate_workflow_on_bank_account",
+  "payment_expiry_days",
   "allowed_payment_doctypes",
   "automatic_update_configuration_section",
   "update_payment_status",
@@ -47,21 +48,21 @@
   },
   {
    "default": "1",
-   "description": "If more than 10 payments need to be initiated to the bank, they will be processed in the background. This prevents delays caused by long bank response times.",
+   "description": "If enabled, when more than 10 payments are initiated to the bank, they will be processed in the background to avoid delays from long bank response times",
    "fieldname": "enable_payment_in_the_background",
    "fieldtype": "Check",
    "label": "Enqueue large payments in the background"
   },
   {
    "default": "0",
-   "description": "A Payment Entry is created before initiating the payment. If the bank requires post-authorization and the approver approves the payment on a later date, the payment date in the bank statement may differ from the ledger's posting date. Enabling this setting ensures the ledger is updated accordingly.",
+   "description": "If enabled, updates the ledger posting date to match the bank statement date when post-authorization causes a delay.",
    "fieldname": "update_posting_date_as_payment_date",
    "fieldtype": "Check",
    "label": "Auto Update Posting Date as Payment Date"
   },
   {
    "default": "0",
-   "description": "If unchecked, user will have to manually fetch the status of every payment order.",
+   "description": "If enabled, the payment status will be fetched automatically.",
    "fieldname": "update_payment_status",
    "fieldtype": "Check",
    "label": "Auto Update Payment Status"
@@ -78,7 +79,7 @@
   },
   {
    "default": "Payment Request\nPayment Entry\nBank Entry",
-   "description": "Enabled doctypes can be pulled in the payment order for payment processing. ",
+   "description": "If enabled, these Doctypes can be pulled into the Payment Order for processing",
    "fieldname": "allowed_payment_doctypes",
    "fieldtype": "Small Text",
    "label": "Allowed Payment Doctypes",
@@ -108,7 +109,7 @@
   },
   {
    "default": "3",
-   "description": "Check the payment status for 'Processed' payment from the payment initiation date until the retry period.",
+   "description": "Automatically checks the payment status for 'Processed' payments from the initiation date until the retry period ends.",
    "fieldname": "retry_period",
    "fieldtype": "Int",
    "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
@@ -124,12 +125,45 @@
    "fieldname": "allow_future_date_payment_order",
    "fieldtype": "Check",
    "label": "Allow future Date Payment Order"
+  },
+  {
+   "fieldname": "doctype_naming_series",
+   "fieldtype": "Table",
+   "label": "Doctype Naming Series",
+   "options": "Naming Series Map"
+  },
+  {
+   "fieldname": "doctype_customization_tab",
+   "fieldtype": "Tab Break",
+   "label": "DocType Configuration"
+  },
+  {
+   "fieldname": "auto_update_configurations_tab",
+   "fieldtype": "Tab Break",
+   "label": "Auto Update Configurations"
+  },
+  {
+   "fieldname": "payment_notifications_tab",
+   "fieldtype": "Tab Break",
+   "label": "Payment Notifications "
+  },
+  {
+   "fieldname": "basic_configuration_tab",
+   "fieldtype": "Tab Break",
+   "label": "Basic Configuration"
+  },
+  {
+   "default": "7",
+   "description": "If enabled, payments in the 'Initiated' state can be canceled after the payment expiry limit (in days).",
+   "fieldname": "payment_expiry_days",
+   "fieldtype": "Int",
+   "label": "Payment Expiry (In Days) [eg:1=1 Day(s)]"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-03-12 16:13:24.156102",
+ "modified": "2025-08-12 02:49:43.673143",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",
@@ -146,6 +180,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

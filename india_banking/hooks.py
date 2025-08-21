@@ -20,11 +20,13 @@ doctype_js = {
 doctype_list_js = {
 	"Payment Order": "public/js/payment_order_list.js",
 	"Purchase Invoice": "public/js/purchase_invoice_list.js",
+	"Payment Request": "public/js/payment_request_list.js",
 }
 
 override_doctype_class = {
 	"Payment Order": "india_banking.overrides.payment_order.CustomPaymentOrder",
 	"Payment Request": "india_banking.overrides.payment_request.BankPaymentRequest",
+	"Payment Reconciliation": "india_banking.overrides.payment_reconciliation.BankPaymentReconciliation",
 }
 
 doc_events = {
@@ -38,10 +40,11 @@ doc_events = {
 		"on_submit": "india_banking.india_banking.doc_events.unreconcile_payment.on_submit",
 	},
 	"Payment Entry": {
-		"on_cancel": "india_banking.india_banking.doc_events.payment_entry.on_cancel",
+		"validate": "india_banking.india_banking.doc_events.payment_entry.validate",
 	},
 	"Journal Entry": {
 		"on_cancel": "india_banking.india_banking.doc_events.journal_entry.on_cancel",
+		"validate": "india_banking.india_banking.doc_events.journal_entry.validate",
 	},
 }
 

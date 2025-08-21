@@ -681,29 +681,3 @@ def create_default_roles():
 			role_doc.save()
 
 
-def create_bank_account_field_map():
-	party_bank_fields = {
-		"Supplier": {
-			"bank": "custom_name_of_bank",
-			"branch_code": "custom_ifsc_code",
-			"bank_account_no": "custom_account_number",
-		},
-		"Employee": {
-			"bank": "bank_name",
-			"branch_code": "ifsc_code",
-			"bank_account_no": "bank_ac_no",
-		},
-	}
-	for party_type, field_map in party_bank_fields.items():
-		if not frappe.db.exists("Party Bank Account Field Map", party_type):
-			doc = frappe.new_doc("Party Bank Account Field Map")
-			doc.party_type = party_type
-			for bank_field, party_bank_field in field_map.items():
-				doc.append(
-					"field_map",
-					{
-						"bank_account_field": bank_field,
-						"party_bank_account_field": party_bank_field,
-					},
-				)
-			doc.insert(ignore_permissions=1)

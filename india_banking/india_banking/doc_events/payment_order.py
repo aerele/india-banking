@@ -6,7 +6,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 )
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
 from frappe import _, parse_json
-from frappe.utils import flt, nowdate
+from frappe.utils import flt, get_link_to_form, nowdate
 
 
 @frappe.whitelist()
@@ -54,6 +54,20 @@ def process_payment_requests(payment_order_summary):
 
 @frappe.whitelist()
 def make_payment_entries(docname, summary_name=None):
+	payment_order_doc = frappe.get_doc("Payment Order", docname)
+	"""create entry"""
+	frappe.flags.ignore_account_permission = True
+	for row in payment_order_doc.summary:
+		if summary_name and row.name != summary_name:
+			# If summary_name is provided, only process that specific summary row.
+			continue
+
+		create_outward_payment_entry(row.name, payment_order_doc.name)
+
+
+def create_outward_payment_entry(summary_name, payment_order_name):
+	"""Create Payment Entry for the given row in Payment Order Summary."""
+
 	def _append_reference(
 		pe, reference, reference_amount, allocated_amount=None, payment_term=None
 	):
@@ -69,20 +83,25 @@ def make_payment_entries(docname, summary_name=None):
 			},
 		)
 
-	payment_order_doc = frappe.get_doc("Payment Order", docname)
-	"""create entry"""
-	frappe.flags.ignore_account_permission = True
-	for row in payment_order_doc.summary:
-		if summary_name and row.name != summary_name:
-			# If summary_name is provided, only process that specific summary row.
-			continue
+	payment_order_doc = frappe.get_doc("Payment Order", payment_order_name)
+	row = frappe.get_doc("Payment Order Summary", summary_name)
+
+	try:
 		if not row.summary_references:
 			# Restricting 'NOT EXISTS' summary references.
 			frappe.throw(_("Summary reference mismatch"))
 
 		if row.payment_entry:
 			# If payment entry already exists, skip creating a new one.
-			continue
+			pe_link = get_link_to_form(
+				"Payment Entry", row.payment_entry, label=row.payment_entry
+			)
+			frappe.msgprint(
+				_("Payment Entry {0} already exists. at #Row {1}").format(
+					pe_link, row.idx
+				)
+			)
+			return
 
 		pe = frappe.new_doc("Payment Entry")
 		pe.payment_type = "Pay"
@@ -241,6 +260,31 @@ def make_payment_entries(docname, summary_name=None):
 
 		# add payment entry reference in summary row
 		frappe.db.set_value("Payment Order Summary", row.name, "payment_entry", pe.name)
+
+		pe_link = get_link_to_form("Payment Entry", pe.name, label=pe.name)
+		frappe.msgprint(
+			_("Payment Entry {0} created successfully. at #Row {1}").format(
+				pe_link, row.idx
+			)
+		)
+	except Exception as e:
+		frappe.db.set_value(
+			"Payment Order Summary",
+			row.name,
+			"payment_entry_creation_failed_reason",
+			str(e),
+		)
+
+		frappe.log_error(
+			title=_("Error creating Payment Entry for row: {0}").format(row.name),
+			message=frappe.get_traceback(),
+		)
+
+		frappe.msgprint(
+			_("Failed to create Payment Entry for row {0}: {1}").format(
+				row.name, str(e)
+			)
+		)
 
 
 def group_by_invoices(self):

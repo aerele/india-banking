@@ -1,14 +1,16 @@
 import json
 
 import frappe
+from erpnext import get_company_currency
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
+from erpnext.accounts.party import get_party_account_currency
 from frappe import _
 from frappe.utils import get_link_to_form, getdate
 
-from india_banking.default import PAYMENT_SUMMARY_FIELDS
+from india_banking.default import MULTI_CURRENCY_ENABLED_BANKS, PAYMENT_SUMMARY_FIELDS
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 from india_banking.utils import validate_party_bank_account_details
 
@@ -44,6 +46,30 @@ class CustomPaymentOrder(PaymentOrder):
 
 	def validate(self):
 		self.validate_summary()
+		self.currency = self.summary[0].currency
+		if self.docstatus == 1:
+			allow_multi_currency = frappe.get_single_value(
+				"Accounts Settings",
+				"allow_multi_currency_invoices_against_single_party_account",
+			)
+			if not allow_multi_currency and self.currency != get_company_currency(
+				self.company
+			):
+				frappe.throw(
+					_("Multi-currency transactions are not allowed for this company.")
+				)
+
+			if (
+				allow_multi_currency
+				and self.company_bank not in MULTI_CURRENCY_ENABLED_BANKS
+			):
+				frappe.throw(
+					_(
+						"Multi-currency transactions are not supported for the bank {0}".format(
+							frappe.bold(self.company_bank)
+						)
+					)
+				)
 
 	def validate_summary(self):
 		if not self.summary:
@@ -289,6 +315,7 @@ def get_party_summary(
 	references = json.loads(references)
 	if not len(references) or not company_bank_account:
 		return
+	company = frappe.get_value("Bank Account", company_bank_account, "company")
 
 	# Considering the following dimensions to group payments
 	def _get_unique_key(reference=None, summarise_field_only=False):
@@ -336,6 +363,11 @@ def get_party_summary(
 
 		summary_line_item.update(
 			{
+				"party_account_currency": get_party_account_currency(
+					summary_line_item.get("party_type"),
+					summary_line_item.get("party"),
+					company,
+				),
 				"amount": val.get("amount"),
 				"mode_of_transfer": get_mode_of_transfer(
 					val.get("amount"),

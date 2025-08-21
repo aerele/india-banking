@@ -5,8 +5,12 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
+from erpnext.accounts.party import get_party_account_currency
+from erpnext.setup.utils import get_exchange_rate
 from frappe import _, parse_json
+from frappe.query_builder import DocType
 from frappe.utils import flt, get_link_to_form, nowdate
+from pypika import functions as fn
 
 
 @frappe.whitelist()
@@ -126,7 +130,13 @@ def create_outward_payment_entry(summary_name, payment_order_name):
 		if row.account:
 			pe.paid_to = row.account
 		pe.paid_from_account_currency = "INR"
-		pe.paid_to_account_currency = "INR"
+		pe.paid_to_account_currency = (
+			row.party_account_currency
+			or get_party_account_currency(
+				row.party_type, row.party, payment_order_doc.company
+			)
+		)
+		pe.paid_from_account = payment_order_doc.account
 		pe.paid_amount = row.amount
 		pe.received_amount = row.amount
 		pe.letter_head = frappe.db.get_value("Letter Head", {"is_default": 1}, "name")
@@ -136,6 +146,27 @@ def create_outward_payment_entry(summary_name, payment_order_name):
 			pe.update({dimension: row.get(dimension, "")})
 
 		summary_references = ast.literal_eval(row.summary_references)
+		exchange_rate = get_exchange_rate(
+			pe.paid_to_account_currency, pe.paid_from_account_currency, pe.posting_date
+		)
+		if len(summary_references) == 1:
+			payment_request = frappe.get_value(
+				"Payment Order Reference", summary_references[0], "payment_request"
+			)
+			exchange_rate = (
+				frappe.db.get_value(
+					"Payment Request", payment_request, "conversion_rate"
+				)
+				or exchange_rate
+			)
+
+		if row.currency != pe.paid_from_account_currency:
+			pe.conversion_rate = exchange_rate
+			pe.paid_amount = flt(row.amount) * pe.conversion_rate
+
+		if row.currency != pe.paid_to_account_currency:
+			pe.received_amount = flt(row.amount) * pe.conversion_rate
+
 		if row.tax_withholding_category:
 			net_total = 0
 			for sr_name in summary_references:
@@ -191,21 +222,34 @@ def create_outward_payment_entry(summary_name, payment_order_name):
 							for term_row in splited_invoice_rows:
 								if reference_amount <= 0:
 									break
-								term_paid = (
-									frappe.get_value(
-										"Payment Entry Reference",
-										{
-											"reference_doctype": reference.reference_doctype,
-											"reference_name": reference.reference_name,
-											"payment_term": term_row.get(
-												"payment_term"
-											),
-											"docstatus": 1,
-										},
-										"sum(allocated_amount)",
-									)
-									or 0
+								PaymentEntryReference = DocType(
+									"Payment Entry Reference"
 								)
+								result = (
+									frappe.qb.from_(PaymentEntryReference)
+									.select(
+										fn.Sum(
+											PaymentEntryReference.allocated_amount
+										).as_("allocated_amount")
+									)
+									.where(
+										PaymentEntryReference.reference_doctype
+										== reference.reference_doctype
+									)
+									.where(
+										PaymentEntryReference.reference_name
+										== reference.reference_name
+									)
+									.where(
+										PaymentEntryReference.payment_term
+										== term_row.get("payment_term")
+									)
+									.where(PaymentEntryReference.docstatus == 1)
+								).run(as_dict=True)
+
+								allocated_amount = result[0].allocated_amount or 0
+								term_paid = allocated_amount or 0
+
 								per = (
 									frappe.db.get_value(
 										"Payment Term",

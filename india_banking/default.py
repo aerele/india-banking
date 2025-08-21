@@ -57,6 +57,12 @@ STD_BANK_LIST = [
 	"HDFC Bank",
 	"ICICI Bank",
 	"Kotak Mahindra Bank",
+    "UNION Bank",
+	"HSBC Bank",
+]
+
+MULTI_CURRENCY_ENABLED_BANKS = [
+	"HSBC Bank",
 ]
 
 DEFAULT_ROLES = ["Payment Manager"]

@@ -173,7 +173,7 @@ def create_payment_request_custom_fields():
 			"label": "Apply Tax Withholding Amount",
 			"fieldname": "apply_tax_withholding_amount",
 			"fieldtype": "Check",
-			"depends_on": "eval:doc.party_type == 'Supplier' && doc.reference_doctype != 'Purchase Invoice' && doc.payment_request_type == 'Outward'",
+			"depends_on": "eval:doc.party_type == 'Supplier' && !!doc.is_adhoc",
 			"insert_after": "currency",
 		},
 		{
@@ -679,5 +679,3 @@ def create_default_roles():
 			role_doc = frappe.new_doc("Role")
 			role_doc.role_name = "Payment Manager"
 			role_doc.save()
-
-

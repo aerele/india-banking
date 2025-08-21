@@ -53,7 +53,7 @@ def process_payment_requests(payment_order_summary):
 
 
 @frappe.whitelist()
-def make_payment_entries(docname):
+def make_payment_entries(docname, summary_name=None):
 	def _append_reference(
 		pe, reference, reference_amount, allocated_amount=None, payment_term=None
 	):
@@ -73,9 +73,16 @@ def make_payment_entries(docname):
 	"""create entry"""
 	frappe.flags.ignore_account_permission = True
 	for row in payment_order_doc.summary:
+		if summary_name and row.name != summary_name:
+			# If summary_name is provided, only process that specific summary row.
+			continue
 		if not row.summary_references:
 			# Restricting 'NOT EXISTS' summary references.
 			frappe.throw(_("Summary reference mismatch"))
+
+		if row.payment_entry:
+			# If payment entry already exists, skip creating a new one.
+			continue
 
 		pe = frappe.new_doc("Payment Entry")
 		pe.payment_type = "Pay"

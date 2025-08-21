@@ -8,7 +8,12 @@ from india_banking.india_banking.doctype.bank_connector.bank_connector import (
 
 
 def daily():
-	update_payment_status_for_processed_payment()
+	update_payment_status, create_payment_after_success = frappe.get_single_value(
+		"India Banking Settings",
+		["update_payment_status", "create_payment_after_success"],
+	)
+	if update_payment_status and not create_payment_after_success:
+		update_payment_status_for_processed_payment()
 
 
 def job_twenty_minutes():
@@ -34,7 +39,7 @@ def job_at_midnight():
 
 def update_payment_status_for_processed_payment():
 	statuses = ["Processed"]
-	retry_period = frappe.get_single("India Banking Settings").update_payment_status
+	retry_period = frappe.get_single("India Banking Settings").retry_period
 
 	PaymentOrderSummary = DocType("Payment Order Summary")
 	payment_orders = (

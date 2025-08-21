@@ -34,12 +34,12 @@ class CustomPaymentOrder(PaymentOrder):
 		if self.references:
 			for ref in self.references:
 				if ref.payment_request:
-					payment_request = frappe.get_doc(
-						"Payment Request", ref.payment_request
+					payment_request_grand_total = frappe.get_value(
+						"Payment Request", ref.payment_request, "grand_total"
 					)
-					if payment_request.grand_total != ref.amount:
+					if payment_request_grand_total != ref.amount:
 						link = get_link_to_form("Payment Request", ref.payment_request)
-						message = f"The amount in <b>#Row{ref.idx} </b>does not match the amount of the Payment Request -<b>{link}</b>. The Difference is <b>{ref.amount - payment_request.grand_total}</b>"
+						message = f"The amount in <b>#Row{ref.idx} </b>does not match the amount of the Payment Request -<b>{link}</b>. The Difference is <b>{ref.amount - payment_request_grand_total}</b>"
 						frappe.throw(title=_("Invalid Amount"), msg=_(message))
 
 	def validate(self):
@@ -49,24 +49,24 @@ class CustomPaymentOrder(PaymentOrder):
 		if not self.summary:
 			frappe.throw(_("Please validate the summary"))
 
-		default_mode_of_transfer = (
-			frappe.get_doc("Mode of Transfer", self.default_mode_of_transfer)
-			if self.default_mode_of_transfer
-			else None
-		)
+		mode, min_limit, max_limit = None, 0, 0
+		if self.default_mode_of_transfer:
+			mode, min_limit, max_limit = frappe.get_value(
+				"Mode of Transfer",
+				self.default_mode_of_transfer,
+				["mode", "minimum_limit", "maximum_limit"],
+			)
 
 		summary_total = 0
 		for payment in self.summary:
-			mode_of_transfer = (
-				frappe.get_doc("Mode of Transfer", payment.mode_of_transfer)
-				if payment.mode_of_transfer
-				else default_mode_of_transfer
-			)
+			if payment.mode_of_transfer:
+				mode, min_limit, max_limit = frappe.get_value(
+					"Mode of Transfer",
+					payment.mode_of_transfer,
+					["mode", "minimum_limit", "maximum_limit"],
+				)
 
-			if (
-				mode_of_transfer.mode in ["NEFT", "RTGS"]
-				and payment.amount >= 500000000
-			):
+			if mode in ["NEFT", "RTGS"] and payment.amount >= 500000000:
 				lei_number = frappe.db.get_value(
 					payment.party_type, payment.party, "lei_number"
 				)
@@ -77,65 +77,72 @@ class CustomPaymentOrder(PaymentOrder):
 						)
 					)
 
-			if "A2A" in mode_of_transfer.mode and payment.bank != self.company_bank:
+			if "A2A" in mode and payment.bank != self.company_bank:
 				frappe.throw(
 					_(
 						f"Invalid mode of transfer for {payment.party_type} - {payment.party} at <b>row #{payment.idx}</b>"
 					)
 				)
 
-			if not mode_of_transfer:
+			if not mode:
 				frappe.throw(_("Define a specific mode of transfer or a default one"))
 
-			if not (
-				mode_of_transfer.minimum_limit
-				<= payment.amount
-				<= mode_of_transfer.maximum_limit
-			):
+			if not (min_limit <= payment.amount <= max_limit):
 				frappe.throw(
 					_(
-						f"Mode of Transfer not suitable for {payment.party} for {payment.amount}. {mode_of_transfer.mode}: {mode_of_transfer.minimum_limit}-{mode_of_transfer.maximum_limit}"
+						f"Mode of Transfer not suitable for {payment.party} for {payment.amount}. {mode}: {min_limit}-{max_limit}"
 					)
 				)
 
-			payment.mode_of_transfer = mode_of_transfer.mode
+			payment.mode_of_transfer = mode
+
+			payment.party_name = (
+				frappe.get_value(
+					payment.party_type,
+					payment.party,
+					self.get_party_field_name(payment.party_type),
+				)
+				or payment.party
+			)
+
 			summary_total += payment.amount
 
-		references_total = 0
-		for reference in self.references:
-			reference.party_name = frappe.get_value(
-				reference.party_type,
-				reference.party,
-				self.get_party_field_name(reference),
-			)
-			references_total += reference.amount
+		references_total = sum(
+			[reference.amount for reference in self.references if reference.amount]
+		)
 
 		if summary_total != references_total:
 			frappe.throw(_("Summary isn't matching the references"))
 
-	def get_party_field_name(self, party):
-		if party.party_type == "Supplier":
+	def get_party_field_name(self, party_type):
+		if party_type == "Supplier":
 			return "supplier_name"
-		elif party.party_type == "Employee":
+		elif party_type == "Employee":
 			return "employee_name"
-		elif party.party_type == "Shareholder":
+		elif party_type == "Shareholder":
 			return "name"
-		elif party.party_type == "Customer":
+		elif party_type == "Customer":
 			return "customer_name"
 		else:
 			return "name"
 
 	def on_submit(self):
-		if self.payment_order_type in [
+		if self.payment_order_type not in [
 			"Payment Request",
 			"Payment Entry",
 			"Journal Entry",
 		]:
-			if self.payment_order_type == "Payment Request":
-				make_payment_entries(self.name)
+			super().on_submit()
+			return
+		if self.payment_order_type == "Payment Request" and (
+			not frappe.get_single_value(
+				"India Banking Settings", "create_payment_after_success"
+			)
+		):
+			make_payment_entries(self.name)
 
-			self.update_payment_status()
-			self.update_payment_reference_details()
+		self.update_payment_status()
+		self.update_payment_reference_details()
 
 	def on_update_after_submit(self):
 		frappe.throw(_("You cannot modify a payment order"))

@@ -13,6 +13,7 @@ from frappe.model.document import Document
 from frappe.utils import cint, cstr, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
+from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
 )
@@ -280,7 +281,7 @@ class BankConnector(Document):
 										"reference_date": summary.payment_date,
 									},
 								)
-							if summary.journal_entry_account:
+							elif summary.journal_entry_account:
 								frappe.db.set_value(
 									"Journal Entry Account",
 									summary.journal_entry_account,
@@ -289,6 +290,14 @@ class BankConnector(Document):
 										"reference_number": status_details.utr_number,
 									},
 								)
+							else:
+								if (
+									payment_order.payment_order_type
+									== "Payment Request"
+								):
+									make_payment_entries(
+										payment_order.name, summary.name
+									)
 
 							self.notify_party(summary)
 

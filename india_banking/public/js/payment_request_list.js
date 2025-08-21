@@ -1,0 +1,1 @@
+INDICATORS["Payment Ordered"] = "yellow";

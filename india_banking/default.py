@@ -10,6 +10,7 @@ PAYMENT_SUMMARY_FIELDS = [
 	"reference_name",
 	"payment_entry",
 	"journal_entry_account",
+	"currency",
 ]
 
 DEFAULT_MODE_OF_TRANSFERS = [
@@ -57,7 +58,7 @@ STD_BANK_LIST = [
 	"HDFC Bank",
 	"ICICI Bank",
 	"Kotak Mahindra Bank",
-    "UNION Bank",
+	"UNION Bank",
 	"HSBC Bank",
 ]
 

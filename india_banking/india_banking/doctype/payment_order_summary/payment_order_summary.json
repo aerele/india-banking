@@ -10,6 +10,7 @@
   "party",
   "party_name",
   "amount",
+  "currency",
   "banking_section",
   "mode_of_transfer",
   "payment_status",
@@ -25,6 +26,7 @@
   "bank",
   "accounting_section",
   "account",
+  "party_account_currency",
   "tax_withholding_category",
   "payment_entry",
   "create_payment_entry",
@@ -63,8 +65,16 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Amount",
+   "options": "currency",
    "read_only": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Transaction Currency",
+   "options": "Currency",
+   "read_only": 1
   },
   {
    "fieldname": "banking_section",
@@ -121,6 +131,13 @@
    "label": "Account",
    "options": "Account",
    "read_only": 1
+  },
+  {
+   "fetch_from": "account.account_currency",
+   "fieldname": "party_account_currency",
+   "fieldtype": "Link",
+   "label": "Party account currency",
+   "options": "Currency"
   },
   {
    "fieldname": "tax_withholding_category",

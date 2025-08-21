@@ -159,6 +159,7 @@ def create_payment_request_custom_fields():
 			"fieldname": "net_total",
 			"fieldtype": "Currency",
 			"reqd": 1,
+			"options": "currency",
 			"insert_after": "transaction_details",
 		},
 		{
@@ -204,6 +205,13 @@ def create_payment_request_custom_fields():
 			"fieldtype": "Small Text",
 			"depends_on": "eval:doc.payment_request_type == 'Outward'",
 			"insert_after": "remark_section",
+		},
+		{
+			"label": "Exchange Rate",
+			"fieldname": "conversion_rate",
+			"fieldtype": "Float",
+			"read_only": 1,
+			"insert_after": "party_account_currency",
 		},
 	]
 
@@ -272,6 +280,22 @@ properties = {
 			"property": "reqd",
 			"property_type": "Check",
 			"value": 0,
+		},
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Payment Order Reference",
+			"fieldname": "amount",
+			"property": "options",
+			"property_type": "Data",
+			"value": "currency",
+		},
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Payment Order Reference",
+			"fieldname": "amount",
+			"property": "read_only",
+			"property_type": "Check",
+			"value": 1,
 		},
 	],
 }
@@ -343,6 +367,14 @@ def create_payment_order_custom_fields():
 				"insert_after": "summarise_payment_based_on",
 			},
 			{
+				"label": "Transaction Currency",
+				"fieldname": "currency",
+				"fieldtype": "Link",
+				"options": "Currency",
+				"read_only": 1,
+				"insert_after": "summary",
+			},
+			{
 				"label": "Summary",
 				"fieldname": "summary",
 				"fieldtype": "Table",
@@ -354,7 +386,9 @@ def create_payment_order_custom_fields():
 				"label": "Total",
 				"fieldname": "total",
 				"fieldtype": "Currency",
-				"insert_after": "summary",
+				"read_only": 1,
+				"insert_after": "currency",
+				"options": "currency",
 			},
 			{
 				"label": "Accounting Dimensions",
@@ -485,6 +519,14 @@ def create_payment_order_custom_fields():
 				"fetch_from": "bank_account.branch_code",
 			},
 			{
+				"label": "Transaction Currency",
+				"fieldname": "currency",
+				"fieldtype": "Link",
+				"options": "Currency",
+				"read_only": 1,
+				"insert_after": "amount",
+			},
+			{
 				"label": "Account Name",
 				"fieldname": "account_name",
 				"fieldtype": "Data",
@@ -513,6 +555,7 @@ def create_payment_entry_custom_fields():
 				"fieldtype": "Link",
 				"options": "DocType",
 				"read_only": 1,
+				"no_copy": 1,
 				"insert_after": "source_section",
 			},
 			{
@@ -538,6 +581,13 @@ def create_bank_account_custom_fields():
 	click.secho(" -> Installing Custom Fields in a Bank Account...")
 	fields = {
 		"Bank Account": [
+			{
+				"label": "Swift Number",
+				"fieldname": "swift_number",
+				"fieldtype": "Data",
+				"insert_after": "bank",
+				"fetch_from": "bank.swift_number",
+			},
 			{
 				"label": "Mobile Number",
 				"fieldname": "mobile_number",

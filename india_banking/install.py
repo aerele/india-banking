@@ -231,6 +231,13 @@ properties = {
 	],
 	"Bank Account": [
 		{
+			"label": "Swift Number",
+			"fieldname": "swift_number",
+			"fieldtype": "Data",
+			"insert_after": "bank",
+			"fetch_from": "bank.swift_number",
+		},
+		{
 			"doctype_or_field": "DocField",
 			"doctype": "Bank Account",
 			"fieldname": "branch_code",

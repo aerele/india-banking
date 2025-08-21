@@ -1,4 +1,5 @@
 import frappe
+from erpnext import get_company_currency
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
@@ -8,33 +9,54 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
 	get_party_tax_withholding_details,
 )
-from erpnext.accounts.party import get_party_bank_account
-from frappe import _
-from frappe.utils import get_url_to_form, getdate
+from erpnext.accounts.party import (
+	get_party_account,
+	get_party_account_currency,
+	get_party_bank_account,
+)
+from erpnext.setup.utils import get_exchange_rate
+from frappe import _, bold
+from frappe.utils import flt, get_url_to_form, getdate
 
 from india_banking.utils import validate_party_bank_account_details
 
 
 class BankPaymentRequest(PaymentRequest):
+	def update_currency(self):
+		if self.is_adhoc:
+			self.currency = frappe.get_value(
+				self.party_type, self.party, "default_currency"
+			) or get_company_currency(self.company)
+			self.party_account_currency = get_party_account_currency(
+				self.party_type, self.party, self.company
+			)
+
 	def validate(self):
-		self.set_default_value()
 		if not self.net_total:
 			self.net_total = self.grand_total
+
+		if self.payment_request_type != "Outward":
+			super().validate()
+			return
+
+		self.set_default_value()
 
 		if (
 			self.apply_tax_withholding_amount
 			and self.tax_withholding_category
-			and self.payment_request_type == "Outward"
+			and self.is_adhoc
 		):
 			tds_amount = self.calculate_pr_tds(self.net_total)
 			self.taxes_deducted = tds_amount
 			self.grand_total = self.net_total - self.taxes_deducted
 		else:
-			self.grand_total = self.net_total or self.grand_total
+			self.grand_total = self.net_total or 0
 
 		if not self.is_adhoc:
+			self.set_exchange_rate()
 			super().validate()
 		else:
+			self.update_currency()
 			if self.is_new():
 				self.status = "Draft"
 			if self.reference_doctype or self.reference_name:
@@ -43,8 +65,18 @@ class BankPaymentRequest(PaymentRequest):
 		if self.remarks:
 			self.remarks = self.remarks[:48]
 
-	def validate_payment_request_amount(self):
-		super().validate_payment_request_amount()
+	def set_exchange_rate(self):
+		if self.reference_doctype and self.reference_name:
+			conversion_rate = frappe.get_value(
+				self.reference_doctype,
+				self.reference_name,
+				"conversion_rate",
+			)
+			self.conversion_rate = conversion_rate or 1.0
+		else:
+			self.convertion_rate = get_exchange_rate(
+				self.currency, self.party_account_currency, self.transaction_date
+			)
 
 	def set_default_value(self):
 		if not self.transaction_date:
@@ -74,23 +106,97 @@ class BankPaymentRequest(PaymentRequest):
 					)
 				)
 				self.bank_account = bank_account
+				self.update({**self.get_bank_account_details()})
 
 		if self.bank_account:
 			self.mode_of_payment = "Wire Transfer"
 
+	def get_bank_account_details(self):
+		if self.bank_account:
+			return (
+				frappe.get_value(
+					"Bank Account",
+					self.bank_account,
+					["bank", "bank_account_no", "branch_code", "iban"],
+					as_dict=1,
+				)
+				or {}
+			)
+
 	def on_submit(self):
+		super().on_submit()
+
+		if self.payment_request_type != "Outward":
+			return
+
+		if self.is_adhoc:
+			self.db_set("status", "Initiated")
+
 		if not self.grand_total or not self.net_total:
 			frappe.throw(_("Amount cannot be zero"))
 
+		self.validate_payment_type()
+		self.validate_bank_account()
+		self.validate_currency()
+
+	def before_submit(self):
 		if not self.is_adhoc:
-			super().on_submit()
+			super().before_submit()
+			return
+
+		if (
+			self.is_adhoc
+			and self.currency != self.party_account_currency
+			and self.party_account_currency == get_company_currency(self.company)
+		):
+			grand_total = self.grand_total
+
+			convertion_rate = get_exchange_rate(
+				self.currency, self.party_account_currency
+			)
+
+			self.convertion_rate = convertion_rate
+			if not convertion_rate:
+				frappe.throw(
+					_("Exchange rate not found for {0} to {1} on {2}").format(
+						self.currency,
+						self.party_account_currency,
+						self.transaction_date,
+					)
+				)
+
+			self.outstanding_amount = flt(
+				grand_total * convertion_rate,
+				self.precision("outstanding_amount"),
+			)
+
 		else:
-			if self.payment_request_type == "Outward":
-				self.validate_payment_type()
-				self.validate_bank_account()
-				self.db_set("status", "Initiated")
+			self.convertion_rate = 1.0
+			self.outstanding_amount = self.grand_total
+
+	def validate_currency(self):
+		if self.payment_request_type != "Outward":
+			super().validate_currency()
+			return
+
+		transaction_currency = frappe.get_value(
+			self.party_type, self.party, "default_currency"
+		) or get_company_currency(self.company)
+		if transaction_currency != self.currency:
+			frappe.throw(f"Transaction currency must be in {transaction_currency}")
+
+		party_account_currency = get_party_account_currency(
+			self.party_type, self.party, self.company
+		)
+		if party_account_currency != self.party_account_currency:
+			frappe.throw(
+				f"Party account currency should be in {party_account_currency}"
+			)
 
 	def validate_payment_type(self):
+		if not self.is_adhoc:
+			return
+
 		if self.payment_type:
 			payment_type_company = frappe.db.get_value(
 				"Payment Type", self.payment_type, "company"
@@ -114,8 +220,6 @@ class BankPaymentRequest(PaymentRequest):
 
 		debit_account = frappe.db.get_value(
 			"Payment Type", self.payment_type, "account"
-		) or frappe.db.get_value(
-			self.reference_doctype, self.reference_name, "credit_to"
 		)
 
 		if not debit_account:
@@ -162,16 +266,9 @@ class BankPaymentRequest(PaymentRequest):
 
 		if bank_account.currency != self.currency:
 			frappe.throw(
-				title=_(
-					f"The party bank account currency should be in {self.currency}."
-				),
+				title="Invalid currency",
 				msg=_(
-					"{}-{}- Bank Account <a href='{}'>{}</a>".format(
-						self.party_type,
-						self.party,
-						get_url_to_form("Bank Account", self.bank_account),
-						frappe.bold(self.bank_account),
-					)
+					f"The party bank account currency ({bold(bank_account.currency)})  and the transaction currency ({bold(self.currency)}) cannot be different. Please select a matching currency."
 				),
 			)
 
@@ -187,15 +284,6 @@ class BankPaymentRequest(PaymentRequest):
 						)
 					)
 				)
-
-	def create_payment_entry(self, submit=True):
-		payment_entry = super().create_payment_entry(submit=submit)
-		if payment_entry.docstatus != 1 and self.payment_type:
-			payment_entry.paid_to = (
-				frappe.db.get_value("Payment Type", self.payment_type, "account") or ""
-			)
-
-		return payment_entry
 
 	def calculate_pr_tds(self, amount):
 		doc = self
@@ -216,8 +304,12 @@ def make_payment_order(source_name, target_doc=None):
 	from frappe.model.mapper import get_mapped_doc
 
 	def set_missing_values(source, target):
+		if target.references:
+			if target.references[0].currency != target.currency:
+				msg = f"Only <b>{target.references[0].currency}</b>-currency payment requests are permitted. As <b>{target.references[0].currency}</b> is already selected"
+				frappe.throw(title="Invalid selection", msg=msg)
 		target.payment_order_type = "Payment Request"
-		account = get_party_account(source)
+		account = get_party_account(source.party_type, source.party, source.company)
 
 		def _update_dimensions(source):
 			return {
@@ -235,6 +327,7 @@ def make_payment_order(source_name, target_doc=None):
 			"mode_of_payment": source.mode_of_payment,
 			"bank_account": source.bank_account,
 			"account": account,
+			"currency": source.currency,
 			"is_adhoc": source.is_adhoc,
 			"cost_center": source.cost_center,
 			"project": source.project,
@@ -261,26 +354,3 @@ def make_payment_order(source_name, target_doc=None):
 	)
 
 	return doclist
-
-
-def get_party_account(source):
-	if source.payment_type:
-		account = frappe.db.get_value("Payment Type", source.payment_type, "account")
-	if source.reference_doctype == "Purchase Invoice":
-		account = frappe.db.get_value(
-			source.reference_doctype, source.reference_name, "credit_to"
-		)
-	if source.is_adhoc and source.party_type == "Supplier":
-		party_account = frappe.db.get_value(
-			"Party Account",
-			{
-				"parent": source.party,
-				"parenttype": source.party_type,
-				"company": source.company,
-			},
-			"account",
-		)
-		if party_account:
-			account = party_account
-
-	return account

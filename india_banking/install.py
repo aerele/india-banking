@@ -213,6 +213,15 @@ def create_payment_request_custom_fields():
 			"read_only": 1,
 			"insert_after": "party_account_currency",
 		},
+		{
+			"label": "Address",
+			"fieldname": "bank_address",
+			"fieldtype": "Link",
+			"options": "Address",
+			"read_only": 1,
+			"description": "bank account address for forex transactions",
+			"insert_after": "swift_number",
+		},
 	]
 
 	create_custom_fields({"Payment Request": custom_field})
@@ -238,13 +247,6 @@ properties = {
 		},
 	],
 	"Bank Account": [
-		{
-			"label": "Swift Number",
-			"fieldname": "swift_number",
-			"fieldtype": "Data",
-			"insert_after": "bank",
-			"fetch_from": "bank.swift_number",
-		},
 		{
 			"doctype_or_field": "DocField",
 			"doctype": "Bank Account",
@@ -367,14 +369,6 @@ def create_payment_order_custom_fields():
 				"insert_after": "summarise_payment_based_on",
 			},
 			{
-				"label": "Transaction Currency",
-				"fieldname": "currency",
-				"fieldtype": "Link",
-				"options": "Currency",
-				"read_only": 1,
-				"insert_after": "summary",
-			},
-			{
 				"label": "Summary",
 				"fieldname": "summary",
 				"fieldtype": "Table",
@@ -383,12 +377,44 @@ def create_payment_order_custom_fields():
 				"no_copy": 1,
 			},
 			{
+				"fieldname": "final_amount_details_section",
+				"fieldtype": "Section Break",
+			},
+			{
 				"label": "Total",
 				"fieldname": "total",
 				"fieldtype": "Currency",
 				"read_only": 1,
 				"insert_after": "currency",
 				"options": "currency",
+			},
+			{
+				"label": "Transaction Currency",
+				"fieldname": "currency",
+				"fieldtype": "Link",
+				"options": "Currency",
+				"read_only": 1,
+				"insert_after": "summary",
+			},
+			{
+				"fieldname": "final_amount_details_column",
+				"fieldtype": "Column Break",
+			},
+			{
+				"label": "Total(INR)",
+				"fieldname": "base_total",
+				"fieldtype": "Currency",
+				"read_only": 1,
+				"options": "company_currency",
+				"insert_after": "company_currency",
+			},
+			{
+				"label": "Company Currency",
+				"fieldname": "company_currency",
+				"fieldtype": "Link",
+				"options": "Currency",
+				"read_only": 1,
+				"insert_after": "total",
 			},
 			{
 				"label": "Accounting Dimensions",
@@ -537,7 +563,7 @@ def create_payment_order_custom_fields():
 		],
 	}
 
-	create_custom_fields(fields)
+	create_custom_fields(fields, update=True)
 
 
 def create_payment_entry_custom_fields():

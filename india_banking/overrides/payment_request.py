@@ -16,9 +16,12 @@ from erpnext.accounts.party import (
 )
 from erpnext.setup.utils import get_exchange_rate
 from frappe import _, bold
-from frappe.utils import flt, get_url_to_form, getdate
+from frappe.utils import flt, get_link_to_form, get_url_to_form, getdate
 
-from india_banking.utils import validate_party_bank_account_details
+from india_banking.utils import (
+	get_bank_address_details,
+	validate_party_bank_account_details,
+)
 
 
 class BankPaymentRequest(PaymentRequest):
@@ -65,6 +68,27 @@ class BankPaymentRequest(PaymentRequest):
 		if self.remarks:
 			self.remarks = self.remarks[:48]
 
+	def validate_forex_transaction_mandatory_fields(self):
+		mandatory_fields = [
+			"iban",
+			"swift_number",
+			"branch_code",
+			"bank_address",
+		]
+		missing_fields = [field for field in mandatory_fields if not self.get(field)]
+		if missing_fields:
+			link = get_link_to_form("Bank Account", self.bank_account)
+			frappe.throw(
+				_(
+					"For non-INR currency, the following field's ({0}) required in bank account - {1}</br>"
+				).format(bold(", ".join(missing_fields)), bold(link))
+			)
+		if self.bank_address:
+			self.validate_forex_transaction_address_mandatory()
+
+	def validate_forex_transaction_address_mandatory(self):
+		get_bank_address_details(self.bank_account, validate=True)
+
 	def set_exchange_rate(self):
 		if self.reference_doctype and self.reference_name:
 			conversion_rate = frappe.get_value(
@@ -110,6 +134,11 @@ class BankPaymentRequest(PaymentRequest):
 
 		if self.bank_account:
 			self.mode_of_payment = "Wire Transfer"
+
+		if self.bank_account and not self.bank_address:
+			address = get_bank_address_details(self.bank_account)
+			if address and address.name:
+				self.bank_address = address.name
 
 	def get_bank_account_details(self):
 		if self.bank_account:
@@ -173,6 +202,9 @@ class BankPaymentRequest(PaymentRequest):
 		else:
 			self.convertion_rate = 1.0
 			self.outstanding_amount = self.grand_total
+
+		if self.currency != "INR" and self.payment_request_type == "Outward":
+			self.validate_forex_transaction_mandatory_fields()
 
 	def validate_currency(self):
 		if self.payment_request_type != "Outward":

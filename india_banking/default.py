@@ -66,6 +66,14 @@ MULTI_CURRENCY_ENABLED_BANKS = [
 	"HSBC Bank",
 ]
 
+BANK_ADDRESS_MANDATORY_BANKS = [
+	"HSBC Bank",
+]
+
+OTP_ENABLED_BANK = [
+	("ICICI Bank", 1),  # ICICI Bank, Bulk Transaction
+]
+
 DEFAULT_ROLES = ["Payment Manager"]
 
 DEFAULT_WORKFLOW_STATE = [

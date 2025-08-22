@@ -13,6 +13,7 @@ from frappe.model.document import Document
 from frappe.utils import cint, cstr, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
+from india_banking.default import BANK_ADDRESS_MANDATORY_BANKS, OTP_ENABLED_BANK
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
@@ -22,10 +23,6 @@ from india_banking.utils import (
 	get_bank_address_details,
 	get_party_field_name,
 )
-
-OTP_ENABLED_BANK = [
-	("ICICI Bank", 1),  # ICICI Bank, Bulk Transaction
-]
 
 
 class BankConnector(Document):
@@ -71,6 +68,19 @@ class BankConnector(Document):
 		)
 		payment_payload = frappe._dict()
 		payment_payload.doc = payment_order.as_dict(convert_dates_to_str=True)
+
+		# update bank required fields
+		if payment_order.company_bank in BANK_ADDRESS_MANDATORY_BANKS:
+			for pos in payment_payload.doc.summary:
+				if pos.payment_request:
+					pos.address_details = get_bank_address_details(
+						pos.bank_account, validate=True
+					)
+					if not pos.swift_number:
+						pos.swift_number = frappe.db.get_value(
+							"Payment Request", pos.payment_request, "swift_number"
+						)
+
 		payment_payload.doc.update(
 			{
 				"company_account_number": bank_account.bank_account_no,
@@ -112,12 +122,12 @@ class BankConnector(Document):
 
 		if otp:
 			self.verify_otp(payment_order, otp)
+
 		if self.bank_integration_type == "H2H" or self.bulk_transaction:
 			url = self.connector_url
 			headers = self.headers
 
 			payload = self.get_payload(payment_order, otp=otp)
-
 			response = request.post(url, headers=headers, data=json.dumps(payload))
 
 			# create api request log
@@ -386,10 +396,24 @@ class BankConnector(Document):
 
 		payload = self.get_payload(payment_order)
 		payload.update(summary.as_dict(convert_dates_to_str=True))
-		payload.party_name = frappe.db.get_value(
-			summary.party_type, summary.party, get_party_field_name(summary.party_type)
+
+		payload.address_details = get_bank_address_details(
+			payload.bank_account, validate=True
 		)
-		payload.address = json.dumps(get_bank_address_details(summary.bank_account))
+		if not payload.swift_number:
+			payload.swift_number = frappe.db.get_value(
+				"Payment Request", payload.payment_request, "swift_number"
+			)
+
+		if not payload.party_name:
+			payload.party_name = (
+				frappe.db.get_value(
+					summary.party_type,
+					summary.party,
+					get_party_field_name(summary.party_type),
+				)
+				or summary.party
+			)
 
 		response = request.post(url, headers=headers, data=json.dumps(payload))
 

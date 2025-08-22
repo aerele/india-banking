@@ -8,7 +8,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from erpnext.accounts.party import get_party_account_currency
 from frappe import _
-from frappe.utils import get_link_to_form, getdate
+from frappe.utils import flt, get_link_to_form, getdate
 
 from india_banking.default import MULTI_CURRENCY_ENABLED_BANKS, PAYMENT_SUMMARY_FIELDS
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
@@ -84,6 +84,7 @@ class CustomPaymentOrder(PaymentOrder):
 			)
 
 		summary_total = 0
+		base_summary_total = 0
 		for payment in self.summary:
 			if payment.mode_of_transfer:
 				mode, min_limit, max_limit = frappe.get_value(
@@ -130,8 +131,23 @@ class CustomPaymentOrder(PaymentOrder):
 				)
 				or payment.party
 			)
+			if self.currency != "INR" and payment.payment_request:
+				convertion_rate = (
+					frappe.db.get_value(
+						"Payment Request", payment.payment_request, "conversion_rate"
+					)
+					or 1
+				)
+				base_amount = flt(payment.amount * convertion_rate, 3)
+				payment.base_amount = base_amount
+				payment.swift_number = frappe.db.get_value(
+					"Payment Request", payment.payment_request, "swift_number"
+				)
+			else:
+				payment.base_amount = payment.amount
 
 			summary_total += payment.amount
+			base_summary_total += payment.base_amount
 
 		references_total = sum(
 			[reference.amount for reference in self.references if reference.amount]
@@ -139,6 +155,8 @@ class CustomPaymentOrder(PaymentOrder):
 
 		if summary_total != references_total:
 			frappe.throw(_("Summary isn't matching the references"))
+
+		self.base_total = base_summary_total
 
 	def get_party_field_name(self, party_type):
 		if party_type == "Supplier":
@@ -169,6 +187,7 @@ class CustomPaymentOrder(PaymentOrder):
 
 		self.update_payment_status()
 		self.update_payment_reference_details()
+		self.validate_payment_order_type()
 
 	def on_update_after_submit(self):
 		frappe.throw(_("You cannot modify a payment order"))
@@ -187,6 +206,15 @@ class CustomPaymentOrder(PaymentOrder):
 		if self.docstatus == 0:
 			self.verify_and_update_summary_references()
 
+	def validate_payment_order_type(self):
+		if (
+			self.payment_order_type not in ["Payment Request"]
+			and self.currency != "INR"
+		):
+			frappe.throw(
+				"Forex transaction not allowing {0}".format(self.payment_order_type)
+			)
+
 	@frappe.whitelist()
 	def verify_and_update_summary_references(self):
 		try:
@@ -194,6 +222,10 @@ class CustomPaymentOrder(PaymentOrder):
 			def _get_unique_key(reference=None, summarise_field_only=False):
 				summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
 				summarise_field.extend(get_accounting_dimensions())
+				if self.currency != "INR":
+					summarise_field.append(
+						"payment_request"
+					)  # Allowing Forex transaction Based on Payment request
 
 				if self.summarise_payment_based_on == "Party":
 					summarise_field.remove("reference_name")
@@ -311,6 +343,7 @@ def get_party_summary(
 	company_bank_account,
 	summarise_payment_based_on=None,
 	default_mode_of_transfer=None,
+	currency="INR",
 ):
 	references = json.loads(references)
 	if not len(references) or not company_bank_account:
@@ -321,6 +354,10 @@ def get_party_summary(
 	def _get_unique_key(reference=None, summarise_field_only=False):
 		summarise_field = PAYMENT_SUMMARY_FIELDS.copy()
 		summarise_field.extend(get_accounting_dimensions())
+		if currency != "INR":
+			summarise_field.append(
+				"payment_request"
+			)  # Allowing Forex transaction Based on Payment request
 
 		if summarise_payment_based_on == "Party":
 			summarise_field.remove("reference_name")

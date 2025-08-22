@@ -338,6 +338,7 @@ frappe.ui.form.on("Payment Order", {
 				references: frm.doc.references,
 				company_bank_account: frm.doc.company_bank_account,
 				summarise_payment_based_on: frm.doc.summarise_payment_based_on,
+				currency: frm.doc.currency,
 			},
 			freeze: true,
 			callback: function (r) {
@@ -345,13 +346,16 @@ frappe.ui.form.on("Payment Order", {
 					frm.clear_table("summary");
 					const summary_data = r.message;
 					let doc_total = 0;
+					let base_doc_total = 0;
 					summary_data.forEach(function (item) {
 						frm.add_child("summary", item);
 						doc_total += item.amount; // Calculate total amount
+						base_doc_total += item.base_amount || 0; // Calculate base total amount
 					});
 
 					// Set total amount in the form
 					frm.doc.total = doc_total;
+					frm.doc.base_total = base_doc_total;
 					frm.refresh_fields();
 				}
 			},

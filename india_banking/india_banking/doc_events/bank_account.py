@@ -44,7 +44,8 @@ def validate(doc, method=None):
 			frappe.throw("IBAN number is required for inter-currency transactions.")
 		else:
 			validate_iban(doc)
-			doc.bank_account_no = doc.iban
+			if not doc.bank_account_no:
+				doc.bank_account_no = doc.iban
 
 
 def validate_iban(doc):

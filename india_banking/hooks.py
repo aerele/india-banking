@@ -5,6 +5,7 @@ app_description = "Indian Banking Integration with ERPNext"
 app_email = "support@aerele.in"
 app_license = "gpl-3.0"
 
+required_apps = ["erpnext"]
 
 after_install = "india_banking.install.after_install"
 

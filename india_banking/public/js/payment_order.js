@@ -34,6 +34,13 @@ frappe.ui.form.on("Payment Order", {
 				},
 			};
 		});
+		frm.set_query("purpose_code", "summary", () => {
+			return {
+				filters: {
+					verified: 1,
+				},
+			};
+		});
 		frm.set_query("default_mode_of_transfer", () => {
 			return {
 				filters: {
@@ -58,6 +65,32 @@ frappe.ui.form.on("Payment Order", {
 		frm.trigger("set_get_payments_from_buttons");
 		frm.trigger("set_payment_and_status_buttons");
 		frm.trigger("set_pending_payment_cancel_button");
+
+		frm.trigger("set_field_currency_label");
+		frm.trigger("toggle_forex_fields");
+		frm.trigger("toggle_list_settings");
+	},
+
+	toggle_list_settings(frm) {
+		if (frm.doc.currency == "INR") {
+			frm.fields_dict.summary.grid.get_docfield("amount").in_list_view = 0;
+		} else {
+			frm.fields_dict.summary.grid.get_docfield("amount").in_list_view = 1;
+		}
+		frm.fields_dict.summary.grid.reset_grid();
+	},
+
+	toggle_forex_fields(frm) {
+		let show = frm.doc.currency != "INR";
+		frm.toggle_display("base_total", show);
+		frm.toggle_display("company_currency", show);
+		frm.toggle_display("summarise_payment_based_on", !show);
+	},
+
+	set_field_currency_label(frm) {
+		frm.set_currency_labels(["amount"], frm.doc.currency, "references");
+		frm.set_currency_labels(["amount"], frm.doc.currency, "summary");
+		frm.set_currency_labels(["total"], frm.doc.currency);
 	},
 
 	set_pending_payment_cancel_button(frm) {

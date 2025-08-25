@@ -325,7 +325,7 @@ def create_outward_payment_entry(summary_name, payment_order_name):
 		)
 
 		frappe.msgprint(
-			_("Failed to create Payment Entry for row {0}: {1}").format(
+			_("Failed to create Payment Entry for #Row <b>{0}</b>: <b>{1}</b>").format(
 				row.name, str(e)
 			)
 		)

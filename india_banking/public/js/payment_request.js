@@ -11,11 +11,7 @@ frappe.ui.form.on("Payment Request", {
 		}
 		set_payment_type_query(frm);
 		set_bank_account_query(frm);
-		frm.set_df_property(
-			"conversion_rate",
-			"description",
-			"1 " + frm.doc.currency + " = [?] " + frm.doc.party_account_currency
-		);
+		frm.set_df_property("conversion_rate", "description", "1 " + frm.doc.currency + " = [?] " + "INR");
 	},
 	company(frm) {
 		set_payment_type_query(frm);

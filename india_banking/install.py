@@ -379,26 +379,15 @@ def create_payment_order_custom_fields():
 			{
 				"fieldname": "final_amount_details_section",
 				"fieldtype": "Section Break",
+				"insert_after": "summary",
 			},
 			{
 				"label": "Total",
 				"fieldname": "total",
 				"fieldtype": "Currency",
 				"read_only": 1,
-				"insert_after": "currency",
+				"insert_after": "final_amount_details_section",
 				"options": "currency",
-			},
-			{
-				"label": "Transaction Currency",
-				"fieldname": "currency",
-				"fieldtype": "Link",
-				"options": "Currency",
-				"read_only": 1,
-				"insert_after": "summary",
-			},
-			{
-				"fieldname": "final_amount_details_column",
-				"fieldtype": "Column Break",
 			},
 			{
 				"label": "Total(INR)",
@@ -406,7 +395,20 @@ def create_payment_order_custom_fields():
 				"fieldtype": "Currency",
 				"read_only": 1,
 				"options": "company_currency",
+				"insert_after": "total",
+			},
+			{
+				"fieldname": "final_amount_details_column",
+				"fieldtype": "Column Break",
 				"insert_after": "company_currency",
+			},
+			{
+				"label": "Transaction Currency",
+				"fieldname": "currency",
+				"fieldtype": "Link",
+				"options": "Currency",
+				"read_only": 1,
+				"insert_after": "final_amount_details_column",
 			},
 			{
 				"label": "Company Currency",
@@ -414,7 +416,7 @@ def create_payment_order_custom_fields():
 				"fieldtype": "Link",
 				"options": "Currency",
 				"read_only": 1,
-				"insert_after": "total",
+				"insert_after": "currency",
 			},
 			{
 				"label": "Accounting Dimensions",

@@ -76,10 +76,25 @@ class BankConnector(Document):
 					pos.address_details = get_bank_address_details(
 						pos.bank_account, validate=True
 					)
-					if not pos.swift_number:
-						pos.swift_number = frappe.db.get_value(
-							"Payment Request", pos.payment_request, "swift_number"
+					if not pos.swift_number or not pos.iban:
+						pos.swift_number, pos.iban = frappe.db.get_value(
+							"Payment Request",
+							pos.payment_request,
+							["swift_number", "iban"],
 						)
+				if pos.purpose_code:
+					purpose_description = frappe.db.get_value(
+						"Forex Purpose Code", pos.purpose_code, "description"
+					)
+					pos.purpose_of_transaction = "{0} - {1}".format(
+						pos.purpose_code, purpose_description
+					)
+				else:
+					frappe.throw(
+						"The <b>Purpose Code</b> is mandatory for forex transactions at <b>Row {0}</b>".format(
+							pos.idx
+						)
+					)
 
 		payment_payload.doc.update(
 			{
@@ -400,9 +415,9 @@ class BankConnector(Document):
 		payload.address_details = get_bank_address_details(
 			payload.bank_account, validate=True
 		)
-		if not payload.swift_number:
-			payload.swift_number = frappe.db.get_value(
-				"Payment Request", payload.payment_request, "swift_number"
+		if not payload.swift_number or not payload.iban:
+			payload.swift_number, payload.iban = frappe.db.get_value(
+				"Payment Request", payload.payment_request, ["swift_number", "iban"]
 			)
 
 		if not payload.party_name:
@@ -415,7 +430,7 @@ class BankConnector(Document):
 				or summary.party
 			)
 
-		response = request.post(url, headers=headers, data=json.dumps(payload))
+		response = request.payloadt(url, headers=headers, data=json.dumps(payload))
 
 		# create api request log
 		create_api_log(response, self.action, payment_order.doctype, payment_order.name)

@@ -7,13 +7,19 @@ import re
 import time
 
 import frappe
+import requests
 import requests as request
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, cstr, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
-from india_banking.default import BANK_ADDRESS_MANDATORY_BANKS, OTP_ENABLED_BANK
+from india_banking.default import (
+	BANK_ADDRESS_MANDATORY_BANKS,
+	H2H_ENABLED_BANK,
+	OTP_ENABLED_BANK,
+	STD_BANK_LIST,
+)
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
@@ -30,6 +36,39 @@ class BankConnector(Document):
 		self.success_count = 0
 		self.failed_count = 0
 		super().__init__(*args, **kwargs)
+
+	def validate(self):
+		self.validate_integration_type()
+		self.validate_api_secret()
+
+	def validate_api_secret(self):
+		headers = {
+			"Authorization": "token {0}:{1}".format(
+				self.api_key, self.get_password("api_secret")
+			)
+		}
+		response = requests.request("GET", self.url, headers=headers, data={})
+		if not response.ok:
+			frappe.throw("The provided site details are invalid")
+
+	def validate_integration_type(self):
+		if self.bank_integration_type and self.bank:
+			is_not_valid_bank = False
+			if self.bank not in STD_BANK_LIST:
+				is_not_valid_bank = True
+			if self.bank not in H2H_ENABLED_BANK:
+				is_not_valid_bank = True
+			if self.bank_integration_type == "API" and self.bank not in set(
+				STD_BANK_LIST
+			).symmetric_difference(H2H_ENABLED_BANK):
+				is_not_valid_bank = True
+
+			if is_not_valid_bank:
+				frappe.throw(
+					"<b>{0}</b> integration is currently not supported for <b>{1}</b>".format(
+						self.bank_integration_type, self.bank
+					)
+				)
 
 	def check_user_permission(self):
 		if not frappe.has_permission("Payment Order", "write"):

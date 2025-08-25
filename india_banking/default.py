@@ -81,6 +81,9 @@ DEFAULT_WORKFLOW_STATE = [
 	"Approved",
 ]
 
+H2H_ENABLED_BANK = ["HSBC Bank"]
+
+
 DEFAULT_WORKFLOW_ACTIONS = ["Approve", "Reject"]
 
 DEFAULT_WORKFLOW_LIST = [

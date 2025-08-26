@@ -121,18 +121,22 @@ class BankConnector(Document):
 							pos.payment_request,
 							["swift_number", "iban"],
 						)
-				if pos.purpose_code:
+				if (
+					payment_order.currency
+					and payment_order.currency != "INR"
+					and not pos.purpose_code
+				):
+					frappe.throw(
+						"The <b>Purpose Code</b> is mandatory for forex transactions at <b>Row {0}</b>".format(
+							pos.idx
+						)
+					)
+				else:
 					purpose_description = frappe.db.get_value(
 						"Forex Purpose Code", pos.purpose_code, "description"
 					)
 					pos.purpose_of_transaction = "{0} - {1}".format(
 						pos.purpose_code, purpose_description
-					)
-				else:
-					frappe.throw(
-						"The <b>Purpose Code</b> is mandatory for forex transactions at <b>Row {0}</b>".format(
-							pos.idx
-						)
 					)
 
 		payment_payload.doc.update(

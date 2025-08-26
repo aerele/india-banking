@@ -73,7 +73,8 @@ frappe.ui.form.on("Payment Order", {
 
 	toggle_list_settings(frm) {
 		if (frm.doc.currency == "INR") {
-			frm.fields_dict.summary.grid.get_docfield("amount").in_list_view = 0;
+			frm.fields_dict.summary.grid.get_docfield("amount").in_list_view = 1;
+			frm.fields_dict.summary.grid.get_docfield("base_amount").in_list_view = 0;
 		} else {
 			frm.fields_dict.summary.grid.get_docfield("amount").in_list_view = 1;
 		}

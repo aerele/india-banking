@@ -5,7 +5,7 @@ from frappe import _
 from frappe.utils import cstr
 
 IFSC_PATTERN = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
-IBAN_PATTERN = re.compile(r"^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$")
+IBAN_PATTERN = re.compile(r"^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$")
 SWIFT_PATTERN = re.compile(r"^[A-Z]{4}[A-Z0-9]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$")
 
 

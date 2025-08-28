@@ -23,6 +23,11 @@ def get_bank_address_details(bank_account, validate=False):
 		"parent",
 	)
 
+	bank_account_currency = frappe.get_value("Bank Account", bank_account, "currency")
+
+	if not bank_account_currency:
+		bank_account_currency = "INR"
+
 	if not address:
 		link = get_link_to_form("Bank Account", bank_account)
 		if validate:
@@ -50,11 +55,12 @@ def get_bank_address_details(bank_account, validate=False):
 	country_sub_division = (
 		bank_address.get("country", "")[:2] if bank_address.get("country", "") else ""
 	)
-	country = bank_address.get("country", "")[:2]
+	country = bank_address.get("country", "")
 
 	country_code = bank_address.county
 
 	missing_details = []
+	invalid_details = []
 	address_details = frappe._dict(
 		{
 			"name": address,
@@ -62,6 +68,7 @@ def get_bank_address_details(bank_account, validate=False):
 			"StreetName": street_name,
 			"BuildingNumber": building_number,
 			"PostCode": post_code,
+			"State": bank_address.get("state", ""),
 			"TownName": town_name,
 			"CountySubDivision": country_sub_division,
 			"Country": country,
@@ -73,6 +80,24 @@ def get_bank_address_details(bank_account, validate=False):
 		for key in address_details:
 			if not address_details.get(key):
 				missing_details.append(key)
+				continue
+
+			if key == "CountryCode" and (
+				bank_account_currency != "INR"
+				and address_details.get("CountryCode", "").lower() == "in"
+			):
+				msg = "The <b>Country Code</b> for currency {} should not be set to <b>IN</b>".format(
+					bold(bank_account_currency)
+				)
+				invalid_details.append(msg)
+			if key == "Country" and (
+				bank_account_currency != "INR"
+				and "india" in address_details.get("Country", "").lower()
+			):
+				msg = "The <b>Country</b> for currency {} should not be set to <b>India</b>".format(
+					bold(bank_account_currency)
+				)
+				invalid_details.append(msg)
 
 	if missing_details:
 		link = get_link_to_form("Address", address)
@@ -81,6 +106,14 @@ def get_bank_address_details(bank_account, validate=False):
 				bold(link)
 			),
 			msg=bold(", ".join(missing_details)),
+		)
+	if invalid_details:
+		link = get_link_to_form("Address", address)
+		frappe.throw(
+			title="Following Bank Details Are Invalid for Bank Address</br>{0}".format(
+				bold(link)
+			),
+			msg="</br>".join(invalid_details),
 		)
 
 	return address_details

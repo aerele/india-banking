@@ -132,12 +132,17 @@ class CustomPaymentOrder(PaymentOrder):
 				or payment.party
 			)
 			if self.currency != "INR" and payment.payment_request:
-				if not payment.purpose_code:
+				purpose_code = frappe.db.get_value(
+					"Forex Purpose Code", {"verified": 1, "is_default": 1}
+				)
+				if not payment.purpose_code and not purpose_code:
 					frappe.throw(
 						"Purpose code mandator for forex transaction at <b>#Row {0}</b>".format(
 							payment.idx
 						)
 					)
+				if not payment.purpose_code:
+					payment.purpose_code = purpose_code
 
 				convertion_rate = (
 					frappe.db.get_value(

@@ -27,8 +27,13 @@ from india_banking.utils import (
 class BankPaymentRequest(PaymentRequest):
 	def update_currency(self):
 		if self.is_adhoc:
+			currency_field = (
+				"salary_currency"
+				if self.party_type == "Employee"
+				else "default_currency"
+			)
 			self.currency = frappe.get_value(
-				self.party_type, self.party, "default_currency"
+				self.party_type, self.party, currency_field
 			) or get_company_currency(self.company)
 			self.party_account_currency = get_party_account_currency(
 				self.party_type, self.party, self.company
@@ -210,9 +215,11 @@ class BankPaymentRequest(PaymentRequest):
 		if self.payment_request_type != "Outward":
 			super().validate_currency()
 			return
-
+		currency_field = (
+			"salary_currency" if self.party_type == "Employee" else "default_currency"
+		)
 		transaction_currency = frappe.get_value(
-			self.party_type, self.party, "default_currency"
+			self.party_type, self.party, currency_field
 		) or get_company_currency(self.company)
 		if transaction_currency != self.currency:
 			frappe.throw(f"Transaction currency must be in {transaction_currency}")

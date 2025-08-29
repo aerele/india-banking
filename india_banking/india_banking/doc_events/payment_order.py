@@ -1,6 +1,7 @@
 import ast
 
 import frappe
+from erpnext.accounts.doctype.account.account import get_account_currency
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
@@ -159,7 +160,6 @@ def create_outward_payment_entry(summary_name, payment_order_name):
 				)
 				or exchange_rate
 			)
-
 		if row.currency != pe.paid_from_account_currency:
 			pe.conversion_rate = exchange_rate
 			pe.paid_amount = flt(row.amount) * pe.conversion_rate
@@ -190,12 +190,28 @@ def create_outward_payment_entry(summary_name, payment_order_name):
 					reference.payment_request,
 					"net_total",
 				)
+				if reference.currency != (
+					acc_currency := get_account_currency(reference.account)
+				):
+					exchange_rate = frappe.db.get_value(
+						"Payment Request",
+						reference.payment_request,
+						"conversion_rate",
+					)
+					reference_amount = flt(
+						reference_amount * exchange_rate,
+						frappe.get_precision(
+							reference.reference_doctype,
+							"base_grand_total",
+							acc_currency,
+						),
+					)
+
 				payment_term = frappe.db.get_value(
 					"Payment Request",
 					reference.payment_request,
 					"payment_term",
 				)
-
 				if not payment_term:
 					template = frappe.db.get_value(
 						reference.reference_doctype,
@@ -258,10 +274,17 @@ def create_outward_payment_entry(summary_name, payment_order_name):
 									)
 									/ 100
 								)
+								total_field = "grand_total"
+								if reference.currency != (
+									acc_currency := get_account_currency(
+										reference.account
+									)
+								):
+									total_field = "base_grand_total"
 								invoice_amount = frappe.db.get_value(
 									reference.reference_doctype,
 									reference.reference_name,
-									"grand_total",
+									total_field,
 								)
 								to_be_pay = per * invoice_amount
 								paid_amount = min(

@@ -1,6 +1,7 @@
 import re
 
 import frappe
+from erpnext import get_company_currency
 from frappe import _
 from frappe.utils import cstr
 
@@ -70,6 +71,6 @@ def update_transaction_currency(doc):
 		)
 		doc.currency = frappe.get_value(
 			doc.party_type, doc.party, currency_field
-		) or frappe.db.get_value("Company", doc.company, "default_currency")
+		) or get_company_currency(doc.company)
 	elif doc.is_company_account:
 		doc.currency = frappe.db.get_value("Company", doc.company, "default_currency")

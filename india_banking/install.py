@@ -6,6 +6,7 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from india_banking.default import (
 	ALLOWED_PAYMENT_DOCTYPE,
 	DEFAULT_MODE_OF_TRANSFERS,
+	DEFAULT_PURPOSE_CODES,
 	DEFAULT_ROLES,
 	DEFAULT_WORKFLOW_ACTIONS,
 	DEFAULT_WORKFLOW_LIST,
@@ -26,6 +27,7 @@ def after_install():
 	create_default_bank()
 	update_allowed_payment_doctypes()
 	create_default_roles()
+	create_default_purpose_code()
 
 
 def make_custom_fields():
@@ -35,6 +37,14 @@ def make_custom_fields():
 	create_payment_order_custom_fields()
 	create_payment_entry_custom_fields()
 	create_journal_entry_custom_fields()
+
+
+def create_default_purpose_code():
+	click.echo(" -> Creating Default Purpose codes")
+
+	for pc in DEFAULT_PURPOSE_CODES:
+		if not frappe.db.exists("Forex Purpose Code", pc.get("purpose_code")):
+			frappe.get_doc(pc).insert(ignore_mandatory=True)
 
 
 def update_allowed_payment_doctypes():
@@ -759,6 +769,8 @@ def create_default_workflow_actions():
 
 
 def create_default_roles():
+	click.echo(" -> Creating Default Roles")
+
 	for role in DEFAULT_ROLES:
 		if not frappe.db.exists("Role", role):
 			role_doc = frappe.new_doc("Role")

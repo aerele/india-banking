@@ -138,4 +138,14 @@ DEFAULT_WORKFLOW_LIST = [
 	}
 ]
 
+DEFAULT_PURPOSE_CODES = [
+	{
+		"doctype": "Forex Purpose Code",
+		"purpose_code": "S1701",
+		"description": "Payments for processing of goods",
+		"verified": 1,
+		"is_default": 1,
+	}
+]
+
 ALLOWED_PAYMENT_DOCTYPE = ["Payment Request", "Payment Entry", "Bank Entry(JV)"]

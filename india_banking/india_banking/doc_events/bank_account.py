@@ -25,10 +25,11 @@ def validate(doc, method=None):
 		if not doc.swift_number:
 			swift_number = frappe.db.get_value("Bank", doc.bank, "swift_number")
 			if not swift_number:
-				frappe.throw(
+				frappe.msgprint(
 					_(
 						"SWIFT number is required for inter-currency transactions. Please set it in the Bank master."
-					)
+					),
+					indicator="orange",
 				)
 			else:
 				doc.swift_number = swift_number
@@ -36,13 +37,16 @@ def validate(doc, method=None):
 				frappe.msgprint(
 					_("SWIFT number is set to {0} from Bank master.").format(
 						frappe.bold(doc.swift_number)
-					)
+					),
+					title="Warning",
+					indicator="orange",
 				)
 		else:
 			validate_swift_code(doc)
 
 		if not doc.iban:
-			frappe.throw("IBAN number is required for inter-currency transactions.")
+			msg = "We can see this is an inter-currency transaction. If the selected currency supports IBAN, kindly provide the IBAN details.<br>This will allow us to automatically select the correct bank transaction based on the IBAN"
+			frappe.msgprint(msg=msg, title="Warning", indicator="orange")
 		else:
 			validate_iban(doc)
 			if not doc.bank_account_no:
@@ -50,17 +54,17 @@ def validate(doc, method=None):
 
 
 def validate_iban(doc):
-	if not IBAN_PATTERN.match(cstr(doc.iban)):
+	if doc.iban and not IBAN_PATTERN.match(cstr(doc.iban)):
 		frappe.throw(_("IBAN is not valid"))
 
 
 def validate_ifsc_code(doc):
-	if not IFSC_PATTERN.match(cstr(doc.branch_code)):
+	if doc.branch_code and not IFSC_PATTERN.match(cstr(doc.branch_code)):
 		frappe.throw(_("IFSC/Branch Code is not valid"))
 
 
 def validate_swift_code(doc):
-	if not SWIFT_PATTERN.match(cstr(doc.swift_number)):
+	if doc.swift_number and not SWIFT_PATTERN.match(cstr(doc.swift_number)):
 		frappe.throw(_("SWIFT code is not valid"))
 
 

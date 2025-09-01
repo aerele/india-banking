@@ -625,6 +625,7 @@ def create_bank_account_custom_fields():
 				"fieldtype": "Data",
 				"insert_after": "bank",
 				"fetch_from": "bank.swift_number",
+				"fetch_if_empty": 1,
 			},
 			{
 				"label": "Mobile Number",

@@ -75,7 +75,6 @@ class BankPaymentRequest(PaymentRequest):
 
 	def validate_forex_transaction_mandatory_fields(self):
 		mandatory_fields = [
-			"iban",
 			"swift_number",
 			"branch_code",
 			"bank_address",

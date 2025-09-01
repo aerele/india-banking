@@ -122,7 +122,8 @@ class BankConnector(Document):
 							["swift_number", "iban"],
 						)
 				if (
-					payment_order.currency
+					self.action == "initiate_payment"
+					and payment_order.currency
 					and payment_order.currency != "INR"
 					and not pos.purpose_code
 				):

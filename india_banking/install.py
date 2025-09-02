@@ -35,6 +35,7 @@ def make_custom_fields():
 	create_payment_order_custom_fields()
 	create_payment_entry_custom_fields()
 	create_journal_entry_custom_fields()
+	create_supplier_custom_fields()
 
 
 def update_allowed_payment_doctypes():
@@ -121,7 +122,14 @@ def create_supplier_custom_fields():
 				"fieldtype": "Data",
 				"owner": "Administrator",
 				"insert_after": "tax_id",
-			}
+			},
+			{
+				"label": "Hold GST Payables",
+				"fieldname": "hold_gst_payables",
+				"fieldtype": "Check",
+				"owner": "Administrator",
+				"insert_after": "is_reverse_charge_applicable",
+			},
 		]
 	}
 
@@ -165,7 +173,7 @@ def create_payment_request_custom_fields():
 			"label": "Apply Tax Withholding Amount",
 			"fieldname": "apply_tax_withholding_amount",
 			"fieldtype": "Check",
-			"depends_on": "eval:doc.party_type == 'Supplier' && doc.reference_doctype != 'Purchase Invoice' && doc.payment_request_type == 'Outward'",
+			"depends_on": "eval:doc.is_adhoc",
 			"insert_after": "currency",
 		},
 		{
@@ -174,7 +182,7 @@ def create_payment_request_custom_fields():
 			"fieldtype": "Link",
 			"options": "Tax Withholding Category",
 			"depends_on": "eval:doc.apply_tax_withholding_amount",
-			"insert_after": "apply_tax_withholding_amount",
+			"insert_after": "payment_term",
 		},
 		{
 			"label": "Payment Term",
@@ -196,6 +204,14 @@ def create_payment_request_custom_fields():
 			"fieldtype": "Small Text",
 			"depends_on": "eval:doc.payment_request_type == 'Outward'",
 			"insert_after": "remark_section",
+		},
+		{
+			"label": "Hold GST Payables",
+			"fieldname": "hold_gst_payables",
+			"fieldtype": "Check",
+			"owner": "Administrator",
+			"insert_after": "tax_withholding_category",
+			"hidden": 1,
 		},
 	]
 

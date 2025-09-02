@@ -365,7 +365,9 @@ class BankConnector(Document):
 									== "Payment Request"
 								):
 									make_payment_entries(
-										payment_order.name, summary.name
+										payment_order.name,
+										summary.name,
+										status_details.utr_number,
 									)
 
 							self.notify_party(summary)

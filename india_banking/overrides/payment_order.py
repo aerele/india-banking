@@ -144,13 +144,13 @@ class CustomPaymentOrder(PaymentOrder):
 				if not payment.purpose_code:
 					payment.purpose_code = purpose_code
 
-				convertion_rate = (
+				conversion_rate = (
 					frappe.db.get_value(
 						"Payment Request", payment.payment_request, "conversion_rate"
 					)
 					or 1
 				)
-				base_amount = flt(payment.amount * convertion_rate, 3)
+				base_amount = flt(payment.amount * conversion_rate, 3)
 				payment.base_amount = base_amount
 				payment.swift_number = frappe.db.get_value(
 					"Payment Request", payment.payment_request, "swift_number"

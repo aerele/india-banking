@@ -102,7 +102,7 @@ class BankPaymentRequest(PaymentRequest):
 			)
 			self.conversion_rate = conversion_rate or 1.0
 		else:
-			self.convertion_rate = get_exchange_rate(
+			self.conversion_rate = get_exchange_rate(
 				self.currency, self.party_account_currency, self.transaction_date
 			)
 
@@ -150,7 +150,7 @@ class BankPaymentRequest(PaymentRequest):
 				frappe.get_value(
 					"Bank Account",
 					self.bank_account,
-					["bank", "bank_account_no", "branch_code", "iban"],
+					["bank", "bank_account_no", "branch_code", "iban", "swift_number"],
 					as_dict=1,
 				)
 				or {}
@@ -184,12 +184,12 @@ class BankPaymentRequest(PaymentRequest):
 		):
 			grand_total = self.grand_total
 
-			convertion_rate = get_exchange_rate(
+			conversion_rate = get_exchange_rate(
 				self.currency, self.party_account_currency
 			)
 
-			self.convertion_rate = convertion_rate
-			if not convertion_rate:
+			self.conversion_rate = conversion_rate
+			if not conversion_rate:
 				frappe.throw(
 					_("Exchange rate not found for {0} to {1} on {2}").format(
 						self.currency,
@@ -199,12 +199,12 @@ class BankPaymentRequest(PaymentRequest):
 				)
 
 			self.outstanding_amount = flt(
-				grand_total * convertion_rate,
+				grand_total * conversion_rate,
 				self.precision("outstanding_amount"),
 			)
 
 		else:
-			self.convertion_rate = 1.0
+			self.conversion_rate = 1.0
 			self.outstanding_amount = self.grand_total
 
 		if self.currency != "INR" and self.payment_request_type == "Outward":

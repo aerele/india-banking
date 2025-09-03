@@ -271,7 +271,7 @@ properties = {
 			"fieldname": "branch_code",
 			"property": "reqd",
 			"property_type": "Data",
-			"value": 1,
+			"value": 0,
 		},
 	],
 	"Payment Order": [

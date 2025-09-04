@@ -4,13 +4,20 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 )
 from erpnext.accounts.doctype.payment_request.payment_request import (
 	PaymentRequest,
+	get_existing_payment_request_amount,
 )
 from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
 	get_party_tax_withholding_details,
 )
 from erpnext.accounts.party import get_party_bank_account
-from frappe import _
-from frappe.utils import get_url_to_form, getdate
+from frappe import _, bold
+from frappe.utils import (
+	flt,
+	get_link_to_form,
+	get_link_to_report,
+	get_url_to_form,
+	getdate,
+)
 
 
 class BankPaymentRequest(PaymentRequest):
@@ -41,8 +48,101 @@ class BankPaymentRequest(PaymentRequest):
 		if self.remarks:
 			self.remarks = self.remarks[:48]
 
-	def validate_payment_request_amount(self):
-		super().validate_payment_request_amount()
+	def validate_and_update_gst_payables(self, update=False):
+		if self.is_adhoc or "india_compliance" not in frappe.get_installed_apps():
+			return
+
+		if frappe.flags.ignore_hold_gst_payables:
+			return
+
+		if (
+			self.party_type == "Supplier"
+			and not self.hold_gst_payables
+			and self.docstatus == 0
+		):
+			self.hold_gst_payables = frappe.db.get_value(
+				self.party_type, self.party, "hold_gst_payables"
+			)
+
+		ref_doc = frappe.get_doc(self.reference_doctype, self.reference_name)
+		existing_payment_request_amount = get_existing_payment_request_amount(ref_doc)
+		gst_payable_amount = self.get_gst_payable_amount()
+
+		if update:
+			applicable_payment_amount = self.grand_total - gst_payable_amount
+			if applicable_payment_amount <= 0:
+				applicable_payment_amount = 0
+				link = get_link_to_report("Bank GST Payables")
+				msg = "We observed the following:"
+				msg += "<ul><li>Total Requested Amount: {}</li>".format(
+					bold(existing_payment_request_amount)
+				)
+				msg += "<li>Outstanding Amount: {}</li>".format(
+					bold(ref_doc.outstanding_amount)
+				)
+				msg += "<li>Net Payable(GST Exclusive): {}</li>".format(
+					bold(applicable_payment_amount)
+				)
+				msg += "<li>GST Payables: {}</li></ul>".format(
+					bold(flt(gst_payable_amount))
+				)
+				msg += "Please use the {} report to process GST payables.".format(
+					bold(link)
+				)
+				frappe.throw(title="Hold Supplier GST Payable", msg=msg)
+			self.net_total = applicable_payment_amount
+		else:
+			if self.hold_gst_payables:
+				applicable_payment_amount = (
+					ref_doc.outstanding_amount
+					- existing_payment_request_amount
+					- gst_payable_amount
+				)
+				if gst_payable_amount and applicable_payment_amount < 0:
+					applicable_payment_amount = 0
+					link = get_link_to_report("Bank GST Payables")
+					frappe.throw(
+						title="Hold Supplier GST Payable",
+						msg="Supplier {} is marked for Hold GST. The eligible payment amount is < {}. use {} report to make GST payable against".format(
+							bold(link), bold(applicable_payment_amount), link
+						),
+					)
+
+				if self.net_total > applicable_payment_amount:
+					link = get_link_to_form("Supplier", self.party)
+					frappe.throw(
+						title="Hold Supplier GST Payable",
+						msg="Supplier {} is marked for Hold GST. The eligible payment amount is < {}".format(
+							bold(link), bold(applicable_payment_amount)
+						),
+					)
+
+	def get_gst_payable_amount(self):
+		total_gst_payable_amount = 0
+		if (
+			self.reference_doctype
+			and self.reference_doctype == "Purchase Invoice"
+			and self.reference_name
+		):
+			gst_payable_totals = frappe.db.get_all(
+				"Purchase Invoice Item",
+				filters={"parent": self.reference_name},
+				fields=[
+					"SUM(igst_amount) as total_igst",
+					"SUM(cgst_amount) as total_cgst",
+					"SUM(sgst_amount) as total_sgst",
+				],
+			)
+
+			total_igst, total_cgst, total_sgst = 0, 0, 0
+			if gst_payable_totals:
+				total_igst = gst_payable_totals[0].total_igst
+				total_cgst = gst_payable_totals[0].total_cgst
+				total_sgst = gst_payable_totals[0].total_sgst
+
+			total_gst_payable_amount = total_igst + total_cgst + total_sgst
+
+		return total_gst_payable_amount
 
 	def set_default_value(self):
 		if not self.transaction_date:
@@ -69,6 +169,13 @@ class BankPaymentRequest(PaymentRequest):
 
 		if self.bank_account:
 			self.mode_of_payment = "Wire Transfer"
+
+	def before_insert(self):
+		self.validate_and_update_gst_payables(update=True)
+
+	def before_submit(self):
+		super().before_submit()
+		self.validate_and_update_gst_payables()
 
 	def on_submit(self):
 		if not self.grand_total or not self.net_total:

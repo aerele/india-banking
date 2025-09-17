@@ -44,7 +44,6 @@ doc_events = {
 		"validate": "india_banking.india_banking.doc_events.payment_entry.validate",
 	},
 	"Journal Entry": {
-		"on_cancel": "india_banking.india_banking.doc_events.journal_entry.on_cancel",
 		"validate": "india_banking.india_banking.doc_events.journal_entry.validate",
 	},
 }

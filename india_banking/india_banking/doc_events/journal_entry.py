@@ -1,17 +1,21 @@
 import frappe
 from frappe import _, bold
-from frappe.utils import cstr, get_link_to_form
+from frappe.utils import cstr, flt, get_link_to_form
 
 
 def validate(doc, method=None):
-	if doc.docstatus != 1:
+	if doc.docstatus != 1 or doc.voucher_type == "Exchange Gain Or Loss":
 		return
+	# Ignore validation for system-generated ledgers to prevent data loss
+	if doc.is_system_generated:
+		return
+
 	# Check payment request existence for purchase invoices or purchase orders
 	for acc in doc.accounts:
 		if (
 			acc.party_type == "Supplier"
 			and acc.reference_type in ["Purchase Order", "Purchase Invoice"]
-			and acc.debit > 0
+			and (flt(acc.debit) > 0)
 		):
 			if payment_request := frappe.db.exists(
 				"Payment Request",

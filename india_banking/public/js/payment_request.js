@@ -12,6 +12,10 @@ frappe.ui.form.on("Payment Request", {
 		set_payment_type_query(frm);
 		set_bank_account_query(frm);
 		frm.set_df_property("conversion_rate", "description", "1 " + frm.doc.currency + " = [?] " + "INR");
+		let company_currency = frappe.get_doc(":Company", frm.doc.company).default_currency;
+		if (frm.doc.is_adhoc || frm.doc.currency == company_currency) {
+			frm.set_df_property("edit_conversion_rate", "hidden", 1);
+		}
 	},
 	company(frm) {
 		set_payment_type_query(frm);
@@ -26,6 +30,10 @@ frappe.ui.form.on("Payment Request", {
 	},
 	party(frm) {
 		set_bank_account_query(frm);
+	},
+	edit_conversion_rate(frm) {
+		frm.set_df_property("edit_conversion_rate", "read_only", 1);
+		frm.set_df_property("conversion_rate", "read_only", 0);
 	},
 });
 

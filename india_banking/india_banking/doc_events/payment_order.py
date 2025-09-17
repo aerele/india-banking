@@ -108,6 +108,9 @@ def create_outward_payment_entry(summary_name, payment_order_name, utr_no=None):
 			)
 			return
 
+		if payment_order_doc.currency != "INR" and not row.payment_request:
+			frappe.throw("Payment request reference is missing")
+
 		pe = frappe.new_doc("Payment Entry")
 		pe.payment_type = "Pay"
 		pe.payment_entry_type = "Pay"
@@ -147,25 +150,6 @@ def create_outward_payment_entry(summary_name, payment_order_name, utr_no=None):
 			pe.update({dimension: row.get(dimension, "")})
 
 		summary_references = ast.literal_eval(row.summary_references)
-		exchange_rate = get_exchange_rate(
-			pe.paid_to_account_currency, pe.paid_from_account_currency, pe.posting_date
-		)
-		if len(summary_references) == 1:
-			payment_request = frappe.get_value(
-				"Payment Order Reference", summary_references[0], "payment_request"
-			)
-			exchange_rate = (
-				frappe.db.get_value(
-					"Payment Request", payment_request, "conversion_rate"
-				)
-				or exchange_rate
-			)
-		if row.currency != pe.paid_from_account_currency:
-			pe.conversion_rate = exchange_rate
-			pe.paid_amount = flt(row.amount) * pe.conversion_rate
-
-		if row.currency != pe.paid_to_account_currency:
-			pe.received_amount = flt(row.amount) * pe.conversion_rate
 
 		if row.tax_withholding_category:
 			net_total = 0
@@ -182,6 +166,50 @@ def create_outward_payment_entry(summary_name, payment_order_name, utr_no=None):
 			pe.apply_tax_withholding_amount = 1
 			pe.tax_withholding_category = row.tax_withholding_category
 
+		company_currency = frappe.db.get_value(
+			"Company", pe.company, "default_currency"
+		)
+
+		if company_currency != "INR":
+			frappe.throw("Company currency must be <b>INR</b>")
+		if pe.paid_from_account_currency != "INR":
+			frappe.throw("Company account currency must be <b>INR</b>")
+
+		exchange_rate = get_exchange_rate(
+			row.currency, company_currency, pe.posting_date
+		)
+		if len(summary_references) == 1:
+			if row.payment_request:
+				exchange_rate = frappe.db.get_value(
+					"Payment Request", row.payment_request, "conversion_rate"
+				)
+		if pe.paid_to_account_currency == company_currency:
+			pe.received_amount = flt(
+				pe.received_amount * exchange_rate,
+				pe.precision("received_amount"),
+			)
+			pe.paid_amount = flt(
+				pe.paid_amount * exchange_rate,
+				pe.precision("paid_amount"),
+			)
+		else:
+			pe.base_received_amount = flt(
+				pe.received_amount * exchange_rate,
+				pe.precision("received_amount"),
+			)
+
+		if pe.paid_to_account_currency == company_currency:
+			pe.target_exchange_rate = 1
+		else:
+			pe.target_exchange_rate = exchange_rate or 1
+
+		if pe.paid_from_account_currency == pe.paid_to_account_currency:
+			pe.source_exchange_rate = pe.target_exchange_rate
+			pe.base_paid_amount = pe.base_received_amount
+		elif company_currency == pe.paid_from_account_currency:
+			pe.paid_amount = pe.base_received_amount
+			pe.base_paid_amount = pe.base_received_amount
+
 		for sr_name in summary_references:
 			reference = frappe.get_doc("Payment Order Reference", sr_name)
 			if not reference.is_adhoc:
@@ -194,8 +222,8 @@ def create_outward_payment_entry(summary_name, payment_order_name, utr_no=None):
 					acc_currency := get_account_currency(reference.account)
 				):
 					exchange_rate = frappe.db.get_value(
-						"Payment Request",
-						reference.payment_request,
+						reference.reference_doctype,
+						reference.reference_name,
 						"conversion_rate",
 					)
 					reference_amount = flt(

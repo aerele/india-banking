@@ -31,6 +31,11 @@ class CustomPaymentOrder(PaymentOrder):
 					),
 				)
 		self.validate_bank_payment_request()
+		if (
+			frappe.get_cached_value("Account", self.account, "account_currency")
+			!= "INR"
+		):
+			frappe.throw("Company account currency must be <b>INR</b>")
 
 	def validate_bank_payment_request(self):
 		if self.references:
@@ -141,6 +146,14 @@ class CustomPaymentOrder(PaymentOrder):
 							payment.idx
 						)
 					)
+				if not payment.get("payment_request"):
+					frappe.throw(
+						title="Summary Mismatch",
+						msg="Payment request reference Missing at #Row {}".format(
+							payment.idx
+						),
+					)
+
 				if not payment.purpose_code:
 					payment.purpose_code = purpose_code
 

@@ -61,7 +61,6 @@ class BankPaymentRequest(PaymentRequest):
 			self.grand_total = self.net_total or 0
 
 		if not self.is_adhoc:
-			self.set_exchange_rate()
 			super().validate()
 		else:
 			self.update_currency()
@@ -69,6 +68,11 @@ class BankPaymentRequest(PaymentRequest):
 				self.status = "Draft"
 			if self.reference_doctype or self.reference_name:
 				frappe.throw(_("Payments with references cannot be marked as ad-hoc"))
+
+		self.set_exchange_rate()
+
+		if not self.conversion_rate:
+			frappe.throw("Exchange rate is required")
 
 		if self.remarks:
 			self.remarks = self.remarks[:48]
@@ -94,6 +98,10 @@ class BankPaymentRequest(PaymentRequest):
 		get_bank_address_details(self.bank_account, validate=True)
 
 	def set_exchange_rate(self):
+		# Allowing exchange rate modify to sync bank exchnage rate
+		if self.edit_conversion_rate:
+			return
+
 		if self.reference_doctype and self.reference_name:
 			conversion_rate = frappe.get_value(
 				self.reference_doctype,

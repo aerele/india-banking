@@ -224,6 +224,13 @@ def create_payment_request_custom_fields():
 			"insert_after": "party_account_currency",
 		},
 		{
+			"label": "Edit Exchange Rate",
+			"fieldname": "edit_conversion_rate",
+			"fieldtype": "Check",
+			"read_only": 0,
+			"insert_after": "conversion_rate",
+		},
+		{
 			"label": "Address",
 			"fieldname": "bank_address",
 			"fieldtype": "Link",

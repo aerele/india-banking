@@ -7,3 +7,4 @@ india_banking.patches.v15_0.disable_bank_account_mandatory #30042025416
 india_banking.patches.v15_0.create_payment_ref_details_ #0207251312
 india_banking.patches.v15_0.update_defaults #2908
 india_banking.patches.v15_0.disable_ifsc_mandatory #0309
+india_banking.patches.v15_0.update_customisation

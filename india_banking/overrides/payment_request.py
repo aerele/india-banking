@@ -71,9 +71,7 @@ class BankPaymentRequest(PaymentRequest):
 		gst_payable_amount = self.get_gst_payable_amount()
 
 		if update:
-			applicable_payment_amount = (
-				self.grand_total - existing_payment_request_amount - gst_payable_amount
-			)
+			applicable_payment_amount = self.grand_total - gst_payable_amount
 			if applicable_payment_amount <= 0:
 				applicable_payment_amount = 0
 				link = get_link_to_report("Bank GST Payables")
@@ -132,7 +130,7 @@ class BankPaymentRequest(PaymentRequest):
 					link = get_link_to_form("Supplier", self.party)
 					frappe.throw(
 						title="Hold Supplier GST Payable",
-						msg="Supplier {} is marked for Hold GST. The eligible payment amount is < {}".format(
+						msg="Supplier {} is marked for Hold GST. The eligible payment <b>amount</b> is <b><=</b> {}".format(
 							bold(link), bold(applicable_payment_amount)
 						),
 					)

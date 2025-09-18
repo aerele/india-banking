@@ -234,11 +234,14 @@ class CustomPaymentOrder(PaymentOrder):
 	def validate_payment_order_type(self):
 		if (
 			self.payment_order_type not in ["Payment Request"]
+			and self.currency
 			and self.currency != "INR"
 		):
 			frappe.throw(
 				"Forex transaction not allowing {0}".format(self.payment_order_type)
 			)
+		if not self.currency:
+			self.currency = "INR"
 
 	@frappe.whitelist()
 	def verify_and_update_summary_references(self):

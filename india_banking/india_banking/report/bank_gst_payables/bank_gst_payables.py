@@ -11,6 +11,7 @@ from frappe import _, bold, get_installed_apps
 from frappe.query_builder import DocType
 from frappe.query_builder.functions import Sum
 from frappe.utils import cstr, flt, get_link_to_form
+from pypika import terms
 
 from india_banking.india_banking.report.bulk_create_payment_request.bulk_create_payment_request import (
 	make_payment_request,
@@ -31,59 +32,178 @@ def execute(filters: dict | None = None):
 
 
 def get_columns(filters=None) -> list[dict]:
-	return [
+	columns = [
 		{
-			"label": _("Purchase Invoice"),
-			"fieldname": "purchase_invoice",
-			"fieldtype": "Link",
-			"options": "Purchase Invoice",
-		},
-		{
-			"label": _("Reconciliation Status"),
-			"fieldname": "reconciliation_status",
+			"label": _("Voucher Type"),
+			"fieldname": "voucher_type",
 			"fieldtype": "Data",
-			"default": "No Found",
 		},
 		{
-			"label": _("Supplier"),
-			"fieldname": "supplier",
+			"label": _("Voucher Name"),
+			"fieldname": "voucher_name",
 			"fieldtype": "Link",
-			"options": "Supplier",
+			"options": filters.get("voucher_type"),
 		},
-		{
-			"label": _("Hold GST Payables"),
-			"fieldname": "hold_gst_payables",
-			"fieldtype": "check",
-		},
-		{
-			"label": _("Outstanding(Invoice)"),
-			"fieldname": "invoice_outstanding",
-			"fieldtype": "Currency",
-		},
-		{
-			"label": _("Outstanding(Payment Request)"),
-			"fieldname": "request_outstanding",
-			"fieldtype": "Currency",
-		},
-		{
-			"label": _("Net Outstanding"),
-			"fieldname": "net_outstanding",
-			"fieldtype": "Currency",
-		},
+	]
+	if filters.get("voucher_type") == "Purchase Invoice":
+		columns.append(
+			{
+				"label": _("Reconciliation Status"),
+				"fieldname": "reconciliation_status",
+				"fieldtype": "Data",
+				"default": "No Found",
+			}
+		)
+	columns.extend(
+		[
+			{
+				"label": _("Supplier"),
+				"fieldname": "supplier",
+				"fieldtype": "Link",
+				"options": "Supplier",
+			},
+			{
+				"label": _("Hold GST Payables"),
+				"fieldname": "hold_gst_payables",
+				"fieldtype": "check",
+			},
+		]
+	)
+	if filters.get("voucher_type") == "Purchase Invoice":
+		columns.extend(
+			[
+				{
+					"label": _("Outstanding(Invoice)"),
+					"fieldname": "invoice_outstanding",
+					"fieldtype": "Currency",
+				},
+				{
+					"label": _("Outstanding(Payment Request)"),
+					"fieldname": "request_outstanding",
+					"fieldtype": "Currency",
+				},
+				{
+					"label": _("Net Outstanding"),
+					"fieldname": "net_outstanding",
+					"fieldtype": "Currency",
+				},
+			]
+		)
+	else:
+		columns.extend(
+			[
+				{
+					"label": _("Order Total"),
+					"fieldname": "order_total",
+					"fieldtype": "Currency",
+				},
+				{
+					"label": _("Advance Paid"),
+					"fieldname": "advance_paid",
+					"fieldtype": "Currency",
+				},
+				{
+					"label": _("Outstanding(Payment Request)"),
+					"fieldname": "request_outstanding",
+					"fieldtype": "Currency",
+				},
+				{
+					"label": _("Due Balance"),
+					"fieldname": "due_balance",
+					"fieldtype": "Currency",
+				},
+			]
+		)
+	columns.append(
 		{
 			"label": _("GST Payable"),
 			"fieldname": "gst_payable",
 			"fieldtype": "Currency",
-		},
+		}
+	)
+	label = _("Pay Net Outstanding")
+	if filters.get("voucher_type") == "Purchase Order":
+		label = _("Pay Due Balance")
+
+	columns.append(
 		{
-			"label": _("Pay Net Outstanding"),
+			"label": label,
 			"fieldname": "action",
 			"fieldtype": "HTML",
-		},
-	]
+		}
+	)
+
+	return columns
 
 
 def get_data(filters=None):
+	if filters.get("voucher_type") == "Purchase Invoice":
+		return get_invoice_data(filters)
+	else:
+		return get_order_data(filters)
+
+
+def get_order_data(filters):
+	POI = DocType("Purchase Order Item")
+	PO = DocType("Purchase Order")
+	SUPP = DocType("Supplier")
+
+	query = (
+		frappe.qb.from_(POI)
+		.join(PO)
+		.on(PO.name == POI.parent)
+		.join(SUPP)
+		.on(SUPP.name == PO.supplier)
+		.select(
+			terms.LiteralValue("'Purchase Order'").as_("voucher_type"),
+			PO.name.as_("voucher_name"),
+			SUPP.name.as_("supplier"),
+			SUPP.supplier_name.as_("supplier_name"),
+			SUPP.hold_gst_payables,
+			PO.rounded_total.as_("order_total"),
+			PO.advance_paid,
+			(Sum(POI.igst_amount) + Sum(POI.cgst_amount) + Sum(POI.sgst_amount)).as_(
+				"gst_payable"
+			),
+		)
+		.where(PO.docstatus == 1)
+		.where(SUPP.hold_gst_payables == 1)
+		.where(PO.company == filters.get("company"))
+		.where(PO.per_billed < 100)
+		.groupby(POI.name)
+	)
+
+	if filters.get("supplier"):
+		query = query.where(PO.supplier == filters.get("supplier"))
+
+	button = """<button class="btn btn-xs btn-default btn-primary" data-fieldtype="Button" data-fieldname="pay_due_balance" onclick= pay_due_balance('{}')>Create</button>"""
+
+	data = []
+	item_details = query.run(as_dict=True)
+	for details in item_details:
+		if details.gst_payable < 0:
+			continue
+		ref_doc = frappe.get_doc(details.voucher_type, details.voucher_name)
+		request_outstanding = get_existing_payment_request_amount(ref_doc)
+		due_balance = details.order_total - details.advance_paid - request_outstanding
+		details.update(
+			{
+				"request_outstanding": request_outstanding,
+				"due_balance": due_balance,
+				"action": f"{button}".format(
+					details.voucher_name + "amt:" + cstr(flt(due_balance))
+				),
+			}
+		)
+		if due_balance <= 0 or due_balance > details.gst_payable:
+			continue
+
+		data.append(details)
+
+	return data
+
+
+def get_invoice_data(filters):
 	PII = DocType("Purchase Invoice Item")
 	PI = DocType("Purchase Invoice")
 	SUPP = DocType("Supplier")
@@ -95,7 +215,8 @@ def get_data(filters=None):
 		.join(SUPP)
 		.on(SUPP.name == PI.supplier)
 		.select(
-			PI.name.as_("purchase_invoice"),
+			terms.LiteralValue("'Purchase Invoice'").as_("voucher_type"),
+			PI.name.as_("voucher_name"),
 			SUPP.name.as_("supplier"),
 			SUPP.supplier_name.as_("supplier_name"),
 			SUPP.hold_gst_payables,
@@ -122,7 +243,7 @@ def get_data(filters=None):
 	for details in item_details:
 		if details.gst_payable < 0:
 			continue
-		ref_doc = frappe.get_doc("Purchase Invoice", details.purchase_invoice)
+		ref_doc = frappe.get_doc(details.voucher_type, details.voucher_name)
 		request_outstanding = get_existing_payment_request_amount(ref_doc)
 		net_outstanding = details.invoice_outstanding - request_outstanding
 		details.update(
@@ -131,11 +252,11 @@ def get_data(filters=None):
 				"net_outstanding": net_outstanding,
 				"reconciliation_status": details.reconciliation_status or "N/A",
 				"action": f"{button}".format(
-					details.purchase_invoice + "amt:" + cstr(flt(net_outstanding))
+					details.voucher_name + "amt:" + cstr(flt(net_outstanding))
 				),
 			}
 		)
-		if net_outstanding <= 0:
+		if net_outstanding <= 0 or net_outstanding > details.gst_payable:
 			continue
 
 		data.append(details)
@@ -144,9 +265,8 @@ def get_data(filters=None):
 
 
 @frappe.whitelist()
-def create_single_payment_request(invoice, net_outstanding, filters=None):
-	net_total = flt(net_outstanding)
-	invoice = frappe.get_doc("Purchase Invoice", invoice)
+def create_single_payment_request(voucher_type, voucher_name, amount, filters=None):
+	voucher = frappe.get_doc(voucher_type, voucher_name)
 	if isinstance(filters, str):
 		filters = json.loads(filters)
 	payment_details = {
@@ -157,36 +277,41 @@ def create_single_payment_request(invoice, net_outstanding, filters=None):
 			"Payment Type", {"company": filters.get("company"), "is_default": 1}
 		),
 		"party_type": "Supplier",
-		"party": invoice.supplier,
-		"reference_doctype": "Purchase Invoice",
-		"reference_name": invoice.name,
-		"net_total": net_total,
+		"party": voucher.supplier,
+		"reference_doctype": voucher_type,
+		"reference_name": voucher_name,
+		"net_total": flt(
+			amount, frappe.get_precision("Payment Request", "grand_total")
+		),
 	}
-	frappe.flags.ignore_hold_gst_payables = True
 	try:
+		frappe.flags.ignore_hold_gst_payables = True
 		pr = make_payment_request(**payment_details)
-		frappe.flags.ignore_hold_gst_payables = False
 		link = get_link_to_form("Payment Request", pr.name)
 		frappe.msgprint("payment request {}".format(bold(link)))
 	except Exception:
-		pass
+		frappe.log_error(
+			"Failed to create GST Payable", frappe.get_traceback(with_context=True)
+		)
+	finally:
+		frappe.flags.ignore_hold_gst_payables = False
 
 
 @frappe.whitelist()
-def create_bulk_payment_request(invoices, filters=None):
-	if isinstance(invoices, str):
-		invoices = json.loads(invoices)
+def create_bulk_payment_request(vouchers, filters=None):
+	if isinstance(vouchers, str):
+		vouchers = json.loads(vouchers)
 	if isinstance(filters, str):
 		filters = json.loads(filters)
 
-	if not invoices:
+	if not vouchers:
 		return []
 
 	count = 0
 	zero_outstanding = 0
-	for invoice in invoices:
-		invoice = frappe._dict(invoice)
-		net_total = flt(invoice.gst_payable)
+	for voucher in vouchers:
+		voucher = frappe._dict(voucher)
+		net_total = flt(voucher.gst_payable)
 		payment_details = {
 			"payment_request_type": "Outward",
 			"company": filters.get("company"),
@@ -195,18 +320,18 @@ def create_bulk_payment_request(invoices, filters=None):
 				"Payment Type", {"company": filters.get("company"), "is_default": 1}
 			),
 			"party_type": "Supplier",
-			"party": invoice.supplier,
-			"reference_doctype": "Purchase Invoice",
-			"reference_name": invoice.purchase_invoice,
+			"party": voucher.supplier,
+			"reference_doctype": voucher.voucher_type,
+			"reference_name": voucher.voucher_name,
 			"net_total": net_total,
 		}
 
 		if not net_total:
 			zero_outstanding += 1
 		else:
-			if len(invoices) > ENQUEUE_LIMIT:
-				job_id = invoice.voucher_no + cstr(invoice.payment_term)
-				job_name = invoice.voucher_no + "-" + cstr(invoice.payment_term)
+			if len(vouchers) > ENQUEUE_LIMIT:
+				job_id = voucher.voucher_no + cstr(voucher.payment_term)
+				job_name = voucher.voucher_no + "-" + cstr(voucher.payment_term)
 				method = make_payment_request
 				add_background_job(job_id, job_name, method, **payment_details)
 			else:
@@ -219,7 +344,7 @@ def create_bulk_payment_request(invoices, filters=None):
 			count += 1
 	if count:
 		msg = "{} Row Updated".format(count)
-		if len(invoices) > ENQUEUE_LIMIT:
+		if len(vouchers) > ENQUEUE_LIMIT:
 			msg = "{} Row added in background job".format(count)
 		frappe.msgprint(msg)
 

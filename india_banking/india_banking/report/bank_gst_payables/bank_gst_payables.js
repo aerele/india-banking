@@ -12,6 +12,14 @@ frappe.query_reports["Bank GST Payables"] = {
       default: frappe.defaults.get_user_default("Company"),
     },
     {
+      fieldname: "voucher_type",
+      label: __("Voucher Type"),
+      fieldtype: "Select",
+      options: "Purchase Invoice\nPurchase Order",
+      defaults: "Purchase Invoice",
+      reqd: 1,
+    },
+    {
       fieldname: "supplier",
       label: __("Supplier"),
       fieldtype: "Link",
@@ -54,7 +62,7 @@ frappe.query_reports["Bank GST Payables"] = {
         method:
           "india_banking.india_banking.report.bank_gst_payables.bank_gst_payables.create_bulk_payment_request",
         args: {
-          invoices: checked_rows,
+          vouchers: checked_rows,
           filters: frappe.query_report.get_filter_values(),
         },
         async: false,
@@ -73,8 +81,28 @@ let pay_net_outstanding = function (data) {
     method:
       "india_banking.india_banking.report.bank_gst_payables.bank_gst_payables.create_single_payment_request",
     args: {
-      invoice: invoice,
-      net_outstanding: net_outstanding,
+      voucher_type: "Purchase Invoice",
+      voucher_name: invoice,
+      amount: net_outstanding,
+      filters: frappe.query_report.get_filter_values(),
+    },
+    async: false,
+    callback: function (r) {
+      $('[data-original-title="Reload Report"]').click();
+    },
+  });
+};
+
+let pay_due_balance = function (data) {
+  let order = data.split("amt:")[0];
+  let due_balance = data.split("amt:")[1];
+  frappe.call({
+    method:
+      "india_banking.india_banking.report.bank_gst_payables.bank_gst_payables.create_single_payment_request",
+    args: {
+      voucher_type: "Purchase Order",
+      voucher_name: order,
+      amount: due_balance,
       filters: frappe.query_report.get_filter_values(),
     },
     async: false,

@@ -599,6 +599,8 @@ def create_default_bank():
 			bank_doc.bank_name = bank
 			bank_doc.is_standard = 1
 			bank_doc.save()
+		else:
+			frappe.db.set_value("Bank", bank, "is_standard", 1, update_modified=False)
 
 
 def create_default_mode_of_transfers():

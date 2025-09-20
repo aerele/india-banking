@@ -9,7 +9,7 @@ import frappe
 import requests as request
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days, cint, cstr, getdate
+from frappe.utils import add_days, cint, cstr, flt, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
@@ -243,7 +243,10 @@ class BankConnector(Document):
 				for summary in payment_order.summary:
 					status_details = frappe._dict(summary_details.get(summary.name, ""))
 					if status_details.status == "Processed":
-						if status_details.utr_number and status_details.status not in  ["Rejected", "Failed"]:
+						if status_details.utr_number and status_details.status not in [
+							"Rejected",
+							"Failed",
+						]:
 							frappe.db.set_value(
 								"Payment Order Summary",
 								summary.name,
@@ -632,8 +635,14 @@ class BankConnector(Document):
 				bank_transaction_doc.bank_account = bank_account.name
 				bank_transaction_doc.status = "Pending"
 				bank_transaction_doc.date = getdate(statement.transaction_date)
-				bank_transaction_doc.withdrawal = statement.transaction_amount
 				bank_transaction_doc.reference_number = statement.reference_number
+				bank_transaction_doc.description = statement.transaction_description
+				if flt(statement.transaction_amount) < 0:
+					bank_transaction_doc.withdrawal = abs(
+						flt(statement.transaction_amount)
+					)
+				else:
+					bank_transaction_doc.deposit = statement.transaction_amount
 				bank_transaction_doc.save()
 
 	def get_bank_statements(

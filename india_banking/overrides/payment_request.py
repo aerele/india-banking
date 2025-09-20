@@ -63,8 +63,9 @@ class BankPaymentRequest(PaymentRequest):
 			self.hold_gst_payables = frappe.db.get_value(
 				self.party_type, self.party, "hold_gst_payables"
 			)
-			if not self.hold_gst_payables:
-				return
+
+		if not self.hold_gst_payables:
+			return
 
 		ref_doc = frappe.get_doc(self.reference_doctype, self.reference_name)
 		existing_payment_request_amount = get_existing_payment_request_amount(ref_doc)

@@ -52,10 +52,6 @@ function set_bank_account_query(frm) {
 
 function get_bank_query_conditions(frm) {
   let conditions = {
-<<<<<<< HEAD
-    company: frm.doc.company,
-=======
->>>>>>> f36027f (fix(bank): add BOB to standard bank list)
     disabled: 0,
   };
   frappe.db

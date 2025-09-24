@@ -291,17 +291,21 @@ class BankPaymentRequest(PaymentRequest):
 			)
 
 		if self.bank_account:
-			bank_account_company = frappe.db.get_value(
-				"Bank Account", self.bank_account, "company"
-			)
-			if self.company != bank_account_company:
-				frappe.throw(
-					_(
-						"Bank Account <b>{0}</b> is not valid for company <b>{1}</b>".format(
-							self.bank_account, self.company
+			bank_doc = frappe.get_doc("Bank Account", self.bank_account)
+			if bank_doc.party_type and bank_doc.party:
+				if (
+					bank_doc.party_type != self.party_type
+					or bank_doc.party != self.party
+				):
+					frappe.throw(
+						_(
+							"Bank Account {0} does not belong to {1}-{2}".format(
+								frappe.bold(self.bank_account),
+								frappe.bold(self.party_type),
+								frappe.bold(self.party),
+							)
 						)
 					)
-				)
 
 	def create_payment_entry(self, submit=True):
 		payment_entry = super().create_payment_entry(submit=submit)

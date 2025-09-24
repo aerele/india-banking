@@ -52,7 +52,6 @@ function set_bank_account_query(frm) {
 
 function get_bank_query_conditions(frm) {
   let conditions = {
-    company: frm.doc.company,
     disabled: 0,
   };
   frappe.db

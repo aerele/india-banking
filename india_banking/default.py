@@ -58,6 +58,7 @@ STD_BANK_LIST = [
 	"ICICI Bank",
 	"Kotak Mahindra Bank",
 	"Union Bank of India",
+	"Bank of Baroda",
 ]
 
 DEFAULT_ROLES = ["Payment Manager"]

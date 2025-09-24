@@ -41,13 +41,11 @@ function set_payment_type_query(frm) {
 
 function set_bank_account_query(frm) {
   let conditions = get_bank_query_conditions(frm);
-  if (frm.doc.mode_of_payment == "Wire Transfer") {
-    frm.set_query("bank_account", function () {
-      return {
-        filters: conditions,
-      };
-    });
-  }
+  frm.set_query("bank_account", function () {
+    return {
+      filters: conditions,
+    };
+  });
 }
 
 function get_bank_query_conditions(frm) {

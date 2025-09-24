@@ -75,9 +75,16 @@ frappe.ui.form.on("Bank Account", {
         dialog.show();
       });
     }
-    if (frm.doc.workflow_state == "Approved") {
-      frm.set_read_only();
-    }
+    frappe.db
+      .get_single_value(
+        "India Banking Settings",
+        "activate_workflow_on_bank_account"
+      )
+      .then((r) => {
+        if (r && frm.doc.workflow_state == "Approved") {
+          frm.set_read_only();
+        }
+      });
   },
   after_workflow_action: function (frm) {
     if (frm.doc.workflow_state == "Approved") {

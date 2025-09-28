@@ -9,7 +9,7 @@ import frappe
 import requests as request
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days, cint, cstr, getdate
+from frappe.utils import add_days, cint, cstr, flt, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
@@ -243,7 +243,10 @@ class BankConnector(Document):
 				for summary in payment_order.summary:
 					status_details = frappe._dict(summary_details.get(summary.name, ""))
 					if status_details.status == "Processed":
-						if status_details.utr_number and status_details.status not in  ["Rejected", "Failed"]:
+						if status_details.utr_number and status_details.status not in [
+							"Rejected",
+							"Failed",
+						]:
 							frappe.db.set_value(
 								"Payment Order Summary",
 								summary.name,
@@ -613,20 +616,33 @@ class BankConnector(Document):
 	def update_bank_transactions(self, statements, bank_account):
 		for statement in statements:
 			statement = frappe._dict(statement)
-			if not frappe.db.exists(
-				"Bank Transaction",
-				{
-					"bank_account": bank_account.name,
-					"reference_number": statement.reference_number,
-				},
-			):
+			transaction_filter = {
+				"bank_account": bank_account.name,
+				"reference_number": statement.reference_number,
+				"date": getdate(statement.transaction_date),
+			}
+			if flt(statement.transaction_amount) < 0:
+				transaction_filter["withdrawal"] = abs(
+					flt(statement.transaction_amount)
+				)
+			else:
+				transaction_filter["deposit"] = abs(flt(statement.transaction_amount))
+
+			# check if bank transaction already exists with same reference number, date and amount
+			if not frappe.db.exists("Bank Transaction", transaction_filter):
 				bank_transaction_doc = frappe.new_doc("Bank Transaction")
 				bank_transaction_doc.company = bank_account.company
 				bank_transaction_doc.bank_account = bank_account.name
 				bank_transaction_doc.status = "Pending"
 				bank_transaction_doc.date = getdate(statement.transaction_date)
-				bank_transaction_doc.withdrawal = statement.transaction_amount
 				bank_transaction_doc.reference_number = statement.reference_number
+				bank_transaction_doc.description = statement.transaction_description
+				if flt(statement.transaction_amount) < 0:
+					bank_transaction_doc.withdrawal = abs(
+						flt(statement.transaction_amount)
+					)
+				else:
+					bank_transaction_doc.deposit = statement.transaction_amount
 				bank_transaction_doc.save()
 
 	def get_bank_statements(

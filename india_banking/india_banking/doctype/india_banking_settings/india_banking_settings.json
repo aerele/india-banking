@@ -158,15 +158,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
-<<<<<<< HEAD
-<<<<<<< HEAD
  "modified": "2025-07-18 15:52:13.042530",
-=======
- "modified": "2025-07-18 11:23:25.499306",
->>>>>>> 901c230 (fix: add read permission for all roles)
-=======
- "modified": "2025-07-18 15:52:13.042530",
->>>>>>> 3b0d15a (feat: add setting to select naming series for bank payments.)
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

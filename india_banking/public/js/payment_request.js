@@ -50,10 +50,6 @@ function set_bank_account_query(frm) {
 
 function get_bank_query_conditions(frm) {
   let conditions = {
-<<<<<<< HEAD
-=======
-    company: frm.doc.company,
->>>>>>> 3b0d15a (feat: add setting to select naming series for bank payments.)
     disabled: 0,
   };
   frappe.db

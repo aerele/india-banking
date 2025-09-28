@@ -40,6 +40,12 @@ doc_events = {
 	"Payment Entry": {
 		"on_cancel": "india_banking.india_banking.doc_events.payment_entry.on_cancel",
 	},
+	"Payment Order": {
+		"autoname": "india_banking.utils.update_series",
+	},
+	"Payment Request": {
+		"autoname": "india_banking.utils.update_series",
+	},
 }
 
 accounting_dimension_doctypes = [

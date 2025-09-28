@@ -8,6 +8,8 @@ from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoi
 from frappe import _, parse_json
 from frappe.utils import flt, nowdate
 
+from india_banking.utils import get_bank_payment_naming_series
+
 
 @frappe.whitelist()
 def cancel_pending_payments(data):
@@ -78,6 +80,13 @@ def make_payment_entries(docname):
 			frappe.throw(_("Summary reference mismatch"))
 
 		pe = frappe.new_doc("Payment Entry")
+		# update bank payment naming series
+		series = get_bank_payment_naming_series(
+			payment_order_doc.company, "Payment Entry"
+		)
+		if series and series != pe.naming_series:
+			pe.naming_series = series
+
 		pe.payment_type = "Pay"
 		pe.payment_entry_type = "Pay"
 		pe.company = payment_order_doc.company

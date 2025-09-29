@@ -249,7 +249,7 @@ def group_by_invoices(self):
 	grouped_references = {}
 	if self.references:
 		for ref in self.references:
-			key = (ref.reference_name, ref.reference_doctype, ref.payment_term)
+			key = (ref.reference_name, ref.reference_doctype, ref.payment_term, ref.payment_request)
 			if key not in grouped_references:
 				grouped_references[key] = ref
 			else:

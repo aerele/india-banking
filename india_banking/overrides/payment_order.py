@@ -203,12 +203,23 @@ class CustomPaymentOrder(PaymentOrder):
 		]:
 			super().on_submit()
 			return
+		submit = True
+		if self.currency and self.currency != "INR":
+			submit = False
+
 		if self.payment_order_type == "Payment Request" and (
 			not frappe.get_single_value(
 				"India Banking Settings", "create_payment_after_success"
 			)
 		):
-			make_payment_entries(self.name)
+			make_payment_entries(self.name, submit=submit)
+
+		elif (
+			self.payment_order_type == "Payment Request"
+			and self.currency
+			and self.currency != "INR"
+		):
+			make_payment_entries(self.name, submit=submit)
 
 		self.update_payment_status()
 		self.update_payment_reference_details()

@@ -317,6 +317,32 @@ properties = {
 			"value": 1,
 		},
 	],
+	"Address": [
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Address",
+			"fieldname": "county",
+			"property": "label",
+			"property_type": "Data",
+			"value": "Country Code",
+		},
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Address",
+			"fieldname": "county",
+			"property": "reqd",
+			"property_type": "Check",
+			"value": 1,
+		},
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Address",
+			"fieldname": "county",
+			"property": "description",
+			"property_type": "Small Text",
+			"value": "E.g.: For India - IN or IND",
+		},
+	],
 }
 
 

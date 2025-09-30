@@ -57,7 +57,10 @@ def get_bank_address_details(bank_account, validate=False):
 	)
 	country = bank_address.get("country", "")
 
-	country_code = bank_address.county
+	country_code = bank_address.county or ""
+
+	if country_code:
+		country_code = country_code[:2].upper()
 
 	missing_details = []
 	invalid_details = []
@@ -81,7 +84,14 @@ def get_bank_address_details(bank_account, validate=False):
 			if not address_details.get(key):
 				missing_details.append(key)
 				continue
-
+			if not address_details.get("CountryCode", ""):
+				msg = "Address - {} The <b>Country Code(County)</b> is mandatory for Forex Transactions".format(
+					get_link_to_form("Address", address)
+				)
+			if len(address_details.get("CountryCode", "")) > 3:
+				msg = "Address - {} The <b>Country Code(County)</b> cannot be more than 3 characters".format(
+					get_link_to_form("Address", address)
+				)
 			if key == "CountryCode" and (
 				bank_account_currency != "INR"
 				and address_details.get("CountryCode", "").lower() == "in"

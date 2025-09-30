@@ -58,7 +58,7 @@ def process_payment_requests(payment_order_summary):
 
 
 @frappe.whitelist()
-def make_payment_entries(docname, summary_name=None, utr_no=None):
+def make_payment_entries(docname, summary_name=None, utr_no=None, submit=True):
 	payment_order_doc = frappe.get_doc("Payment Order", docname)
 	"""create entry"""
 	frappe.flags.ignore_account_permission = True
@@ -67,10 +67,14 @@ def make_payment_entries(docname, summary_name=None, utr_no=None):
 			# If summary_name is provided, only process that specific summary row.
 			continue
 
-		create_outward_payment_entry(row.name, payment_order_doc.name, utr_no=utr_no)
+		create_outward_payment_entry(
+			row.name, payment_order_doc.name, utr_no=utr_no, submit=submit
+		)
 
 
-def create_outward_payment_entry(summary_name, payment_order_name, utr_no=None):
+def create_outward_payment_entry(
+	summary_name, payment_order_name, utr_no=None, submit=True
+):
 	"""Create Payment Entry for the given row in Payment Order Summary."""
 
 	def _append_reference(
@@ -351,7 +355,8 @@ def create_outward_payment_entry(summary_name, payment_order_name, utr_no=None):
 		group_by_invoices(pe)
 
 		pe.insert(ignore_permissions=True, ignore_mandatory=True)
-		pe.submit()
+		if submit:
+			pe.submit()
 
 		# add payment entry reference in summary row
 		frappe.db.set_value("Payment Order Summary", row.name, "payment_entry", pe.name)

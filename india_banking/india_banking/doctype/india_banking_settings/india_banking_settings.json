@@ -7,18 +7,24 @@
  "field_order": [
   "basic_configuration_tab",
   "summarise_payment_based_on",
-  "enable_payment_in_the_background",
   "use_payment_order_date_as_payment_entry_date",
   "allow_future_date_payment_order",
   "column_break_wjye",
   "allowed_payment_doctypes",
   "auto_update_configurations_tab",
   "automatic_update_configuration_section",
+  "column_break_laug",
+  "auto_post_payments",
+  "retry_interval_minutes",
+  "batch_size",
+  "status_configuration_column",
   "update_payment_status",
   "status_check",
   "retry_period",
-  "column_break_laug",
+  "reposting_configurations_section",
+  "reposting_configurations_column",
   "update_posting_date_as_payment_date",
+  "column_break_kagd",
   "doctype_customization_tab",
   "activate_workflow_on_bank_account",
   "doctype_naming_series",
@@ -51,13 +57,6 @@
    "label": "Activate Workflow on Bank Account"
   },
   {
-   "default": "1",
-   "description": "If more than 10 payments need to be initiated to the bank, they will be processed in the background. This prevents delays caused by long bank response times.",
-   "fieldname": "enable_payment_in_the_background",
-   "fieldtype": "Check",
-   "label": "Enqueue large payments in the background"
-  },
-  {
    "default": "0",
    "description": "A Payment Entry is created before initiating the payment. If the bank requires post-authorization and the approver approves the payment on a later date, the payment date in the bank statement may differ from the ledger's posting date. Enabling this setting ensures the ledger is updated accordingly.",
    "fieldname": "update_posting_date_as_payment_date",
@@ -73,12 +72,12 @@
   },
   {
    "fieldname": "automatic_update_configuration_section",
-   "fieldtype": "Section Break",
-   "label": "Auto Update Configurations"
+   "fieldtype": "Section Break"
   },
   {
    "fieldname": "column_break_laug",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": "Payment Configuration"
   },
   {
    "default": "Payment Request\nPayment Entry\nBank Entry",
@@ -111,6 +110,7 @@
   },
   {
    "default": "3",
+   "depends_on": "update_payment_status",
    "description": "Check the payment status for 'Processed' payment from the payment initiation date until the retry period.",
    "fieldname": "retry_period",
    "fieldtype": "Int",
@@ -153,13 +153,54 @@
    "fieldname": "basic_configuration_tab",
    "fieldtype": "Tab Break",
    "label": "Basic Configuration"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, payments will be processed automatically in the background, according to the bank connector\u2019s.",
+   "fieldname": "auto_post_payments",
+   "fieldtype": "Check",
+   "label": "Auto Post Payments"
+  },
+  {
+   "default": "5",
+   "depends_on": "auto_post_payments",
+   "description": "Time (in minutes) between attempts to process queued payments",
+   "fieldname": "retry_interval_minutes",
+   "fieldtype": "Int",
+   "label": "Retry Interval (minutes)"
+  },
+  {
+   "fieldname": "status_configuration_column",
+   "fieldtype": "Column Break",
+   "label": "Status Configuration"
+  },
+  {
+   "fieldname": "reposting_configurations_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "reposting_configurations_column",
+   "fieldtype": "Column Break",
+   "label": "Reposting configurations"
+  },
+  {
+   "fieldname": "column_break_kagd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "auto_post_payments",
+   "description": "Max payments per batch in background processing.",
+   "fieldname": "batch_size",
+   "fieldtype": "Int",
+   "label": "Batch Size",
+   "default": "10"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-07-18 15:52:13.042530",
- "modified_by": "Administrator",
+ "modified": "2025-10-06 07:32:57.302261",
+ "modified_by": "bhavan@aerele.in",
  "module": "India Banking",
  "name": "India Banking Settings",
  "owner": "Administrator",
@@ -182,6 +223,7 @@
    "share": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

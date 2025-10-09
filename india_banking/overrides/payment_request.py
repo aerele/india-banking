@@ -9,6 +9,7 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
 	get_party_tax_withholding_details,
 )
+from erpnext.accounts.party import get_party_account as _get_party_account
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _, bold
 from frappe.utils import (
@@ -222,27 +223,6 @@ class BankPaymentRequest(PaymentRequest):
 						)
 					)
 				)
-		else:
-			frappe.throw(
-				_(
-					f"Set Default <b><a href='/app/payment-type'>Payment Type</a></b> for company {frappe.bold(self.company)}".format(
-						self.company
-					)
-				)
-			)
-
-		debit_account = frappe.db.get_value(
-			"Payment Type", self.payment_type, "account"
-		) or frappe.db.get_value(
-			self.reference_doctype, self.reference_name, "credit_to"
-		)
-
-		if not debit_account:
-			frappe.throw(
-				_(
-					"Debit account for Payment Type <b>{}</b> cannot be determined"
-				).format(self.payment_type or "")
-			)
 
 	def validate_bank_account(self):
 		bank_account = get_party_bank_account(self.party_type, self.party)
@@ -385,12 +365,21 @@ def make_payment_order(source_name, target_doc=None):
 def get_party_account(source):
 	if source.payment_type:
 		account = frappe.db.get_value("Payment Type", source.payment_type, "account")
+		if not account:
+			frappe.throw(
+				_(
+					"Debit account for Payment Type <b>{}</b> cannot be determined"
+				).format(get_url_to_form("Payment Type", source.payment_type) or "")
+			)
 	if source.reference_doctype == "Purchase Invoice":
 		account = frappe.db.get_value(
 			source.reference_doctype, source.reference_name, "credit_to"
 		)
 	if source.is_adhoc and source.party_type == "Supplier":
-		party_account = frappe.db.get_value(
+		party_account = _get_party_account(
+			source.party_type, source.party, source.company
+		)
+		frappe.db.get_value(
 			"Party Account",
 			{
 				"parent": source.party,

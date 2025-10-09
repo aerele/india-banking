@@ -211,3 +211,23 @@ def update_series(doc, method=None):
 		frappe.msgprint(
 			"Naming Series updated based on India Banking settings.", alert=True
 		)
+
+
+def minutes_to_cron(minutes: int) -> str:
+	if minutes < 60:
+		# Every N minutes
+		return f"*/{minutes} * * * *"
+	elif minutes % 60 == 0 and minutes < 1440:
+		hours = minutes // 60
+		if hours == 1:
+			return "0 * * * *"
+		else:
+			return f"0 */{hours} * * *"
+	elif minutes == 1440:
+		# Every day
+		return "0 0 * * *"
+	else:
+		# For values > 1 day (e.g., every 2 days)
+		days = minutes / 1440
+		if days.is_integer():
+			return f"0 0 */{int(days)} * *"

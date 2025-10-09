@@ -4,14 +4,32 @@
 import frappe
 from frappe.model.document import Document
 
+from india_banking.utils import minutes_to_cron
+
 
 class IndiaBankingSettings(Document):
 	def validate(self):
 		self.enable_or_disable_workflow_to_bank_account()
 		self.validate_document_series()
 		self.enable_payment_entry_reposting()
+		self.update_cron_job_type_format()
 		if not self.notify_party:
 			self.payment_notification = []
+
+	def update_cron_job_type_format(self):
+		cron_format = minutes_to_cron(self.retry_interval_minutes or 5)
+		if frappe.db.exists(
+			"Scheduled Job Type", "tasks.process_payment_in_the_background"
+		):
+			frappe.db.set_value(
+				"Scheduled Job Type",
+				"tasks.process_payment_in_the_background",
+				{
+					"cron_format": cron_format,
+					"stopped": not self.auto_post_payments,
+				},
+				update_modified=False,
+			)
 
 	def validate_document_series(self):
 		if self.doctype_naming_series:

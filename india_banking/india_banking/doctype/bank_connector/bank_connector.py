@@ -3,7 +3,8 @@
 
 import ast
 import json
-import re
+import math
+import time
 
 import frappe
 import requests as request
@@ -82,18 +83,14 @@ class BankConnector(Document):
 		except Exception:
 			frappe.throw(_("Invalid Response: Check API Log"))
 
-	def make_post_request(self, payment_order, otp=None, action=None):
+	def make_post_request(
+		self, payment_order, otp=None, action=None, check_processed_payments=False
+	):
 		self.check_user_permission()
 
 		if action == "initiate_payment":
 			if self.check_otp_enabled(otp):
 				return self.generate_otp(payment_order)
-
-			action = "get_payment_status"
-			self.make_post_request(
-				payment_order, action=action
-			)  # get payment status before initiating payment
-			action = "initiate_payment"
 
 		self.action = action
 
@@ -115,27 +112,39 @@ class BankConnector(Document):
 
 			self.verify_response(response, payment_order)
 		else:
-			# add payment in background
-			if len(payment_order.summary) > 10 or cint(
-				frappe.get_single(
-					"India Banking Settings"
-				).enable_payment_in_the_background
+			if (
+				self.action == "initiate_payment"
+				and self.enqueue_large_payments_in_the_background
 			):
-				return self.add_payment_in_the_background(payment_order)
+				if self.add_payment_in_the_background(payment_order):
+					return
 
+			last_call = None
 			for summary in payment_order.summary:
-				if (
-					not summary.payment_initiated
-					and summary.payment_status != "Pending"
-				):
-					continue
-
+				if self.action == "initiate_payment":
+					last_call = self.check_payment_delay(last_call)
+					if (
+						summary.payment_initiated
+						or summary.payment_status != "Pending"
+					):
+						# Ignoring Already initiated Payment
+						continue
+				elif self.action == "get_payment_status":
+					statuses = ["Pending", "Initiated"]
+					if check_processed_payments:
+						retry_period = cint(
+							frappe.get_single("India Banking Settings").retry_period
+						)
+						if summary.payment_date >= add_days(getdate(), -(retry_period)):
+							statuses.append("Processed")
+					if summary.payment_status not in statuses:
+						continue
 				self.make_single_request(payment_order, summary)
 
 		if self.action == "initiate_payment":
 			msg = _("Payment Initiated")
 			if not self.bulk_transaction:
-				msg = _(f"{self.success_count} Payment(s) Initiated")
+				msg = _("{0} Payment(s) Initiated".format(self.success_count))
 			frappe.msgprint(msg)
 
 	def verify_response(self, response, payment_order):
@@ -357,6 +366,33 @@ class BankConnector(Document):
 		else:
 			frappe.throw("Invalid Request")
 
+	def check_payment_delay(self, last_call=None):
+		payment_call_interval = (
+			self.payment_call_interval
+			if self.enable_payment_delay and self.payment_call_interval
+			else 0
+		)
+		if not payment_call_interval:
+			# Skip delay validation check
+			return None
+
+		payment_delay = 0
+		if not last_call:
+			last_call = time.time()
+		else:
+			last_duration_in_seconds = math.ceil(time.time() - last_call)
+			payment_delay = payment_call_interval - last_duration_in_seconds
+			if payment_delay < 0:
+				payment_delay = 0
+
+		if payment_delay:
+			# Minimum 1-minute delay to avoid invalid behavior
+			payment_delay = 60 if payment_delay > 60 else payment_delay
+			time.sleep(payment_delay)
+			last_call = time.time()
+
+		return last_call
+
 	def make_single_request(self, payment_order, summary):
 		url = self.connector_url
 		headers = self.headers
@@ -375,56 +411,31 @@ class BankConnector(Document):
 
 		self.verify_response(response, payment_order)
 
-	def add_payment_in_the_background(self, payment_order, statuses=None):
-		if not statuses:
-			statuses = [
-				"Pending",
-				"Initiated",
-			]
-
-		def _add_queue(summary, job_id):
-			frappe.enqueue(
-				self.make_single_request,
-				payment_order=payment_order,
-				summary=summary,
-				job_id=job_id,
-				job_name=f"Make Payment {job_id}",
-				enqueue_after_commit=True,
-			)
-
-		enqueue_count = 0
+	def add_payment_in_the_background(self, payment_order):
+		"""Process payments in the background."""
+		pending_payments = []
 		for summary in payment_order.summary:
-			if (
-				self.action == "initiate_payment"
-				and not summary.payment_initiated
-				and summary.payment_status != "Pending"
-			):
-				continue
-			if (
-				self.action == "get_payment_status"
-				and summary.payment_status not in statuses
-			):
-				continue
-
-			job_id = (
-				"".join(re.findall(r"[0-9a-zA-Z]", self.name))[-10:]
-				+ "-"
-				+ summary.name
-			)
-			if not frappe.db.exists("RQ Job", job_id):
-				_add_queue(summary=summary, job_id=job_id)
-				enqueue_count += 1
-
-			elif (rq_job := frappe.db.exists("RQ Job", job_id)) and not is_job_enqueued(
-				job_id
-			):
-				frappe.get_doc("RQ Job", rq_job).delete()
-				frappe.clear_cache(doctype="RQ Job")
-				_add_queue(summary=summary, job_id=job_id)
-				enqueue_count += 1
-
-		if self.action == "initiate_payment":
-			frappe.msgprint(_(f"{enqueue_count} payments added in background"))
+			summary.load_from_db()
+			if summary.payment_initiated == 0 and summary.payment_status == "Pending":
+				pending_payments.append(summary.name)
+		if pending_payments and len(pending_payments) > self.enqueue_payments_threshold:
+			payment_order.db_set("enqueue_status", "Queued", update_modified=False)
+			error = None
+			try:
+				frappe.get_doc(
+					"Scheduled Job Type", "tasks.process_payment_in_the_background"
+				).enqueue(force=True)  # Execute job immediately
+			except Exception as e:
+				error = e
+			if error:
+				frappe.throw("Execution Failed", error)
+			else:
+				frappe.msgprint(
+					_(f"{len(pending_payments)} payments added in background")
+				)
+			return True
+		else:
+			return False
 
 	def generate_otp(self, payment_order):
 		payment_order.reload()
@@ -730,12 +741,16 @@ def make_payment(payment_order, otp=None):
 
 
 @frappe.whitelist()
-def get_payment_status(payment_order):
+def get_payment_status(payment_order, check_processed_payments=False):
 	payment_order = frappe.get_doc("Payment Order", payment_order)
 	bank_connector = get_bank_connector(
 		payment_order.company_bank_account, payment_order.company
 	)
-	return bank_connector.make_post_request(payment_order, action="get_payment_status")
+	return bank_connector.make_post_request(
+		payment_order,
+		action="get_payment_status",
+		check_processed_payments=check_processed_payments,
+	)
 
 
 @frappe.whitelist()

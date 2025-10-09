@@ -1,5 +1,8 @@
+import time
+
 import frappe
 from frappe.query_builder import DocType
+from frappe.utils.background_jobs import is_job_enqueued
 
 from india_banking.india_banking.doctype.bank_connector.bank_connector import (
 	get_bank_connector,
@@ -8,7 +11,7 @@ from india_banking.india_banking.doctype.bank_connector.bank_connector import (
 
 
 def daily():
-	update_payment_status_for_processed_payment()
+	update_payment_status(check_processed_payments=True)
 
 
 def job_twenty_minutes():
@@ -32,38 +35,7 @@ def job_at_midnight():
 		update_payment_status()
 
 
-def update_payment_status_for_processed_payment():
-	statuses = ["Processed"]
-	retry_period = frappe.get_single("India Banking Settings").update_payment_status
-
-	PaymentOrderSummary = DocType("Payment Order Summary")
-	payment_orders = (
-		frappe.qb.from_(PaymentOrderSummary)
-		.select(PaymentOrderSummary.parent)
-		.where(
-			(PaymentOrderSummary.docstatus == 1)
-			& (PaymentOrderSummary.payment_status.isin(statuses))
-			& (
-				PaymentOrderSummary.payment_date
-				>= frappe.utils.add_days(frappe.utils.nowdate(), -(retry_period))
-			)
-			& (PaymentOrderSummary.payment_date.isnotnull())
-		)
-		.distinct()
-	).run(pluck=True)
-
-	for payment_order in payment_orders:
-		payment_order = frappe.get_doc("Payment Order", payment_order)
-		bank_connector = get_bank_connector(
-			payment_order.company_bank_account, payment_order.company
-		)
-		bank_connector.action = "get_payment_status"
-		bank_connector.add_payment_in_the_background(
-			payment_order=payment_order, statuses=statuses
-		)
-
-
-def update_payment_status():
+def update_payment_status(check_processed_payments=False):
 	if not frappe.get_single("India Banking Settings").update_payment_status:
 		return
 
@@ -80,7 +52,12 @@ def update_payment_status():
 
 	for order in orders:
 		try:
-			frappe.enqueue(get_payment_status, payment_order=order, queue="short")
+			frappe.enqueue(
+				get_payment_status,
+				queue="short",
+				payment_order=order,
+				check_processed_payments=check_processed_payments,
+			)
 		except Exception:
 			frappe.log_error(
 				title="Error in Payment Order Status Cron",
@@ -144,3 +121,93 @@ def update_payment_date_as_posting_date():
 			title="Error in Payment Date Update Cron",
 			message=frappe.get_traceback(),
 		)
+
+
+def process_payment_in_the_background():
+	"""Enqueue payment processing in the background."""
+	PO = DocType("Payment Order")
+	POS = DocType("Payment Order Summary")
+
+	orders = (
+		frappe.qb.from_(PO)
+		.join(POS)
+		.on(PO.name == POS.parent)
+		.select(PO.name.as_("payment_order"), POS.name.as_("payment"))
+		.where(
+			(POS.payment_status.isin(["Pending"]))
+			& (POS.payment_initiated == 0)
+			& (PO.enqueue_status.isin(["Queued", "In Progress"]))
+			& (PO.docstatus == 1)
+		)
+		.run(as_dict=1)
+	)
+	payment_details = {}
+	for order in orders:
+		if order["payment_order"] not in payment_details:
+			payment_details[order["payment_order"]] = [order["payment"]]
+		else:
+			payment_details[order["payment_order"]].append(order["payment"])
+
+	process_batch_payment(payment_details)
+
+
+def process_batch_payment(payment_details):
+	start_time = time.time()
+	enqueue_count = 0
+	batch_size = frappe.get_single("India Banking Settings").batch_size
+
+	for payment_order, summary in payment_details.items():
+		payment_order_doc = frappe.get_doc("Payment Order", payment_order)
+		payment_order_doc.db_set("enqueue_status", "In Progress", update_modified=False)
+		bank_connector = get_bank_connector(
+			payment_order_doc.company_bank_account, payment_order_doc.company
+		)
+		last_call = None
+		payment_delay = bank_connector.payment_call_interval or 10 # default 10 sec
+		for summary_row in payment_order_doc.summary:
+			if not last_call:
+				last_call = time.time()
+			else:
+				last_call = bank_connector.check_payment_delay(last_call)
+
+			# Stop processing to avoid background job timeout (Default - 5 min)
+			if (time.time() - start_time) > (300 - payment_delay):
+				break
+			if batch_size and enqueue_count > batch_size:
+				break
+
+			if summary_row.name in summary:
+				try:
+					summary_doc = frappe.get_doc(
+						"Payment Order Summary", summary_row.name
+					)
+					bank_connector.action = "initiate_payment"
+					bank_connector.make_single_request(payment_order_doc, summary_doc)
+					enqueue_count += 1
+				except Exception:
+					frappe.log_error(
+						title="Error processing payment - {0}".format(summary_row.name),
+						message=frappe.get_traceback(with_context=True),
+					)
+				else:
+					# Force commit to avoid success request data loss
+					frappe.db.commit()
+
+		payment_order_doc.load_from_db()
+		is_pending = all(
+			summary.payment_status == "Pending" or summary.payment_initiated == 0
+			for summary in payment_order_doc.summary
+		)
+
+		if is_pending:
+			payment_order_doc.db_set("enqueue_status", "Queued", update_modified=False)
+		else:
+			payment_order_doc.db_set(
+				"enqueue_status", "Completed", update_modified=False
+			)
+
+		# Stop processing to avoid background job timeout (Default - 5 min)
+		if (time.time() - start_time) > (300 - payment_delay):
+			break
+		if batch_size and enqueue_count > batch_size:
+			break

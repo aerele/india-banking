@@ -144,7 +144,7 @@ def create_payment_request_custom_fields():
 			"fieldname": "payment_type",
 			"fieldtype": "Link",
 			"options": "Payment Type",
-			"mandatory_depends_on": "eval:doc.mode_of_payment == 'Wire Transfer' && doc.reference_doctype != 'Purchase Invoice' && doc.payment_request_type == 'Outward'",
+			"mandatory_depends_on": "",
 			"insert_after": "mode_of_payment",
 		},
 		{
@@ -264,6 +264,14 @@ properties = {
 			"property_type": "Link",
 			"value": "Data",
 		},
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Payment Order",
+			"fieldname": "party",
+			"property": "hidden",
+			"property_type": "Check",
+			"value": 1,
+		},
 	],
 }
 
@@ -286,6 +294,14 @@ def create_payment_order_custom_fields():
 				"options": "\nPending\nPending Approval\nPartially Approved\nApproved\nPartially Initiated\nInitiated\nRejected\nFailed",
 				"read_only": 1,
 				"insert_after": "posting_date",
+			},
+			{
+				"label": "Enqueue Status",
+				"fieldname": "enqueue_status",
+				"fieldtype": "Select",
+				"options": "\nQueued\nIn Progress\nCompleted\nFailed",
+				"read_only": 1,
+				"insert_after": "payment_order_type",
 			},
 			{
 				"label": "File Reference Details",

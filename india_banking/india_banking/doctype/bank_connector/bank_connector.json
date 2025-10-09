@@ -15,7 +15,13 @@
   "column_break_mdgf",
   "api_key",
   "api_secret",
-  "bulk_transaction"
+  "bulk_transaction",
+  "payment_configuration_tab",
+  "enqueue_large_payments_in_the_background",
+  "enqueue_payments_threshold",
+  "column_break_rnqz",
+  "enable_payment_delay",
+  "payment_call_interval"
  ],
  "fields": [
   {
@@ -76,11 +82,47 @@
    "fieldname": "bulk_transaction",
    "fieldtype": "Check",
    "label": "Bulk Transaction"
+  },
+  {
+   "fieldname": "payment_configuration_tab",
+   "fieldtype": "Tab Break",
+   "label": "Payment Configuration"
+  },
+  {
+   "default": "0",
+   "fieldname": "enqueue_large_payments_in_the_background",
+   "fieldtype": "Check",
+   "label": "Enqueue large payments in the background"
+  },
+  {
+   "fieldname": "column_break_rnqz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_payment_delay",
+   "fieldtype": "Check",
+   "label": "Enable Payment Delay"
+  },
+  {
+   "depends_on": "enable_payment_delay",
+   "description": "Minimum delay between consecutive payment calls to the bank. <b>eg: 10.</b>",
+   "fieldname": "payment_call_interval",
+   "fieldtype": "Int",
+   "label": "Payment Call Interval (Seconds)",
+   "non_negative": 1
+  },
+  {
+   "depends_on": "enqueue_large_payments_in_the_background",
+   "description": "If the number of payments exceeds this limit, they will be queued and processed in the background.",
+   "fieldname": "enqueue_payments_threshold",
+   "fieldtype": "Int",
+   "label": "Enqueue Payments Threshold"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-09 22:38:54.086376",
+ "modified": "2025-10-07 11:26:52.813118",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Connector",
@@ -100,6 +142,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

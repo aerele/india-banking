@@ -4,4 +4,6 @@ india_banking.patches.v1_0.update_custom_fields
 [post_model_sync]
 india_banking.patches.v15_0.remove_payroll_entry_custom_fields #31032025
 india_banking.patches.v15_0.update_default_bank #23925
-india_banking.patches.v15_0.update_custom_field #22925
+india_banking.patches.v15_0.update_custom_field #910251029
+india_banking.patches.v15_0.update_auto_post_cron_schedule
+india_banking.patches.v15_0.update_custom_property #810251029

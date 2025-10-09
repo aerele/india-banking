@@ -58,6 +58,7 @@ scheduler_events = {
 	"daily": ["india_banking.tasks.daily"],
 	"cron": {
 		"*/20 * * * *": ["india_banking.tasks.job_twenty_minutes"],
+		"*/5 * * * *": ["india_banking.tasks.process_payment_in_the_background"],
 		"0 * * * *": ["india_banking.tasks.job_one_hour"],
 		"0 0 * * *": ["india_banking.tasks.job_at_midnight"],
 	},

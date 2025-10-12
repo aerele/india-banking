@@ -229,6 +229,7 @@ class BankPaymentRequest(PaymentRequest):
 
 		if self.reference_doctype == "Purchase Invoice":
 			outstanding_amount = frappe.db.get_value("Purchase Invoice", self.reference_name, "outstanding_amount")
+			outstanding_amount = flt(outstanding_amount, 3)
 			if self.grand_total > outstanding_amount:
 				frappe.throw("Grand Total cannot be greater than Invoice Outstanding Amount")
 
@@ -317,17 +318,20 @@ def make_bank_payment_request(**args):
 
 	ref_doc = frappe.get_doc(args.dt, args.dn)
 	allow = False
-	if ref_doc.on_hold:
-		# return hold invoice
-		if getdate(ref_doc.release_date) <= getdate():
-			allow = True
 
 	if "Local Admin" in frappe.get_roles():
 		allow = True
 	elif frappe.session.user == "Administrator":
 		allow = True
+
 	elif ref_doc.status in ["Partly Paid", "Overdue"]:
 		allow = True
+
+	if ref_doc.on_hold:
+		allow = False
+		# return hold invoice
+		if getdate(ref_doc.release_date) <= getdate():
+			allow = True
 
 	if not allow:
 		return

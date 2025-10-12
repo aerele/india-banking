@@ -11,6 +11,10 @@ frappe.listview_settings["Payment Order"] = {
       return [__("Rejected"), "red", "status,=,Rejected"];
     } else if (doc.status == "Failed") {
       return [__("Failed"), "red", "status,=,Failed"];
+    } else if (doc.status == "Partially Approved") {
+      return [__("Partially Approved"), "grey", "status,=,Partially Approved"];
+    } else if (doc.status == "Partially Initiated") {
+      return [__("Partially Initiated"), "orange", "status,=,Partially Initiated"];
     }
   },
 };

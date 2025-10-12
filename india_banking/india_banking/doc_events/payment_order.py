@@ -19,6 +19,7 @@ from india_banking.india_banking.install import STD_BANK_LIST
 from india_banking.utils import get_bank_address_details
 from india_banking.india_banking.default import PAYMENT_SUMMARY_FIELDS
 
+from frappe import _, parse_json
 
 @frappe.whitelist()
 def get_bank_balance(bank_name):
@@ -223,9 +224,6 @@ def make_bank_payment(docname, otp=None):
 				else:
 					frappe.db.set_value(
 						"Payment Order Summary", i.name, "payment_status", "Failed"
-					)
-					frappe.db.set_value(
-						"Payment Order Summary", i.name, "payment_status", "Initiated"
 					)
 					payment_entry_doc = frappe.get_doc("Payment Entry", i.payment_entry)
 					if payment_entry_doc.docstatus == 1:
@@ -752,7 +750,6 @@ def make_payment_entries(docname, submit_doc=True):
 		group_by_invoices(pe)
 		pe.validate()
 
-
 		pe.insert(ignore_permissions=True, ignore_mandatory=True)
 		if submit_doc:
 			pe.submit()
@@ -1052,7 +1049,7 @@ def get_response(payment_info, company_bank_account, company):
 					process_bank_payment_requests(payment_info.name)
 
 
-def process_bank_payment_requests(payment_order_summary):
+def process_bank_payment_requests(payment_order_summary, is_manually_cancelled=False):
 	pos = frappe.get_doc("Payment Order Summary", payment_order_summary)
 	payment_order_doc = frappe.get_doc("Payment Order", pos.parent)
 
@@ -1085,7 +1082,10 @@ def process_bank_payment_requests(payment_order_summary):
 		pr_doc = frappe.get_doc("Bank Payment Request", pr)
 		if pr_doc.docstatus == 1:
 			pr_doc.check_if_payment_entry_exists()
-			pr_doc.db_set("status", "Failed")
+			if is_manually_cancelled:
+				pr_doc.db_set("status", "Initiated")
+			else:
+				pr_doc.db_set("status", "Failed")
 			pr_doc.db_set("failed_reason", pos.payment_status)
 
 
@@ -1109,3 +1109,31 @@ def get_refrence_number_for_bank_entry(payment_info):
 		debug=1,
 	)
 	return ref_name
+
+
+@frappe.whitelist()
+def cancel_pending_payments(data):
+	if isinstance(data, str) or isinstance(data, dict):
+		data = parse_json(data)
+
+	success_count = 0
+	for d in data:
+		d = parse_json(d)
+		if d.row_name:
+			if d.status == "Failed":
+				frappe.db.set_value(
+					"Payment Order Summary",
+					d.row_name,
+					{"payment_status": "Failed", "payment_initiated": 1},
+				)
+
+				if d.payment_entry:
+					payment_entry_doc = frappe.get_doc("Payment Entry", d.payment_entry)
+					if payment_entry_doc.docstatus == 1:
+						payment_entry_doc.cancel()
+
+				process_bank_payment_requests(d.row_name, is_manually_cancelled=True)
+				success_count += 1
+
+	if success_count:
+		frappe.msgprint(_(f"{success_count} payment(s) updated"))

@@ -60,8 +60,7 @@
   {
    "fieldname": "lei_code",
    "fieldtype": "Data",
-   "label": "LEI Code",
-   "read_only": 1
+   "label": "LEI Code"
   },
   {
    "depends_on": "eval: !!doc.lei_code",
@@ -235,7 +234,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-02 22:47:33.703996",
+ "modified": "2025-08-07 18:16:02.685501",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Beneficiary",

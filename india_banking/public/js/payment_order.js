@@ -30,6 +30,20 @@ frappe.ui.form.on('Payment Order', {
 			  });
 		}
 	},
+	set_pending_payment_cancel_button(frm) {
+		const has_pending_payment = frm.doc.summary?.filter(
+			(item) => item.payment_status == "Pending"
+		).length;
+		if (
+			has_pending_payment &&
+			has_pending_payment < frm.doc.summary.length &&
+			frm.doc.docstatus == 1
+		){
+			frm.add_custom_button(__("Cancel Pending Payments"), function () {
+				show_update_status_dialog(frm);
+			});
+		}
+	},
 	refresh(frm) {
 		frm.set_df_property('summary', 'cannot_delete_rows', true);
 		frm.set_df_property('summary', 'cannot_add_rows', true);
@@ -39,6 +53,7 @@ frappe.ui.form.on('Payment Order', {
 
 		frm.set_df_property("payment_order_type", "options", [""].concat(["Bank Payment Request", "Payment Entry", "Purchase Invoice"]));
 		frm.refresh_field("payment_order_type");
+		frm.trigger("set_pending_payment_cancel_button");
 
 		if (frm.doc.docstatus == 0) {
 			frm.add_custom_button(__('Bank Payment Request'), function() {
@@ -131,7 +146,7 @@ frappe.ui.form.on('Payment Order', {
 		}
 		let is_pending = false
 		let permitted = frappe.user.has_role("Payment Manager")
-		if (frm.doc.status == "Pending" && frm.doc.docstatus == 1 && permitted) {
+		if (["Pending", "Partially Initiated"].includes(frm.doc.status) && frm.doc.docstatus == 1 && permitted) {
 			if (frm.has_perm('write') && 'summary' in frm.doc) {
 				var uninitiated_payments = 0;
 				for(var i = 0; i < frm.doc.summary.length; i++) {
@@ -210,7 +225,7 @@ frappe.ui.form.on('Payment Order', {
 			}
 		}
 
-		if ((frm.doc.status == "Pending" || frm.doc.status == "Initiated") && frm.doc.docstatus == 1) {
+		if (["Initiated", "Pending", "Partially Initiated"].includes(frm.doc.status) && frm.doc.docstatus == 1) {
 			if (frm.has_perm('write') && 'summary' in frm.doc) {
 				var pending_status_check = 0
 				for (var j = 0; j < frm.doc.summary.length; j++) {
@@ -369,3 +384,127 @@ frappe.ui.form.on('Payment Order Summary', {
 		});
 	}
 })
+
+
+
+const show_update_status_dialog = function (frm) {
+	frm.data = [];
+	const dialog = new frappe.ui.Dialog({
+		title: __("Pending Payments"),
+		size: "extra-large",
+		fields: [
+			{
+				fieldtype: "HTML",
+				options: `<p>Cancel any pending payments by updating the payment status to Failed.</p>`,
+			},
+			{
+				fieldname: "summary",
+				fieldtype: "Table",
+				label: __("Summary"),
+				data: frm.data,
+				in_place_edit: true,
+				cannot_add_rows: true,
+				cannot_delete_rows: true,
+				get_data: () => {
+					return frm.data;
+				},
+				fields: [
+					{
+						label: __("Row Name"),
+						fieldname: "row_name",
+						fieldtype: "data",
+						read_only: 1,
+					},
+					{
+						label: __("payment_order"),
+						fieldname: "payment_order",
+						fieldtype: "data",
+						hidden: 1,
+					},
+					{
+						label: __("Party Type"),
+						fieldname: "party_type",
+						fieldtype: "Link",
+						options: "DocType",
+						in_list_view: 1,
+						columns: 1,
+						read_only: 1,
+						get_query: () => {
+							return {
+								filters: {
+									company: frm.doc.company,
+									name: ["in", ["Supplier", "Employee"]],
+								},
+							};
+						},
+					},
+					{
+						label: __("Party"),
+						fieldname: "party",
+						fieldtype: "Dynamic Link",
+						options: "party_type",
+						columns: 2,
+						in_list_view: 1,
+						read_only: 1,
+					},
+					{
+						label: __("Amount"),
+						fieldname: "amount",
+						fieldtype: "Currency",
+						in_list_view: 1,
+						columns: 1,
+						read_only: 1,
+					},
+					{
+						label: __("Status"),
+						fieldname: "status",
+						fieldtype: "Select",
+						options: "\nPending\nFailed",
+						columns: 1,
+						in_list_view: 1,
+					},
+					{
+						label: __("Payment Entry"),
+						fieldname: "payment_entry",
+						fieldtype: "Data",
+						hidden: 1,
+					},
+				],
+			},
+		],
+		primary_action: () => {
+			frm.call({
+				method:
+					"india_banking.india_banking.doc_events.payment_order.cancel_pending_payments",
+				args: {
+					data: dialog.get_values()["summary"],
+				},
+				freeze: true,
+				freeze_message: __("Cancelling..."),
+				callback: function (r) {
+					dialog.hide();
+					frm.reload_doc();
+				},
+			});
+		},
+		primary_action_label: __("Update"),
+	});
+
+	frm.doc.summary.forEach((d) => {
+		if (["Pending"].includes(d.payment_status)) {
+			dialog.fields_dict.summary.df.data.push({
+				payment_order: frm.doc.name,
+				row_name: d.name,
+				party_type: d.party_type,
+				party: d.party,
+				amount: d.amount,
+				payment_entry: d.payment_entry,
+			});
+		}
+	});
+
+	frm.data = [];
+	dialog.show();
+	dialog.fields_dict.summary.grid.refresh();
+	dialog.$wrapper.find(".grid-row-check").prop("disabled", 1);
+};

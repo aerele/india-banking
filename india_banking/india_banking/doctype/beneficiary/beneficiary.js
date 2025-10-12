@@ -12,7 +12,7 @@ frappe.ui.form.on("Beneficiary", {
 		frm.events.add_filters(frm);
 		frm.events.add_beneficiary_actions(frm);
 		frm.toggle_display("beneficiary", 1)
-		if(frm.doc.beneficiary_status != "Draft") {
+		if(!["Draft", "Submitted"].includes(frm.doc.beneficiary_status)) {
 			frm.disable_save()
 		}
 	},

@@ -11,7 +11,6 @@ import requests as request
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, cint, cstr, flt, getdate
-from frappe.utils.background_jobs import is_job_enqueued
 
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
@@ -84,7 +83,12 @@ class BankConnector(Document):
 			frappe.throw(_("Invalid Response: Check API Log"))
 
 	def make_post_request(
-		self, payment_order, otp=None, action=None, check_processed_payments=False
+		self,
+		payment_order,
+		otp=None,
+		action=None,
+		statuses=None,
+		check_processed_payments=False,
 	):
 		self.check_user_permission()
 
@@ -123,20 +127,18 @@ class BankConnector(Document):
 			for summary in payment_order.summary:
 				if self.action == "initiate_payment":
 					last_call = self.check_payment_delay(last_call)
-					if (
-						summary.payment_initiated
-						or summary.payment_status != "Pending"
-					):
+					if summary.payment_initiated or summary.payment_status != "Pending":
 						# Ignoring Already initiated Payment
 						continue
 				elif self.action == "get_payment_status":
-					statuses = ["Pending", "Initiated"]
+					if not statuses:
+						statuses = ["Pending", "Initiated"]
 					if check_processed_payments:
 						retry_period = cint(
 							frappe.get_single("India Banking Settings").retry_period
 						)
 						if summary.payment_date >= add_days(getdate(), -(retry_period)):
-							statuses.append("Processed")
+							statuses = ["Processed"]
 					if summary.payment_status not in statuses:
 						continue
 				self.make_single_request(payment_order, summary)
@@ -201,6 +203,23 @@ class BankConnector(Document):
 								"message": details.get("message", ""),
 							},
 						)
+						summary = frappe.get_doc("Payment Order Summary", _name)
+						if summary.payment_entry:
+							self.process_bank_payment_requests(payment_order, summary)
+
+							payment_entry_doc = frappe.get_doc(
+								"Payment Entry", summary.payment_entry
+							)
+							if payment_entry_doc.docstatus == 1:
+								payment_entry_doc.cancel()
+
+						if summary.journal_entry_account:
+							frappe.db.set_value(
+								"Journal Entry Account",
+								summary.journal_entry_account,
+								"payment_status",
+								"Failed",
+							)
 						self.failed_count += 1
 
 					elif details.get("payment_status", "") == "Request Failure":
@@ -741,14 +760,17 @@ def make_payment(payment_order, otp=None):
 
 
 @frappe.whitelist()
-def get_payment_status(payment_order, check_processed_payments=False):
+def get_payment_status(payment_order, statuses=None, check_processed_payments=False):
 	payment_order = frappe.get_doc("Payment Order", payment_order)
 	bank_connector = get_bank_connector(
 		payment_order.company_bank_account, payment_order.company
 	)
+	if not statuses:
+		statuses = []
 	return bank_connector.make_post_request(
 		payment_order,
 		action="get_payment_status",
+		statuses=statuses,
 		check_processed_payments=check_processed_payments,
 	)
 

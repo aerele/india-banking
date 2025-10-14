@@ -123,14 +123,12 @@ class BankConnector(Document):
 				return self.add_payment_in_the_background(payment_order)
 
 			for summary in payment_order.summary:
-<<<<<<< HEAD
 				if (
 					not summary.payment_initiated
 					and summary.payment_status != "Pending"
 				):
 					continue
 
-=======
 				if self.action == "initiate_payment":
 					last_call = self.check_payment_delay(last_call)
 					if summary.payment_initiated or summary.payment_status != "Pending":
@@ -146,7 +144,6 @@ class BankConnector(Document):
 							statuses.append("Processed")
 					if summary.payment_status not in statuses:
 						continue
->>>>>>> b0d4fb8 (fix(payment-order): cancel linked payment request and entry when payment fails)
 				self.make_single_request(payment_order, summary)
 
 		if self.action == "initiate_payment":

@@ -11,7 +11,6 @@ import requests as request
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, cint, cstr, flt, getdate
-from frappe.utils.background_jobs import is_job_enqueued
 
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
@@ -123,10 +122,7 @@ class BankConnector(Document):
 			for summary in payment_order.summary:
 				if self.action == "initiate_payment":
 					last_call = self.check_payment_delay(last_call)
-					if (
-						summary.payment_initiated
-						or summary.payment_status != "Pending"
-					):
+					if summary.payment_initiated or summary.payment_status != "Pending":
 						# Ignoring Already initiated Payment
 						continue
 				elif self.action == "get_payment_status":
@@ -201,6 +197,23 @@ class BankConnector(Document):
 								"message": details.get("message", ""),
 							},
 						)
+						summary = frappe.get_doc("Payment Order Summary", _name)
+						if summary.payment_entry:
+							self.process_bank_payment_requests(payment_order, summary)
+
+							payment_entry_doc = frappe.get_doc(
+								"Payment Entry", summary.payment_entry
+							)
+							if payment_entry_doc.docstatus == 1:
+								payment_entry_doc.cancel()
+
+						if summary.journal_entry_account:
+							frappe.db.set_value(
+								"Journal Entry Account",
+								summary.journal_entry_account,
+								"payment_status",
+								"Failed",
+							)
 						self.failed_count += 1
 
 					elif details.get("payment_status", "") == "Request Failure":

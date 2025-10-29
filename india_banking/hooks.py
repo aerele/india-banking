@@ -20,6 +20,7 @@ doctype_js = {
 doctype_list_js = {
 	"Payment Order": "public/js/payment_order_list.js",
 	"Purchase Invoice": "public/js/purchase_invoice_list.js",
+	"Payment Request": "public/js/payment_request_list.js",
 }
 
 override_doctype_class = {

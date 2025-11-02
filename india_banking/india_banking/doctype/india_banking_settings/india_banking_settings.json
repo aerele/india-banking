@@ -9,6 +9,7 @@
   "enable_payment_in_the_background",
   "use_payment_order_date_as_payment_entry_date",
   "allow_future_date_payment_order",
+  "create_payment_after_success",
   "column_break_wjye",
   "activate_workflow_on_bank_account",
   "allowed_payment_doctypes",
@@ -125,6 +126,13 @@
    "fieldname": "allow_future_date_payment_order",
    "fieldtype": "Check",
    "label": "Allow future Date Payment Order"
+  },
+  {
+   "default": "0",
+   "description": "If checked: a Payment Entry will be created only after receiving a successful response from the connector.\n<br>If unchecked: a Payment Entry is created immediately upon submitting the payment order.",
+   "fieldname": "create_payment_after_success",
+   "fieldtype": "Check",
+   "label": "Create payment after success"
   }
  ],
  "index_web_pages_for_search": 1,

@@ -5,8 +5,11 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
+from erpnext.accounts.party import get_party_account_currency
 from frappe import _, parse_json
-from frappe.utils import flt, nowdate
+from frappe.query_builder import DocType
+from frappe.utils import flt, get_link_to_form, nowdate
+from pypika import functions as fn
 
 
 @frappe.whitelist()
@@ -53,7 +56,25 @@ def process_payment_requests(payment_order_summary):
 
 
 @frappe.whitelist()
-def make_payment_entries(docname):
+def make_payment_entries(docname, summary_name=None, utr_no=None, submit=True):
+	payment_order_doc = frappe.get_doc("Payment Order", docname)
+	"""create entry"""
+	frappe.flags.ignore_account_permission = True
+	for row in payment_order_doc.summary:
+		if summary_name and row.name != summary_name:
+			# If summary_name is provided, only process that specific summary row.
+			continue
+
+		create_outward_payment_entry(
+			row.name, payment_order_doc.name, utr_no=utr_no, submit=submit
+		)
+
+
+def create_outward_payment_entry(
+	summary_name, payment_order_name, utr_no=None, submit=True
+):
+	"""Create Payment Entry for the given row in Payment Order Summary."""
+
 	def _append_reference(
 		pe, reference, reference_amount, allocated_amount=None, payment_term=None
 	):
@@ -69,13 +90,25 @@ def make_payment_entries(docname):
 			},
 		)
 
-	payment_order_doc = frappe.get_doc("Payment Order", docname)
-	"""create entry"""
-	frappe.flags.ignore_account_permission = True
-	for row in payment_order_doc.summary:
+	payment_order_doc = frappe.get_doc("Payment Order", payment_order_name)
+	row = frappe.get_doc("Payment Order Summary", summary_name)
+
+	try:
 		if not row.summary_references:
 			# Restricting 'NOT EXISTS' summary references.
 			frappe.throw(_("Summary reference mismatch"))
+
+		if row.payment_entry:
+			# If payment entry already exists, skip creating a new one.
+			pe_link = get_link_to_form(
+				"Payment Entry", row.payment_entry, label=row.payment_entry
+			)
+			frappe.msgprint(
+				_("Payment Entry {0} already exists. at #Row {1}").format(
+					pe_link, row.idx
+				)
+			)
+			return
 
 		pe = frappe.new_doc("Payment Entry")
 		pe.payment_type = "Pay"
@@ -100,7 +133,10 @@ def make_payment_entries(docname):
 		if row.account:
 			pe.paid_to = row.account
 		pe.paid_from_account_currency = "INR"
-		pe.paid_to_account_currency = "INR"
+		pe.paid_to_account_currency = get_party_account_currency(
+			row.party_type, row.party, payment_order_doc.company
+		)
+		pe.paid_from_account = payment_order_doc.account
 		pe.paid_amount = row.amount
 		pe.received_amount = row.amount
 		pe.letter_head = frappe.db.get_value("Letter Head", {"is_default": 1}, "name")
@@ -165,21 +201,34 @@ def make_payment_entries(docname):
 							for term_row in splited_invoice_rows:
 								if reference_amount <= 0:
 									break
-								term_paid = (
-									frappe.get_value(
-										"Payment Entry Reference",
-										{
-											"reference_doctype": reference.reference_doctype,
-											"reference_name": reference.reference_name,
-											"payment_term": term_row.get(
-												"payment_term"
-											),
-											"docstatus": 1,
-										},
-										"sum(allocated_amount)",
-									)
-									or 0
+								PaymentEntryReference = DocType(
+									"Payment Entry Reference"
 								)
+								result = (
+									frappe.qb.from_(PaymentEntryReference)
+									.select(
+										fn.Sum(
+											PaymentEntryReference.allocated_amount
+										).as_("allocated_amount")
+									)
+									.where(
+										PaymentEntryReference.reference_doctype
+										== reference.reference_doctype
+									)
+									.where(
+										PaymentEntryReference.reference_name
+										== reference.reference_name
+									)
+									.where(
+										PaymentEntryReference.payment_term
+										== term_row.get("payment_term")
+									)
+									.where(PaymentEntryReference.docstatus == 1)
+								).run(as_dict=True)
+
+								allocated_amount = result[0].allocated_amount or 0
+								term_paid = allocated_amount or 0
+
 								per = (
 									frappe.db.get_value(
 										"Payment Term",
@@ -216,7 +265,7 @@ def make_payment_entries(docname):
 					)
 		pe.update(
 			{
-				"reference_no": payment_order_doc.name,
+				"reference_no": utr_no or payment_order_doc.name,
 				"reference_date": nowdate(),
 				"remarks": "Payment Entry from Payment Order - {0}".format(
 					payment_order_doc.name
@@ -230,10 +279,36 @@ def make_payment_entries(docname):
 		group_by_invoices(pe)
 
 		pe.insert(ignore_permissions=True, ignore_mandatory=True)
-		pe.submit()
+		if submit:
+			pe.submit()
 
 		# add payment entry reference in summary row
 		frappe.db.set_value("Payment Order Summary", row.name, "payment_entry", pe.name)
+
+		pe_link = get_link_to_form("Payment Entry", pe.name, label=pe.name)
+		frappe.msgprint(
+			_("Payment Entry {0} created successfully. at #Row {1}").format(
+				pe_link, row.idx
+			)
+		)
+	except Exception as e:
+		frappe.db.set_value(
+			"Payment Order Summary",
+			row.name,
+			"payment_entry_creation_failed_reason",
+			str(e),
+		)
+
+		frappe.log_error(
+			title=_("Error creating Payment Entry for row: {0}").format(row.name),
+			message=frappe.get_traceback(),
+		)
+
+		frappe.msgprint(
+			_("Failed to create Payment Entry for #Row <b>{0}</b>: <b>{1}</b>").format(
+				row.name, str(e)
+			)
+		)
 
 
 def group_by_invoices(self):

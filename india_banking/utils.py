@@ -2,7 +2,8 @@ import ast
 import json
 
 import frappe
-from frappe import _
+from frappe import _, bold
+from frappe.utils import get_link_to_form
 
 from india_banking.default import ALLOWED_PAYMENT_DOCTYPE
 from india_banking.india_banking.doctype.party_bank_account_field_map.party_bank_account_field_map import (
@@ -15,47 +16,118 @@ def get_allowed_payment_doctypes():
 	return ALLOWED_PAYMENT_DOCTYPE
 
 
-def get_bank_address_details(bank_account):
+def get_bank_address_details(bank_account, validate=False):
 	address = frappe.db.get_value(
 		"Dynamic Link",
 		{"link_doctype": "Bank Account", "link_name": bank_account},
 		"parent",
 	)
+
+	bank_account_currency = frappe.get_value("Bank Account", bank_account, "currency")
+
+	if not bank_account_currency:
+		# For INR transactions
+		bank_account_currency = "INR"
+
 	if not address:
+		link = get_link_to_form("Bank Account", bank_account)
+		if validate:
+			frappe.throw(
+				"Address mandatory for Bank Account {0}".format(frappe.bold(link))
+			)
 		return {}
 
-	party_address_ = frappe.get_doc("Address", address)
-	address_line = party_address_.get("address_line1", "").split(",")
-	street_name = party_address_.get("city", "")
+	bank_address = frappe.get_doc("Address", address)
+	address_line = bank_address.get("address_line1", "").split(",")
+	street_name = bank_address.get("city", "")
 	building_number = address_line[0] if address_line else ""
 
 	if len(building_number) > 10:
 		building_number = building_number[:10]
 
-	post_code = party_address_.get("pincode", "")
+	post_code = bank_address.get("pincode", "")
 
 	town_name = (
-		party_address_.get("state", "")[:3].upper()
-		if party_address_.get("state", "")
+		bank_address.get("state", "")[:3].upper()
+		if bank_address.get("state", "")
 		else ""
 	)
 
 	country_sub_division = (
-		[party_address_.get("country", "")[:2]]
-		if party_address_.get("country", "")
-		else []
+		bank_address.get("country", "")[:2] if bank_address.get("country", "") else ""
 	)
-	country = party_address_.get("country", "")[:2]
+	country = bank_address.get("country", "")
 
-	return {
-		"AddressLine": address_line,
-		"StreetName": street_name,
-		"BuildingNumber": building_number,
-		"PostCode": post_code,
-		"TownName": town_name,
-		"CountySubDivision": country_sub_division,
-		"Country": country,
-	}
+	country_code = bank_address.county or ""
+
+	if country_code:
+		country_code = country_code[:2].upper()
+
+	missing_details = []
+	invalid_details = []
+	address_details = frappe._dict(
+		{
+			"name": address,
+			"AddressLine": address_line,
+			"StreetName": street_name,
+			"BuildingNumber": building_number,
+			"PostCode": post_code,
+			"State": bank_address.get("state", ""),
+			"TownName": town_name,
+			"CountySubDivision": country_sub_division,
+			"Country": country,
+			"CountryCode": country_code,
+		}
+	)
+
+	if validate:
+		for key in address_details:
+			if not address_details.get(key):
+				missing_details.append(key)
+				continue
+			if not address_details.get("CountryCode", ""):
+				msg = "Address - {} The <b>Country Code(County)</b> is mandatory for Bank Transactions".format(
+					get_link_to_form("Address", address)
+				)
+			if len(address_details.get("CountryCode", "")) > 3:
+				msg = "Address - {} The <b>Country Code(County)</b> cannot be more than 3 characters".format(
+					get_link_to_form("Address", address)
+				)
+			if key == "CountryCode" and (
+				bank_account_currency != "INR"
+				and address_details.get("CountryCode", "").lower() == "in"
+			):
+				msg = "The <b>Country Code</b> for currency {} should not be set to <b>IN</b>".format(
+					bold(bank_account_currency)
+				)
+				invalid_details.append(msg)
+			if key == "Country" and (
+				bank_account_currency != "INR"
+				and "india" in address_details.get("Country", "").lower()
+			):
+				msg = "The <b>Country</b> for currency {} should not be set to <b>India</b>".format(
+					bold(bank_account_currency)
+				)
+				invalid_details.append(msg)
+
+	if missing_details:
+		link = get_link_to_form("Address", address)
+		frappe.throw(
+			title="Following Bank Details Are Missing in Bank Address</br>{0}".format(
+				bold(link)
+			),
+			msg=bold(", ".join(missing_details)),
+		)
+	if invalid_details:
+		link = get_link_to_form("Address", address)
+		frappe.throw(
+			title="Following Bank Details Are Invalid for Bank Address</br>{0}".format(
+				bold(link)
+			),
+			msg="</br>".join(invalid_details),
+		)
+
+	return address_details
 
 
 def get_party_field_name(party_type):
@@ -113,17 +185,36 @@ def unlink_bank_payment(payment_order_summary=None):
 		return
 
 	summary_references = ast.literal_eval(
-		payment_order_summary.get("summary_references")
+		payment_order_summary.get("summary_references", "[]")
 	)
+
+	if payment_order_summary.payment_status in ["Processed", "Initiated"]:
+		order_link = get_link_to_form("Payment Order", payment_order_summary.parent)
+		frappe.throw(
+			f"You cannot Cancel/Unlink a Payment Order {order_link} with Initiated/Processed payments at #Row {payment_order_summary.idx}"
+		)
+		return
+
 	for reference in summary_references:
-		payment_request = frappe.get_doc(
+		payment_request = frappe.db.get_value(
 			"Payment Order Reference", reference, "payment_request"
 		)
+
 		if payment_request:
+			ref_dt, ref_dn = frappe.db.get_value(
+				"Payment Request",
+				payment_request,
+				["reference_doctype", "reference_name"],
+			)
 			frappe.db.set_value(
 				"Payment Request",
 				payment_request,
-				{"reference_doctype": "", "reference_name": ""},
+				{
+					"reference_doctype": "",
+					"reference_name": "",
+					"remarks": f"Unlinked {ref_dt}-{ref_dn}",
+					"is_adhoc": 1,
+				},
 			)
 		frappe.db.set_value(
 			"Payment Order Reference",

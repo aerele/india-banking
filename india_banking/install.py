@@ -505,6 +505,7 @@ def create_payment_entry_custom_fields():
 				"fieldname": "source_doctype",
 				"fieldtype": "Link",
 				"options": "DocType",
+				"no_copy": 1,
 				"read_only": 1,
 				"insert_after": "source_section",
 			},
@@ -518,6 +519,7 @@ def create_payment_entry_custom_fields():
 				"fieldname": "source_name",
 				"fieldtype": "Dynamic Link",
 				"options": "source_doctype",
+				"no_copy": 1,
 				"read_only": 1,
 				"insert_after": "source_column",
 			},
@@ -552,6 +554,7 @@ def create_bank_account_custom_fields():
 				"fieldtype": "Currency",
 				"insert_after": "bank_account_no",
 				"read_only": 1,
+				"depends_on": "eval: doc.is_company_account",
 			},
 			{
 				"label": "Currency",
@@ -559,7 +562,7 @@ def create_bank_account_custom_fields():
 				"fieldtype": "Link",
 				"options": "Currency",
 				"insert_after": "email",
-				"reqd": 1,
+				"reqd": 0,
 			},
 		]
 	}
@@ -674,36 +677,9 @@ def create_default_workflow_actions():
 
 
 def create_default_roles():
+	click.echo(" -> Creating Default Roles")
 	for role in DEFAULT_ROLES:
 		if not frappe.db.exists("Role", role):
 			role_doc = frappe.new_doc("Role")
 			role_doc.role_name = "Payment Manager"
 			role_doc.save()
-
-
-def create_bank_account_field_map():
-	party_bank_fields = {
-		"Supplier": {
-			"bank": "custom_name_of_bank",
-			"branch_code": "custom_ifsc_code",
-			"bank_account_no": "custom_account_number",
-		},
-		"Employee": {
-			"bank": "bank_name",
-			"branch_code": "ifsc_code",
-			"bank_account_no": "bank_ac_no",
-		},
-	}
-	for party_type, field_map in party_bank_fields.items():
-		if not frappe.db.exists("Party Bank Account Field Map", party_type):
-			doc = frappe.new_doc("Party Bank Account Field Map")
-			doc.party_type = party_type
-			for bank_field, party_bank_field in field_map.items():
-				doc.append(
-					"field_map",
-					{
-						"bank_account_field": bank_field,
-						"party_bank_account_field": party_bank_field,
-					},
-				)
-			doc.insert(ignore_permissions=1)

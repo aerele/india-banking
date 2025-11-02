@@ -57,6 +57,15 @@ STD_BANK_LIST = [
 	"HDFC Bank",
 	"ICICI Bank",
 	"Kotak Mahindra Bank",
+	"HSBC Bank",
+]
+
+BANK_ADDRESS_MANDATORY_BANKS = [
+	"HSBC Bank",
+]
+
+OTP_ENABLED_BANK = [
+	("ICICI Bank", 1),  # ICICI Bank, Bulk Transaction
 ]
 
 DEFAULT_ROLES = ["Payment Manager"]
@@ -65,6 +74,8 @@ DEFAULT_WORKFLOW_STATE = [
 	"Pending",
 	"Approved",
 ]
+
+H2H_ENABLED_BANK = ["HSBC Bank"]
 
 DEFAULT_WORKFLOW_ACTIONS = ["Approve", "Reject"]
 

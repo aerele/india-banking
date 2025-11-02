@@ -8,12 +8,16 @@ IFSC_PATTERN = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
 
 
 def validate(doc, method=None):
+	if doc.bank_account_no:
+		# Remove any extra spaces to ensure a clean bank account number.
+		doc.bank_account_no = cstr(doc.bank_account_no).strip()
+
 	validate_ifsc_code(doc)
 	update_party_transaction_currency(doc)
 
 
 def validate_ifsc_code(doc):
-	if not IFSC_PATTERN.match(cstr(doc.branch_code)):
+	if doc.branch_code and not IFSC_PATTERN.match(cstr(doc.branch_code)):
 		frappe.throw(_("IFSC/Branch Code is not valid"))
 
 

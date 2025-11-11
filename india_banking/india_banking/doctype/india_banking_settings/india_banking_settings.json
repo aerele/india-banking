@@ -156,7 +156,7 @@
   },
   {
    "default": "0",
-   "description": "If enabled, payments will be processed automatically in the background, according to the bank connector\u2019s.",
+   "description": "If enabled, payments will be processed automatically in the background, according to the backend connector configuration.",
    "fieldname": "auto_post_payments",
    "fieldtype": "Check",
    "label": "Auto Post Payments"

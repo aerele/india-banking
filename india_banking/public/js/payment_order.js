@@ -73,7 +73,7 @@ frappe.ui.form.on("Payment Order", {
 			has_pending_payment &&
 			has_pending_payment < frm.doc.summary.length &&
 			frm.doc.docstatus == 1
-		){
+		) {
 			frm.add_custom_button(__("Cancel Pending Payments"), function () {
 				show_update_status_dialog(frm);
 			});
@@ -270,7 +270,7 @@ frappe.ui.form.on("Payment Order", {
 				frm.add_custom_button(__("Get Status"), () => {
 					frappe.call({
 						method:
-							"india_banking.india_banking.doctype.bank_connector.bank_connector.get_payment_status",
+							"india_banking.india_banking.doctype.backend_connector.backend_connector.get_payment_status",
 						freeze: true,
 						freeze_message: __("Fetching payment status..."),
 						args: {
@@ -288,7 +288,7 @@ frappe.ui.form.on("Payment Order", {
 	make_payment: function (frm) {
 		frappe.call({
 			method:
-				"india_banking.india_banking.doctype.bank_connector.bank_connector.make_payment",
+				"india_banking.india_banking.doctype.backend_connector.backend_connector.make_payment",
 			freeze: true,
 			freeze_message: __("Initiating Payment..."),
 			args: {
@@ -329,7 +329,7 @@ frappe.ui.form.on("Payment Order", {
 
 				frappe.call({
 					method:
-						"india_banking.india_banking.doctype.bank_connector.bank_connector.make_payment",
+						"india_banking.india_banking.doctype.backend_connector.backend_connector.make_payment",
 					freeze: true,
 					freeze_message: __("Verifying OTP and processing payment..."),
 					args: {

@@ -122,10 +122,10 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-07 11:26:52.813118",
+ "modified": "2025-11-08 12:27:34.407242",
  "modified_by": "Administrator",
  "module": "India Banking",
- "name": "Bank Connector",
+ "name": "Backend Connector",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [

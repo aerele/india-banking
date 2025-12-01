@@ -33,7 +33,7 @@ doc_events = {
 		"on_trash": "india_banking.india_banking.doc_events.bank.disallow_standard_bank_deletion"
 	},
 	"Bank Account": {
-		"validate": "india_banking.india_banking.doc_events.bank_account.validate"
+		"validate": "india_banking.india_banking.doc_events.bank_account.bank_account.validate"
 	},
 	"Unreconcile Payment": {
 		"on_submit": "india_banking.india_banking.doc_events.unreconcile_payment.on_submit",

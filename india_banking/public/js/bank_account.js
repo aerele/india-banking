@@ -1,4 +1,9 @@
 frappe.ui.form.on("Bank Account", {
+	onload(frm) {
+		if (frm.doc.workflow_state == "Approved") {
+			frm.set_read_only();
+		}
+	},
 	refresh(frm) {
 		if (frm.doc.is_company_account && !frm.doc.disabled) {
 			frm.events.add_bank_custom_buttons(frm);
@@ -25,7 +30,7 @@ frappe.ui.form.on("Bank Account", {
 					args: {
 						bank_account_name: frm.doc.name,
 					},
-					callback: (res) => {
+					callback: () => {
 						cur_frm.reload_doc();
 					},
 				});

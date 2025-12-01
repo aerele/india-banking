@@ -244,7 +244,8 @@ properties = {
 			"fieldname": "branch_code",
 			"property": "label",
 			"property_type": "Data",
-			"value": "IFSC Code",
+			"value": "Branch/IFSC Code",
+			"module": "India Banking",
 		},
 		{
 			"doctype_or_field": "DocField",
@@ -253,6 +254,16 @@ properties = {
 			"property": "reqd",
 			"property_type": "Data",
 			"value": 1,
+			"module": "India Banking",
+		},
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Bank Account",
+			"fieldname": "bank_account_no",
+			"property": "reqd",
+			"property_type": "Data",
+			"value": 1,
+			"module": "India Banking",
 		},
 	],
 	"Payment Order": [

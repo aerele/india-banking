@@ -5,19 +5,47 @@ from frappe import _
 from frappe.utils import cstr
 
 IFSC_PATTERN = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
+NAME_PATTERN = re.compile(r"^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$")
 
 
 def validate(doc, method=None):
+	"""Validate Bank Account document before saving"""
+	strip_whitespace(doc)
+	validate_special_characters(doc)
 	validate_ifsc_code(doc)
 	update_party_transaction_currency(doc)
 
 
+def strip_whitespace(doc):
+	"""Strip leading and trailing whitespace from specified fields"""
+	doc.bank_account_no = cstr(doc.bank_account_no).strip()
+	doc.branch_code = cstr(doc.branch_code).strip()
+	doc.account_name = cstr(doc.account_name).strip()
+	doc.mobile_number = cstr(doc.mobile_number).strip()
+	doc.email = cstr(doc.email).strip()
+
+
+def validate_special_characters(doc):
+	"""Validate that certain fields do not contain special characters"""
+	mandatory_fields = ["account_name", "bank", "bank_account_no"]
+	for field in mandatory_fields:
+		value = cstr(doc.get(field))
+		if not NAME_PATTERN.match(value):
+			frappe.throw(
+				_("{0} contains invalid characters").format(
+					field.replace("_", " ").title()
+				)
+			)
+
+
 def validate_ifsc_code(doc):
+	"""Validate IFSC/Branch Code format"""
 	if not IFSC_PATTERN.match(cstr(doc.branch_code)):
 		frappe.throw(_("IFSC/Branch Code is not valid"))
 
 
 def update_party_transaction_currency(doc):
+	"""Set currency based on party or company default currency"""
 	if doc.party_type and doc.party:
 		currency_field = (
 			"salary_currency" if doc.party_type == "Employee" else "default_currency"

@@ -26,7 +26,7 @@
   "update_posting_date_as_payment_date",
   "column_break_kagd",
   "doctype_customization_tab",
-  "activate_workflow_on_bank_account",
+  "enable_bank_account_workflow",
   "doctype_naming_series",
   "payment_notifications_tab",
   "payment_notifications_section",
@@ -52,9 +52,10 @@
   },
   {
    "default": "1",
-   "fieldname": "activate_workflow_on_bank_account",
+   "description": "If enabled, Bank Accounts will follow workflow rules and require approvals based on the configured workflow.",
+   "fieldname": "enable_bank_account_workflow",
    "fieldtype": "Check",
-   "label": "Activate Workflow on Bank Account"
+   "label": "Enable Bank A/c Workflow"
   },
   {
    "default": "0",
@@ -188,19 +189,19 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "10",
    "depends_on": "auto_post_payments",
    "description": "Max payments per batch in background processing.",
    "fieldname": "batch_size",
    "fieldtype": "Int",
-   "label": "Batch Size",
-   "default": "10"
+   "label": "Batch Size"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-10-06 07:32:57.302261",
- "modified_by": "bhavan@aerele.in",
+ "modified": "2025-12-01 19:11:40.578340",
+ "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",
  "owner": "Administrator",

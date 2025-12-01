@@ -157,7 +157,7 @@ def get_payment_order_summary(payment_entry):
 def get_party_bank_account(party_type, party):
 	workflow = ""
 	if frappe.db.get_single_value(
-		"India Banking Settings", "activate_workflow_on_bank_account"
+		"India Banking Settings", "enable_bank_account_workflow"
 	):
 		workflow = "Approved"
 

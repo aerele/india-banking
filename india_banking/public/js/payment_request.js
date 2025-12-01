@@ -50,7 +50,7 @@ function get_bank_query_conditions(frm) {
 	let conditions = {
 		disabled: 0,
 	};
-	frappe.db.get_single_value("India Banking Settings", "activate_workflow_on_bank_account").then((r) => {
+	frappe.db.get_single_value("India Banking Settings", "enable_bank_account_workflow").then((r) => {
 		if (r) {
 			conditions["workflow_state"] = "Approved";
 		}

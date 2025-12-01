@@ -240,7 +240,7 @@ class BankPaymentRequest(PaymentRequest):
 
 		bank_account = frappe.get_doc("Bank Account", self.bank_account)
 		if frappe.db.get_single_value(
-			"India Banking Settings", "activate_workflow_on_bank_account"
+			"India Banking Settings", "enable_bank_account_workflow"
 		):
 			if bank_account.workflow_state != "Approved":
 				frappe.throw(

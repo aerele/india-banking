@@ -51,7 +51,7 @@ class IndiaBankingSettings(Document):
 				"Workflow",
 				"Bank Account Approval",
 				"is_active",
-				self.activate_workflow_on_bank_account,
+				self.enable_bank_account_workflow,
 			)
 
 	def enable_payment_entry_reposting(self):

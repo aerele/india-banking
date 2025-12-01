@@ -10,6 +10,8 @@ after_install = "india_banking.install.after_install"
 
 before_uninstall = "india_banking.uninstall.before_uninstall"
 
+before_tests = "india_banking.setup.utils.before_tests"
+
 doctype_js = {
 	"Payment Order": "public/js/payment_order.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",

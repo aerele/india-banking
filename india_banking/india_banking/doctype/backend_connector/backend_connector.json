@@ -106,7 +106,7 @@
   },
   {
    "depends_on": "enable_payment_delay",
-   "description": "Minimum delay between consecutive payment calls to the bank. <b>eg: 10.</b>",
+   "description": "Minimum delay between consecutive payment calls to the bank. <b>e.g.: 10.</b>",
    "fieldname": "payment_call_interval",
    "fieldtype": "Int",
    "label": "Payment Call Interval (Seconds)",

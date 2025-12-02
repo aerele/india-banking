@@ -1,5 +1,5 @@
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests.utils import FrappeTestCase, change_settings
 
 from india_banking.setup.utils import (
 	create_bank_account,
@@ -118,3 +118,91 @@ class TestBankAccount(FrappeTestCase):
 		with self.assertRaises(frappe.ValidationError) as error:
 			bank_account.save()
 		self.assertIn("Bank contains invalid characters", str(error.exception))
+
+	@change_settings("India Banking Settings", {"enable_unique_account_no": 1})
+	def test_unique_bank_account_with_disable(self):
+		# Create Bank Account with valid details
+		bank_account = create_bank_account(
+			bank_name="HDFC Bank",
+			account_no="9876543210",
+			account_name="Savings Account",
+			ifsc_code="HDFC0005943",
+		)
+
+		# Validate Bank Account details
+		self.assertEqual(bank_account.bank, "HDFC Bank")
+		self.assertEqual(bank_account.branch_code, "HDFC0005943")
+		self.assertEqual(bank_account.bank_account_no, "9876543210")
+
+		# New Account with same details should raise Validation Error
+		duplicate_bank_account = create_bank_account(
+			bank_name="HDFC Bank",
+			account_no="9876543210",
+			ifsc_code="HDFC0005943",
+			do_not_save=1,
+		)
+
+		with self.assertRaises(frappe.ValidationError) as error:
+			duplicate_bank_account.save()
+
+		self.assertIn("Bank Account Number must be unique", str(error.exception))
+
+		# Disable Bank Account 1
+		bank_account.disabled = 1
+		bank_account.save()
+
+		# Now saving duplicate account should pass as original is disabled
+		duplicate_bank_account.save()
+		self.assertEqual(duplicate_bank_account.bank_account_no, "9876543210")
+
+	@change_settings("India Banking Settings", {"enable_unique_account_no": 1})
+	def test_unique_bank_account(self):
+		# Create Bank Account
+		bank_account1 = create_bank_account(
+			bank_name="Kotak Mahindra Bank",
+			account_no="1122334455",
+			account_name="Primary Account",
+			ifsc_code="KKBK0001234",
+			do_not_save=True,
+		)
+		bank_account1.save()
+
+		# Attempt to create another Bank Account with the same details
+		bank_account2 = create_bank_account(
+			bank_name="HDFC Bank",
+			account_no="1122334455",
+			ifsc_code="HDFC0001234",
+			do_not_save=1,
+		)
+
+		with self.assertRaises(frappe.ValidationError) as error:
+			bank_account2.save()
+
+		self.assertIn(
+			"Bank Account Number must be unique",
+			str(error.exception),
+		)
+
+	@change_settings("India Banking Settings", {"enable_unique_account_no": 0})
+	def test_bank_account_without_unique_validation(self):
+		# Create Bank Account
+		bank_account1 = create_bank_account(
+			bank_name="Kotak Mahindra Bank",
+			account_no="5566778899",
+			account_name="Primary Account",
+			ifsc_code="KKBK0001234",
+			do_not_save=True,
+		)
+		bank_account1.save()
+
+		# Create another Bank Account with the same details
+		bank_account2 = create_bank_account(
+			bank_name="HDFC Bank",
+			account_no="5566778899",
+			ifsc_code="HDFC0001234",
+			do_not_save=1,
+		)
+
+		# Save should succeed without raising an error
+		bank_account2.save()
+		self.assertEqual(bank_account2.bank_account_no, "5566778899")

@@ -13,7 +13,29 @@ def validate(doc, method=None):
 	strip_whitespace(doc)
 	validate_special_characters(doc)
 	validate_ifsc_code(doc)
+	validate_unique_acc_no(doc)
 	update_party_transaction_currency(doc)
+
+
+def validate_unique_acc_no(doc):
+	"""Ensure bank account number is unique"""
+	# Check if the unique account number validation is enabled
+	if not frappe.db.get_single_value(
+		"India Banking Settings", "enable_unique_account_no"
+	):
+		return
+
+	existing_account = frappe.get_all(
+		"Bank Account",
+		filters={
+			"bank_account_no": doc.bank_account_no,
+			"name": ["!=", doc.name],
+			"disabled": 0,
+		},
+		limit=1,
+	)
+	if existing_account:
+		frappe.throw(_("Bank Account Number must be unique"))
 
 
 def strip_whitespace(doc):

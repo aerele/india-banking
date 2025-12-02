@@ -26,7 +26,10 @@
   "update_posting_date_as_payment_date",
   "column_break_kagd",
   "doctype_customization_tab",
+  "bank_account_section",
   "enable_bank_account_workflow",
+  "enable_unique_account_no",
+  "section_break_ilkp",
   "doctype_naming_series",
   "payment_notifications_tab",
   "payment_notifications_section",
@@ -195,12 +198,29 @@
    "fieldname": "batch_size",
    "fieldtype": "Int",
    "label": "Batch Size"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "bank_account_section",
+   "fieldtype": "Section Break",
+   "label": "Bank Account"
+  },
+  {
+   "fieldname": "section_break_ilkp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "1",
+   "description": "If enabled, the system will prevent saving duplicate bank account numbers.\n",
+   "fieldname": "enable_unique_account_no",
+   "fieldtype": "Check",
+   "label": "Enable Unique Bank A/c No"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-01 19:11:40.578340",
+ "modified": "2025-12-02 08:40:38.719314",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

@@ -32,7 +32,7 @@ override_doctype_class = {
 
 doc_events = {
 	"Bank": {
-		"on_trash": "india_banking.india_banking.doc_events.bank.disallow_standard_bank_deletion"
+		"on_trash": "india_banking.india_banking.doc_events.bank.bank.disallow_standard_bank_deletion"
 	},
 	"Bank Account": {
 		"validate": "india_banking.india_banking.doc_events.bank_account.bank_account.validate"

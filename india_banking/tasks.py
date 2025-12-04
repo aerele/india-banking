@@ -4,8 +4,8 @@ import frappe
 from frappe.query_builder import DocType
 from frappe.utils.background_jobs import is_job_enqueued
 
-from india_banking.india_banking.doctype.backend_connector.backend_connector import (
-	get_backend_connector,
+from india_banking.india_banking.doctype.bank_connector.bank_connector import (
+	get_bank_connector,
 	get_payment_status,
 )
 
@@ -159,16 +159,16 @@ def process_batch_payment(payment_details):
 	for payment_order, summary in payment_details.items():
 		payment_order_doc = frappe.get_doc("Payment Order", payment_order)
 		payment_order_doc.db_set("enqueue_status", "In Progress", update_modified=False)
-		backend_connector = get_backend_connector(
+		bank_connector = get_bank_connector(
 			payment_order_doc.company_bank_account, payment_order_doc.company
 		)
 		last_call = None
-		payment_delay = backend_connector.payment_call_interval or 10 # default 10 sec
+		payment_delay = bank_connector.payment_call_interval or 10 # default 10 sec
 		for summary_row in payment_order_doc.summary:
 			if not last_call:
 				last_call = time.time()
 			else:
-				last_call = backend_connector.check_payment_delay(last_call)
+				last_call = bank_connector.check_payment_delay(last_call)
 
 			# Stop processing to avoid background job timeout (Default - 5 min)
 			if (time.time() - start_time) > (300 - payment_delay):
@@ -181,8 +181,8 @@ def process_batch_payment(payment_details):
 					summary_doc = frappe.get_doc(
 						"Payment Order Summary", summary_row.name
 					)
-					backend_connector.action = "initiate_payment"
-					backend_connector.make_single_request(payment_order_doc, summary_doc)
+					bank_connector.action = "initiate_payment"
+					bank_connector.make_single_request(payment_order_doc, summary_doc)
 					enqueue_count += 1
 				except Exception:
 					frappe.log_error(

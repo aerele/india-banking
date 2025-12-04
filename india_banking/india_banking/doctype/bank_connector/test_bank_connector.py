@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestBackendConnector(FrappeTestCase):
+class TestBankConnector(FrappeTestCase):
 	pass

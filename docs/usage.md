@@ -27,13 +27,16 @@ Once the user is created, generate the API credentials for the user as shown:
 > [!NOTE]
 > It is recommended to create and use a separate user for India Banking API usage, instead of using an existing user in the system, to make sure the audit events are properly tracked.
 
-## Step 3 - Create and Setup the Backend Connector
+## Step 3 - Create and Setup the Bank Connector
 
-A Backend Connector is the communication channel between the frontend the backend for a company bank account. This means that a Backend Connector should be created for every company bank account that is used to transact *from*, and there can be **only one** Connector per company bank accont.
+A Bank Connector is the communication channel between the frontend the backend for a company bank account. This means that a Bank Connector should be created for every company bank account that is used to transact *from*, and there can be **only one** Connector per company bank accont.
 
-To create a new Backend Connector, search for and select "New Backend Connector" in the Awesome Bar (using Ctrl + G).
+> [!IMPORTANT]
+> Despite what the name might imply, a Bank Connector **does not** communicate with the bank's servers. It is only to signify that the Connector is for a Bank account.
 
-In the New Backend Connector form, fill the details as below:
+To create a new Bank Connector, search for and select "New Bank Connector" in the Awesome Bar (using Ctrl + G).
+
+In the New Bank Connector form, fill the details as below:
 
 - **Company**: The company whose bank account is to be used in the transactions by this connector.
 - **Bank Account**: The Bank Account for which this connector is to be created.
@@ -42,11 +45,11 @@ In the New Backend Connector form, fill the details as below:
 - **API Key**: The API Key of the user created above.
 - **API Secret**: The API Secret of the user created above.
 
-![New Backend Connector - Split deployment](assets/backend_connector_split.png "The screen to create a new Backend Connector")
+![New Bank Connector - Split deployment](assets/backend_connector_split.png "The screen to create a new Bank Connector")
 
 In case of a single deployment, the URL should be same as the client app:
 
-![New Backend Connector - Same deployment](assets/backend_connector_same.png "The screen to create a new Backend Connector")
+![New Bank Connector - Same deployment](assets/backend_connector_same.png "The screen to create a new Bank Connector")
 
 ## Step 4 - Install and Setup the India Banking Server (Backend)
 

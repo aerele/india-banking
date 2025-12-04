@@ -73,7 +73,7 @@ An example shared deployment with the dedicated Frappe instance installed on an 
 
 The frontend app is the one that the users/customers interact with through their browsers. As such, almost all of the user-facing actions, buttons, and screens are part of the frontend. **This repository contains the code of the frontend app of India Banking.**
 
-The function of the frontend is to to communicate with the India Banking backend, which could be the same instance as the frontend, as detailed above. This communication is done through the **Backend Connector**. The frontend submits the banking operation requested by the user, such as fetching the balance, making payments, etc., to the backend. The functionality of the backend is outlined in the next section.
+The function of the frontend is to to communicate with the India Banking backend, which could be the same instance as the frontend, as detailed above. This communication is done through the **Bank Connector**. The frontend submits the banking operation requested by the user, such as fetching the balance, making payments, etc., to the backend. The functionality of the backend is outlined in the next section.
 
 The usage of the frontend app is detailed [in the documentation](docs/usage.md).
 

@@ -2,20 +2,22 @@
 
 The main DocTypes for the configuration of India Banking through the frontend are:
 
-## Backend Connector
+## Bank Connector
 
-A Backend Connector is the communication channel between the frontend the backend for a company bank account. This means that a Backend Connector should be created for every company bank account that is used to transact *from*, and there can be **only one** Connector per company bank accont.
+A Bank Connector is the communication channel between the frontend the backend for a company bank account. This means that a Bank Connector should be created for every company bank account that is used to transact *from*, and there can be **only one** Connector per company bank accont.
 
 > [!IMPORTANT]
-> The creation of a Backend Connector is the first step in the bank API integration process, but the prerequisite for this is an account on the backend whose credentials will be used to communicate with it.
+> Despite what the name might imply, a Bank Connector **does not** communicate with the bank's servers. It is only to signify that the Connector is for a Bank account.
 >
-> A user should be created on the **backend** for a Backend Connector to work. A Backend Connector uses Frappe's Token Based Authentication using API Key and API Secret to communicate. [Frappe's guide](https://docs.frappe.io/framework/user/en/api/rest) can be used to generate the API Key and Secret on the backend instance for a user.
+> However, the creation of a Bank Connector is the first step in the bank API integration process, but the prerequisite for this is an account on the backend whose credentials will be used to communicate with it.
 >
-> If the backend and frontend are on the same instance, the credentials of a user created in the instance can be used.
+> A user should be created on the **backend** for a Bank Connector to work. A Bank Connector uses Frappe's Token Based Authentication using API Key and API Secret to communicate. [Frappe's guide](https://docs.frappe.io/framework/user/en/api/rest) can be used to generate the API Key and Secret on the backend instance for a user.
+>
+> If the backend and frontend are on the same instance, the credentials of a user created on that instance can be used.
 
 ### Fields
 
-A Backend Connector uses the following field values to communicate with the backend:
+A Bank Connector uses the following field values to communicate with the backend:
 
 #### Details
 
@@ -25,7 +27,7 @@ A Backend Connector uses the following field values to communicate with the back
 - **URL**: The base URL with the backend instance's hostname or IP address. e.g.: https://backend.myerpserver.com or https://192.168.0.1.
 - **API Key**: The API Key of the user **created on the backend instance** on whose behalf the requests will be done from the frontend.
 - **API Secret**: The API Secret of the user **created on the backend instance** on whose behalf the requests will be done from the frontend.
-- **Bulk Transaction**: If this backend connector is used for bulk transactions or not.
+- **Bulk Transaction**: If this Bank Connector is used for bulk transactions or not.
 
 #### Payment Configuration
 

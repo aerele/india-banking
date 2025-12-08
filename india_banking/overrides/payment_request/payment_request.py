@@ -168,16 +168,6 @@ class BankPaymentRequest(PaymentRequest):
 		if not self.transaction_date:
 			self.transaction_date = getdate()
 
-		if not self.payment_type:
-			if payment_type := frappe.db.exists(
-				"Payment Type",
-				{
-					"company": self.company,
-					"is_default": 1,
-				},
-			):
-				self.payment_type = payment_type
-
 		if not self.bank_account:
 			filters = {
 				"party_type": self.party_type,
@@ -201,7 +191,6 @@ class BankPaymentRequest(PaymentRequest):
 		if not self.grand_total or not self.net_total:
 			frappe.throw(_("Amount cannot be zero"))
 
-		self.validate_payment_type()
 		self.validate_bank_account()
 
 		if not self.is_adhoc:
@@ -209,20 +198,6 @@ class BankPaymentRequest(PaymentRequest):
 		else:
 			if self.payment_request_type == "Outward":
 				self.db_set("status", "Initiated")
-
-	def validate_payment_type(self):
-		if self.payment_type:
-			payment_type_company = frappe.db.get_value(
-				"Payment Type", self.payment_type, "company"
-			)
-			if self.company != payment_type_company:
-				frappe.throw(
-					_(
-						"Payment Type <b>{0}</b> is not valid for company <b>{1}</b>".format(
-							self.payment_type, self.company
-						)
-					)
-				)
 
 	def validate_bank_account(self):
 		bank_account = get_party_bank_account(self.party_type, self.party)
@@ -286,15 +261,6 @@ class BankPaymentRequest(PaymentRequest):
 							)
 						)
 					)
-
-	def create_payment_entry(self, submit=True):
-		payment_entry = super().create_payment_entry(submit=submit)
-		if payment_entry.docstatus != 1 and self.payment_type:
-			payment_entry.paid_to = (
-				frappe.db.get_value("Payment Type", self.payment_type, "account") or ""
-			)
-
-		return payment_entry
 
 	def calculate_pr_tds(self, amount):
 		doc = self
@@ -363,14 +329,6 @@ def make_payment_order(source_name, target_doc=None):
 
 
 def get_party_account(source):
-	if source.payment_type:
-		account = frappe.db.get_value("Payment Type", source.payment_type, "account")
-		if not account:
-			frappe.throw(
-				_(
-					"Debit account for Payment Type <b>{}</b> cannot be determined"
-				).format(get_url_to_form("Payment Type", source.payment_type) or "")
-			)
 	if source.reference_doctype == "Purchase Invoice":
 		account = frappe.db.get_value(
 			source.reference_doctype, source.reference_name, "credit_to"
@@ -378,15 +336,6 @@ def get_party_account(source):
 	if source.is_adhoc and source.party_type == "Supplier":
 		party_account = _get_party_account(
 			source.party_type, source.party, source.company
-		)
-		frappe.db.get_value(
-			"Party Account",
-			{
-				"parent": source.party,
-				"parenttype": source.party_type,
-				"company": source.company,
-			},
-			"account",
 		)
 		if party_account:
 			account = party_account

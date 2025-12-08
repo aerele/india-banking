@@ -273,9 +273,6 @@ def create_single_payment_request(voucher_type, voucher_name, amount, filters=No
 		"payment_request_type": "Outward",
 		"company": filters.get("company"),
 		"mode_of_payment": "Wire Transfer",
-		"payment_type": frappe.db.exists(
-			"Payment Type", {"company": filters.get("company"), "is_default": 1}
-		),
 		"party_type": "Supplier",
 		"party": voucher.supplier,
 		"reference_doctype": voucher_type,
@@ -316,9 +313,6 @@ def create_bulk_payment_request(vouchers, filters=None):
 			"payment_request_type": "Outward",
 			"company": filters.get("company"),
 			"mode_of_payment": "Wire Transfer",
-			"payment_type": frappe.db.exists(
-				"Payment Type", {"company": filters.get("company"), "is_default": 1}
-			),
 			"party_type": "Supplier",
 			"party": voucher.supplier,
 			"reference_doctype": voucher.voucher_type,

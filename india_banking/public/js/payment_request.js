@@ -10,11 +10,7 @@ frappe.ui.form.on("Payment Request", {
 			});
 		}
 
-		set_payment_type_query(frm);
 		set_bank_account_query(frm);
-	},
-	company(frm) {
-		set_payment_type_query(frm);
 	},
 	mode_of_payment(frm) {
 		set_bank_account_query(frm);
@@ -26,16 +22,6 @@ frappe.ui.form.on("Payment Request", {
 		set_bank_account_query(frm);
 	},
 });
-
-function set_payment_type_query(frm) {
-	frm.set_query("payment_type", function () {
-		return {
-			filters: {
-				company: frm.doc.company,
-			},
-		};
-	});
-}
 
 function set_bank_account_query(frm) {
 	let conditions = get_bank_query_conditions(frm);

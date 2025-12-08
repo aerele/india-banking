@@ -21,7 +21,6 @@ def after_install():
 	create_property_setter()
 	toggle_reqd_for_reference_in_payment_order(False)
 	create_default_mode_of_transfers()
-	create_default_payment_type()
 	create_default_workflow()
 	create_default_bank()
 	update_allowed_payment_doctypes()
@@ -146,6 +145,7 @@ def create_payment_request_custom_fields():
 			"options": "Payment Type",
 			"mandatory_depends_on": "",
 			"insert_after": "mode_of_payment",
+			"hidden": 1,  # Not used currently
 		},
 		{
 			"label": "Is Adhoc",
@@ -635,30 +635,6 @@ def create_default_mode_of_transfers():
 		if not frappe.db.exists("Mode of Transfer", mot_details.get("mode")):
 			mot_details.update({"doctype": "Mode of Transfer"})
 			frappe.get_doc(mot_details).insert(ignore_permissions=True)
-
-
-def create_default_payment_type():
-	companies = frappe.get_all(
-		"Company", ["name", "default_payable_account"], as_list=1
-	)
-	for company, default_payable_account in companies:
-		if not frappe.db.exists(
-			"Payment Type",
-			{
-				"payment_type": "Pay",
-				"account": default_payable_account,
-				"company": company,
-			},
-		):
-			frappe.get_doc(
-				{
-					"doctype": "Payment Type",
-					"payment_type": "Pay",
-					"company": company,
-					"account": default_payable_account,
-					"is_default": 1,
-				}
-			).insert(ignore_permissions=True, ignore_mandatory=True)
 
 
 def create_default_workflow():

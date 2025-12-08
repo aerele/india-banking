@@ -519,9 +519,6 @@ def create_bulk_payment_request(invoices, filters=None) -> Document:
 			"payment_request_type": "Outward",
 			"company": filters.get("company"),
 			"mode_of_payment": "Wire Transfer",
-			"payment_type": frappe.db.exists(
-				"Payment Type", {"company": filters.get("company"), "is_default": 1}
-			),
 			"party_type": invoice.party_type,
 			"party": invoice.party,
 			"reference_doctype": invoice.voucher_type,
@@ -564,9 +561,6 @@ def create_bulk_payment_request_for_order(orders, filters=None):
 			"payment_request_type": "Outward",
 			"company": filters.get("company"),
 			"mode_of_payment": "Wire Transfer",
-			"payment_type": frappe.db.exists(
-				"Payment Type", {"company": filters.get("company"), "is_default": 1}
-			),
 			"party_type": "Supplier",
 			"party": order.supplier,
 			"reference_doctype": "Purchase Order",

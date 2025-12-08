@@ -48,9 +48,10 @@
    "label": "Is Default"
   }
  ],
+ "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-09 10:11:26.626330",
+ "modified": "2025-12-08 13:31:23.718503",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Payment Type",
@@ -69,6 +70,7 @@
    "write": 1
   }
  ],
+ "read_only": 1,
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",

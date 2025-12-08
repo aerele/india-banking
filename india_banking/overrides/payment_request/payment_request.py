@@ -24,9 +24,6 @@ from frappe.utils import (
 class BankPaymentRequest(PaymentRequest):
 	def validate(self):
 		self.set_default_value()
-		if not self.net_total:
-			self.net_total = self.grand_total
-
 		if (
 			self.apply_tax_withholding_amount
 			and self.tax_withholding_category
@@ -165,9 +162,15 @@ class BankPaymentRequest(PaymentRequest):
 		return total_gst_payable_amount
 
 	def set_default_value(self):
+		# Update net total if not set
+		if not self.net_total:
+			self.net_total = self.grand_total
+
+		# Set transaction date as today if not set
 		if not self.transaction_date:
 			self.transaction_date = getdate()
 
+		# Set default bank account if not set
 		if not self.bank_account:
 			filters = {
 				"party_type": self.party_type,
@@ -177,6 +180,7 @@ class BankPaymentRequest(PaymentRequest):
 			}
 			self.bank_account = frappe.get_value("Bank Account", filters, "name")
 
+		# Set default mode of payment if bank account is set
 		if self.bank_account:
 			self.mode_of_payment = "Wire Transfer"
 

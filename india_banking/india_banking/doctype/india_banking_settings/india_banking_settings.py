@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 from india_banking.utils import minutes_to_cron
@@ -13,8 +14,28 @@ class IndiaBankingSettings(Document):
 		self.validate_document_series()
 		self.enable_payment_entry_reposting()
 		self.update_cron_job_type_format()
+		self.validate_custom_app_priority()
 		if not self.notify_party:
 			self.payment_notification = []
+
+	def validate_custom_app_priority(self):
+		self.custom_app_priority = self.custom_app_priority.strip()
+
+		custom_app_priority = frappe.scrub(self.custom_app_priority)
+		if (
+			not custom_app_priority
+			or frappe.scrub(custom_app_priority) == "india_banking"
+		):
+			return
+
+		# Ensure that core apps are not set as custom app priority
+		if custom_app_priority in ["frappe", "erpnext", "payments", "hrms"]:
+			frappe.msgprint(
+				_("Custom App cannot be {0}").format(
+					frappe.unscrub(custom_app_priority)
+				)
+			)
+			self.custom_app_priority = ""
 
 	def update_cron_job_type_format(self):
 		cron_format = minutes_to_cron(self.retry_interval_minutes or 5)

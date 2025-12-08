@@ -30,6 +30,7 @@
   "enable_bank_account_workflow",
   "enable_unique_account_no",
   "section_break_ilkp",
+  "custom_app_priority",
   "doctype_naming_series",
   "payment_notifications_tab",
   "payment_notifications_section",
@@ -215,12 +216,20 @@
    "fieldname": "enable_unique_account_no",
    "fieldtype": "Check",
    "label": "Enable Unique Bank A/c No"
+  },
+  {
+   "default": "India Banking",
+   "description": "Determines the override order when multiple custom apps modify the same feature. Apps with a higher priority value take precedence during execution.",
+   "fieldname": "custom_app_priority",
+   "fieldtype": "Select",
+   "label": "Custom App Priority(Beta)",
+   "options": "India Banking"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-02 08:40:38.719314",
+ "modified": "2025-12-08 10:08:08.661140",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

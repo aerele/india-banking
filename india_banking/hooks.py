@@ -29,7 +29,7 @@ doctype_list_js = {
 
 
 override_doctype_class = {
-	"Payment Request": "india_banking.overrides.payment_request.BankPaymentRequest",
+	"Payment Request": "india_banking.overrides.payment_request.payment_request.BankPaymentRequest",
 	"Payment Order": "india_banking.overrides.payment_order.CustomPaymentOrder",
 }
 

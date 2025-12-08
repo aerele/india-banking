@@ -4,6 +4,13 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 	make_payment_request,
 )
 
+from india_banking.utils import update_series
+
+
+def autoname(doc, method=None):
+	# Update naming series if applicable
+	update_series(doc=doc, method=method)
+
 
 @frappe.whitelist()
 def make_bulk_bank_payment_request(invoices, doctype):

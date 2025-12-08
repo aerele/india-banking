@@ -68,7 +68,7 @@ def create_supplier(supplier_name, default_currency=None, **kwargs):
 	if frappe.db.exists("Supplier", supplier_name):
 		return frappe.get_doc("Supplier", supplier_name)
 
-	doc = frappe.get_doc(
+	supplier = frappe.get_doc(
 		{
 			"doctype": "Supplier",
 			"supplier_name": supplier_name,
@@ -77,6 +77,6 @@ def create_supplier(supplier_name, default_currency=None, **kwargs):
 	)
 
 	if not kwargs.get("do_not_save"):
-		doc.save()
+		supplier.save()
 
-	return doc
+	return supplier

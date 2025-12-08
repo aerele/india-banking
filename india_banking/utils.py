@@ -199,6 +199,18 @@ def get_bank_payment_naming_series(company, doctype):
 
 
 def update_series(doc, method=None):
+	"""
+	Update the naming series for bank transactions based on India Banking Settings.
+
+	If a naming series is defined per company in the Naming Series Map (configured in
+	India Banking Settings), this function applies the appropriate naming series
+	to the given document.
+
+	Args:
+	        doc: The document whose naming series needs to be updated.
+	        method (str, optional): The event method triggering this update.
+
+	"""
 	if doc.doctype == "Payment Request" and doc.payment_request_type != "Outward":
 		return
 
@@ -209,7 +221,7 @@ def update_series(doc, method=None):
 	if series and series != doc.naming_series:
 		doc.naming_series = series
 		frappe.msgprint(
-			"Naming Series updated based on India Banking settings.", alert=True
+			_("Naming Series updated based on India Banking settings."), alert=True
 		)
 
 

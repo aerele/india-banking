@@ -42,7 +42,7 @@ doc_events = {
 		"validate": "india_banking.india_banking.doc_events.bank_account.bank_account.validate",
 	},
 	"Payment Request": {
-		"autoname": "india_banking.utils.update_series",
+		"autoname": "india_banking.india_banking.doc_events.payment_request.payment_request.autoname",
 	},
 	"Payment Order": {
 		"autoname": "india_banking.utils.update_series",

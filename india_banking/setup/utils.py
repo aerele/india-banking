@@ -55,6 +55,7 @@ def create_bank_account(
 			"account": account,
 			"party_type": kwargs.get("party_type"),
 			"party": kwargs.get("party"),
+			"is_default": kwargs.get("is_default") or 0,
 		}
 	)
 

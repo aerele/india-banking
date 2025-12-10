@@ -205,3 +205,20 @@ class TestPaymentRequestOverrides(FrappeTestCase):
 		self.assertEqual(payment_request.grand_total, payment_request.net_total)
 		self.assertEqual(payment_request.grand_total, 5000.00)
 		self.assertFalse(payment_request.taxes_deducted or 0)
+
+	def test_validate_remark_size(self):
+		# Create a new Payment Request document with oversized remark
+		remarks = "A" * 50
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=True,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=3000.00,
+		)
+		payment_request.remark = remarks
+		payment_request.insert()
+		payment_request.reload()
+
+		# Verify that remark is truncated to below 50 characters
+		self.assertLessEqual(len(payment_request.remark), 50)

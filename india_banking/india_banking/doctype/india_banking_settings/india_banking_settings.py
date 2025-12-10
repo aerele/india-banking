@@ -4,6 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import cstr
 
 from india_banking.utils import minutes_to_cron
 
@@ -19,7 +20,7 @@ class IndiaBankingSettings(Document):
 			self.payment_notification = []
 
 	def validate_custom_app_priority(self):
-		self.custom_app_priority = self.custom_app_priority.strip()
+		self.custom_app_priority = cstr(self.custom_app_priority).strip()
 
 		custom_app_priority = frappe.scrub(self.custom_app_priority)
 		if (

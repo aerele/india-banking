@@ -3,6 +3,9 @@ import frappe
 from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import (
 	make_purchase_invoice,
 )
+from erpnext.buying.doctype.purchase_order.test_purchase_order import (
+	create_purchase_order,
+)
 from frappe.tests.utils import FrappeTestCase, change_settings
 
 from india_banking.setup.utils import (
@@ -43,11 +46,13 @@ class TestPaymentRequestOverrides(FrappeTestCase):
 				"party": party,
 				"payment_request_type": payment_request_type,
 				"net_total": net_total,
-				"grand_total": kwargs.get("grand_total") or net_total,
 				"reference_doctype": kwargs.get("reference_doctype"),
 				"reference_name": kwargs.get("reference_name"),
 			}
 		)
+
+		if not is_adhoc:
+			pr.grand_total = kwargs.get("grand_total") or net_total
 
 		if kwargs.get("tax_withholding_category"):
 			pr.update(
@@ -263,6 +268,41 @@ class TestPaymentRequestOverrides(FrappeTestCase):
 
 		return pi
 
+	@change_settings("GST Settings", {"require_supplier_invoice_no": 0})
+	def make_purchase_order_with_gst(self, **kwargs):
+		from india_banking.setup.utils import GSTCompanySetup
+
+		gst_setup = GSTCompanySetup()
+
+		# Make Purchase Order
+		po = create_purchase_order(
+			company=gst_setup.company_name or kwargs.get("company"),
+			supplier=gst_setup.supplier.name or kwargs.get("supplier"),
+			item_code=gst_setup.item.name or kwargs.get("item_code"),
+			item_name=gst_setup.item.name or kwargs.get("item_name"),
+			qty=1,
+			rate=100,
+			price_list_rate=100,
+			uom="Nos",
+			warehouse=f"Stores - {gst_setup.abbr}",
+			supplier_warehouse=f"Stores - {gst_setup.abbr}",
+			expense_account=f"Cost of Goods Sold - {gst_setup.abbr}",
+			cost_center=f"Main - {gst_setup.abbr}",
+			do_not_save=True,
+		)
+
+		for item in po.items:
+			item.item_tax_template = f"GST 18% - {gst_setup.abbr}"
+		po.tax_category = "In-State"
+		po.taxes_and_charges = f"Input GST In-state - {gst_setup.abbr}"
+
+		po.set_taxes()
+		po.calculate_taxes_and_totals()
+		po.save()
+		po.submit()
+
+		return po
+
 	def test_gst_hold_payable_with_purchase_invoice(self):
 		if "india_compliance" not in frappe.get_installed_apps():
 			click.echo(
@@ -310,6 +350,62 @@ class TestPaymentRequestOverrides(FrappeTestCase):
 			net_total=118.00,
 			reference_doctype="Purchase Invoice",
 			reference_name=purchase_invoice.name,
+		)
+
+		# Insert should NOT adjust net_total to exclude GST
+		payment_request1.insert()
+		payment_request1.reload()
+
+		# Expected: net_total should be 118.00 as hold_gst_payables is disabled
+		self.assertEqual(payment_request1.net_total, 118.00)
+		self.assertEqual(payment_request1.hold_gst_payables, 0)
+
+	def test_gst_hold_payable_with_purchase_order(self):
+		if "india_compliance" not in frappe.get_installed_apps():
+			click.echo(
+				"India Compliance not installed, skipping test_gst_hold_payable_with_purchase_invoice"
+			)
+
+			return
+
+		# Create a Purchase Order with GST
+		purchase_order = self.make_purchase_order_with_gst()
+
+		# Enable hold_gst_payables on supplier
+		frappe.db.set_value("Supplier", self.supplier.name, "hold_gst_payables", 1)
+
+		# Create Payment Request for the Purchase Order
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=118.00,
+			reference_doctype="Purchase Order",
+			reference_name=purchase_order.name,
+		)
+
+		# Insert should auto-adjust net_total to exclude GST
+		payment_request.insert()
+		payment_request.reload()
+
+		# Expected: net_total should be 10000 (excluding 1800 GST)
+		self.assertEqual(payment_request.net_total, 100.00)
+		self.assertEqual(payment_request.hold_gst_payables, 1)
+
+		# Clean up older data
+		payment_request.delete(ignore_permissions=True)
+		frappe.clear_cache("Payment Request")
+
+		frappe.db.set_value("Supplier", self.supplier.name, "hold_gst_payables", 0)
+		payment_request1 = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=118.00,
+			reference_doctype="Purchase Order",
+			reference_name=purchase_order.name,
 		)
 
 		# Insert should NOT adjust net_total to exclude GST

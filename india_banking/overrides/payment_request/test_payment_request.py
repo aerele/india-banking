@@ -1,5 +1,9 @@
+import click
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import (
+	make_purchase_invoice,
+)
+from frappe.tests.utils import FrappeTestCase, change_settings
 
 from india_banking.setup.utils import (
 	create_bank_account,
@@ -39,6 +43,7 @@ class TestPaymentRequestOverrides(FrappeTestCase):
 				"party": party,
 				"payment_request_type": payment_request_type,
 				"net_total": net_total,
+				"grand_total": kwargs.get("grand_total") or net_total,
 				"reference_doctype": kwargs.get("reference_doctype"),
 				"reference_name": kwargs.get("reference_name"),
 			}
@@ -222,3 +227,95 @@ class TestPaymentRequestOverrides(FrappeTestCase):
 
 		# Verify that remark is truncated to below 50 characters
 		self.assertLessEqual(len(payment_request.remark), 50)
+
+	@change_settings("GST Settings", {"require_supplier_invoice_no": 0})
+	def make_purchase_invoice_with_gst(self, **kwargs):
+		from india_banking.setup.utils import GSTCompanySetup
+
+		gst_setup = GSTCompanySetup()
+
+		# Make Purchase invoice
+		pi = make_purchase_invoice(
+			company=gst_setup.company_name or kwargs.get("company"),
+			supplier=gst_setup.supplier.name or kwargs.get("supplier"),
+			item_code=gst_setup.item.name or kwargs.get("item_code"),
+			item_name=gst_setup.item.name or kwargs.get("item_name"),
+			qty=1,
+			rate=100,
+			price_list_rate=100,
+			uom="Nos",
+			warehouse=f"Stores - {gst_setup.abbr}",
+			supplier_warehouse=f"Stores - {gst_setup.abbr}",
+			expense_account=f"Cost of Goods Sold - {gst_setup.abbr}",
+			cost_center=f"Main - {gst_setup.abbr}",
+			do_not_save=True,
+		)
+
+		for item in pi.items:
+			item.item_tax_template = f"GST 18% - {gst_setup.abbr}"
+		pi.tax_category = "In-State"
+		pi.taxes_and_charges = f"Input GST In-state - {gst_setup.abbr}"
+
+		pi.set_taxes()
+		pi.calculate_taxes_and_totals()
+		pi.save()
+		pi.submit()
+
+		return pi
+
+	def test_gst_hold_payable_with_purchase_invoice(self):
+		if "india_compliance" not in frappe.get_installed_apps():
+			click.echo(
+				"india_compliance not installed, skipping test_gst_hold_payable_with_purchase_invoice"
+			)
+			return
+
+		# Create a Purchase Invoice with GST
+		purchase_invoice = self.make_purchase_invoice_with_gst()
+
+		# Enable hold_gst_payables on supplier
+		frappe.db.set_value("Supplier", self.supplier.name, "hold_gst_payables", 1)
+
+		# Create Payment Request for the Purchase Invoice
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=118.00,
+			reference_doctype="Purchase Invoice",
+			reference_name=purchase_invoice.name,
+		)
+
+		# Insert should auto-adjust net_total to exclude GST
+		payment_request.insert()
+		payment_request.reload()
+
+		# Expected: net_total should be 10000 (excluding 1800 GST)
+		self.assertEqual(payment_request.net_total, 100.00)
+		self.assertEqual(payment_request.hold_gst_payables, 1)
+
+		# Clean up older data
+		payment_request.delete(ignore_permissions=True)
+
+		frappe.clear_cache("Payment Request")
+
+		frappe.db.set_value("Supplier", self.supplier.name, "hold_gst_payables", 0)
+
+		payment_request1 = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=118.00,
+			reference_doctype="Purchase Invoice",
+			reference_name=purchase_invoice.name,
+		)
+
+		# Insert should NOT adjust net_total to exclude GST
+		payment_request1.insert()
+		payment_request1.reload()
+
+		# Expected: net_total should be 118.00 as hold_gst_payables is disabled
+		self.assertEqual(payment_request1.net_total, 118.00)
+		self.assertEqual(payment_request1.hold_gst_payables, 0)

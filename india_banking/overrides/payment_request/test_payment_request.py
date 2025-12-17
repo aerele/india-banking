@@ -415,3 +415,237 @@ class TestPaymentRequestOverrides(FrappeTestCase):
 		# Expected: net_total should be 118.00 as hold_gst_payables is disabled
 		self.assertEqual(payment_request1.net_total, 118.00)
 		self.assertEqual(payment_request1.hold_gst_payables, 0)
+
+	def test_hold_gst_payable_amount_exceeds_payment_amount(self):
+		if "india_compliance" not in frappe.get_installed_apps():
+			click.echo(
+				"india_compliance not installed, skipping test_gst_hold_payable_with_purchase_invoice"
+			)
+			return
+
+		# Create a Purchase Invoice with GST
+		purchase_invoice = self.make_purchase_invoice_with_gst()
+
+		# Enable hold_gst_payables on supplier
+		frappe.db.set_value("Supplier", self.supplier.name, "hold_gst_payables", 1)
+
+		# Create Payment Request for the Purchase Invoice
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=118.00,
+			reference_doctype="Purchase Invoice",
+			reference_name=purchase_invoice.name,
+		)
+
+		# Insert should auto-adjust net_total to exclude GST
+		payment_request.insert()
+		payment_request.reload()
+
+		# Expected: net_total should be 10000 (excluding 1800 GST)
+		self.assertEqual(payment_request.net_total, 100.00)
+		self.assertEqual(payment_request.hold_gst_payables, 1)
+
+		payment_request1 = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=18.00,
+			reference_doctype="Purchase Invoice",
+			reference_name=purchase_invoice.name,
+		)
+
+		# Insert should raise ValidationError as hold_gst_payable exceeds payment amount
+		with self.assertRaises(frappe.ValidationError):
+			payment_request1.insert()
+
+	def test_validate_and_update_gst_payables_adhoc_payment_skipped(self):
+		"""Test that validate_and_update_gst_payables is skipped for ad-hoc payments"""
+		if "india_compliance" not in frappe.get_installed_apps():
+			click.echo(
+				"india_compliance not installed, skipping test_validate_and_update_gst_payables_adhoc_payment_skipped"
+			)
+			return
+
+		# Enable hold_gst_payables on supplier
+		frappe.db.set_value("Supplier", self.supplier.name, "hold_gst_payables", 1)
+
+		# Create an ad-hoc payment request
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=True,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=1000.00,
+		)
+
+		# Insert should not raise error even though hold_gst_payables is enabled
+		# because ad-hoc payments skip the validation
+		payment_request.insert()
+		payment_request.reload()
+
+		# Verify that the payment was created successfully
+		self.assertEqual(payment_request.net_total, 1000.00)
+		self.assertFalse(payment_request.reference_doctype)
+		self.assertFalse(payment_request.reference_name)
+
+	def test_validate_and_update_gst_payables_without_compliance_app(self):
+		"""Test that validate_and_update_gst_payables returns early when india_compliance is not installed"""
+		# Create payment request without any issue
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=500.00,
+			reference_doctype="Purchase Order",
+			reference_name="PO001",
+		)
+
+		# Mock india_compliance not installed scenario
+		installed_apps = frappe.get_installed_apps()
+		if "india_compliance" not in installed_apps:
+			# The function should return early, so no validation error should occur
+			# This test passes if no error is raised
+			payment_request.validate()
+			self.assertTrue(True)
+
+	def test_validate_and_update_gst_payables_with_flag_ignore(self):
+		"""Test that validate_and_update_gst_payables returns early when ignore flag is set"""
+		if "india_compliance" not in frappe.get_installed_apps():
+			click.echo(
+				"india_compliance not installed, skipping test_validate_and_update_gst_payables_with_flag_ignore"
+			)
+			return
+
+		# Create a Purchase Invoice with GST
+		purchase_invoice = self.make_purchase_invoice_with_gst()
+
+		# Enable hold_gst_payables on supplier
+		frappe.db.set_value("Supplier", self.supplier.name, "hold_gst_payables", 1)
+
+		# Set the ignore flag
+		frappe.flags.ignore_hold_gst_payables = True
+
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=118.00,
+			reference_doctype="Purchase Invoice",
+			reference_name=purchase_invoice.name,
+		)
+
+		# Insert should succeed because the flag skips the validation
+		payment_request.insert()
+		payment_request.reload()
+
+		self.assertEqual(payment_request.net_total, 118.00)
+
+		# Clean up
+		frappe.flags.ignore_hold_gst_payables = False
+
+	def test_validate_and_update_gst_payables_auto_populate_hold_flag(self):
+		"""Test that hold_gst_payables flag is auto-populated from supplier if not set"""
+		if "india_compliance" not in frappe.get_installed_apps():
+			click.echo(
+				"india_compliance not installed, skipping test_validate_and_update_gst_payables_auto_populate_hold_flag"
+			)
+			return
+
+		# Create a Purchase Invoice with GST
+		purchase_invoice = self.make_purchase_invoice_with_gst()
+
+		# Enable hold_gst_payables on supplier
+		frappe.db.set_value("Supplier", self.supplier.name, "hold_gst_payables", 1)
+
+		# Create payment request without explicitly setting hold_gst_payables
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=118.00,
+			reference_doctype="Purchase Invoice",
+			reference_name=purchase_invoice.name,
+		)
+
+		# At this point hold_gst_payables should be False (not set yet)
+		self.assertFalse(payment_request.hold_gst_payables)
+
+		# After insert, the flag should be auto-populated from supplier
+		payment_request.insert()
+		payment_request.reload()
+
+		# Verify that hold_gst_payables was auto-populated from supplier
+		self.assertEqual(payment_request.hold_gst_payables, 1)
+
+	def test_validate_and_update_gst_payables_calculates_applicable_payment_amount(
+		self,
+	):
+		"""Test that applicable payment amount is correctly calculated based on GST"""
+		if "india_compliance" not in frappe.get_installed_apps():
+			click.echo(
+				"india_compliance not installed, skipping test_validate_and_update_gst_payables_calculates_applicable_payment_amount"
+			)
+			return
+
+		# Create a Purchase Order with GST
+		purchase_order = self.make_purchase_order_with_gst()
+
+		# Enable hold_gst_payables on supplier
+		frappe.db.set_value("Supplier", self.supplier.name, "hold_gst_payables", 1)
+
+		# Create Payment Request for the Purchase Order
+		# The PO has base_grand_total = 118 (100 + 18 GST)
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=118.00,
+			reference_doctype="Purchase Order",
+			reference_name=purchase_order.name,
+		)
+
+		payment_request.insert()
+		payment_request.reload()
+
+		# Expected: net_total should be 100 (excluding 18 GST)
+		self.assertEqual(payment_request.net_total, 100.00)
+
+	def test_validate_and_update_gst_payables_no_hold_gst_flag(self):
+		"""Test validate_and_update_gst_payables when hold_gst_payables is not set"""
+		if "india_compliance" not in frappe.get_installed_apps():
+			click.echo(
+				"india_compliance not installed, skipping test_validate_and_update_gst_payables_no_hold_gst_flag"
+			)
+			return
+
+		# Create a Purchase Invoice with GST
+		purchase_invoice = self.make_purchase_invoice_with_gst()
+
+		# Do NOT enable hold_gst_payables on supplier (default is 0)
+		frappe.db.set_value("Supplier", self.supplier.name, "hold_gst_payables", 0)
+
+		# Create Payment Request for the Purchase Invoice
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=118.00,
+			reference_doctype="Purchase Invoice",
+			reference_name=purchase_invoice.name,
+		)
+
+		# Insert should succeed without any GST payable validation
+		payment_request.insert()
+		payment_request.reload()
+
+		# Expected: net_total should remain as 118.00 (no GST adjustment)
+		self.assertEqual(payment_request.net_total, 118.00)

@@ -649,3 +649,76 @@ class TestPaymentRequestOverrides(FrappeTestCase):
 
 		# Expected: net_total should remain as 118.00 (no GST adjustment)
 		self.assertEqual(payment_request.net_total, 118.00)
+
+	def test_get_gst_payable_amount_from_purchase_invoice(self):
+		if "india_compliance" not in frappe.get_installed_apps():
+			click.echo(
+				"india_compliance not installed, skipping test_get_gst_payable_amount_from_purchase_invoice"
+			)
+			return
+
+		# Create a Purchase Invoice with GST
+		purchase_invoice = self.make_purchase_invoice_with_gst()
+
+		# Create Payment Request for the Purchase Invoice
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=118.00,
+			reference_doctype="Purchase Invoice",
+			reference_name=purchase_invoice.name,
+		)
+
+		# Calculate GST payable amount
+		gst_amount = payment_request.get_gst_payable_amount()
+
+		# Expected: Should have GST amount (18 GST from 100 rate with 18% tax template)
+		self.assertGreater(gst_amount, 0)
+		self.assertEqual(gst_amount, 18.00)
+
+	def test_get_gst_payable_amount_from_purchase_order(self):
+		"""Test GST calculation from Purchase Order items"""
+		if "india_compliance" not in frappe.get_installed_apps():
+			click.echo(
+				"india_compliance not installed, skipping test_get_gst_payable_amount_from_purchase_order"
+			)
+			return
+
+		# Create a Purchase Order with GST
+		purchase_order = self.make_purchase_order_with_gst()
+
+		# Create Payment Request for the Purchase Order
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=False,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=118.00,
+			reference_doctype="Purchase Order",
+			reference_name=purchase_order.name,
+		)
+
+		# Calculate GST payable amount
+		gst_amount = payment_request.get_gst_payable_amount()
+
+		# Expected: Should have GST amount (18 GST from 100 rate with 18% tax template)
+		self.assertGreater(gst_amount, 0)
+		self.assertEqual(gst_amount, 18.00)
+
+	def test_get_gst_payable_amount_adhoc_payment(self):
+		# Create an ad-hoc payment request without reference
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=True,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=1000.00,
+		)
+
+		# Calculate GST payable amount
+		gst_amount = payment_request.get_gst_payable_amount()
+
+		# Expected: Should be 0 (no reference document)
+		self.assertEqual(gst_amount, 0)

@@ -9,6 +9,7 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
 	get_party_tax_withholding_details,
 )
+from erpnext.accounts.party import get_party_account as _get_party_account
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _, bold
 from frappe.utils import (
@@ -383,23 +384,12 @@ def make_payment_order(source_name, target_doc=None):
 
 
 def get_party_account(source):
-	if source.payment_type:
-		account = frappe.db.get_value("Payment Type", source.payment_type, "account")
 	if source.reference_doctype == "Purchase Invoice":
-		account = frappe.db.get_value(
+		return frappe.db.get_value(
 			source.reference_doctype, source.reference_name, "credit_to"
 		)
-	if source.is_adhoc and source.party_type == "Supplier":
-		party_account = frappe.db.get_value(
-			"Party Account",
-			{
-				"parent": source.party,
-				"parenttype": source.party_type,
-				"company": source.company,
-			},
-			"account",
+	else:
+		return _get_party_account(
+			source.party_type, source.party, source.company
 		)
-		if party_account:
-			account = party_account
 
-	return account

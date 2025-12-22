@@ -361,34 +361,12 @@ def make_payment_order(source_name, target_doc=None):
 
 	return doclist
 
-
 def get_party_account(source):
-	if source.payment_type:
-		account = frappe.db.get_value("Payment Type", source.payment_type, "account")
-		if not account:
-			frappe.throw(
-				_(
-					"Debit account for Payment Type <b>{}</b> cannot be determined"
-				).format(get_url_to_form("Payment Type", source.payment_type) or "")
-			)
 	if source.reference_doctype == "Purchase Invoice":
-		account = frappe.db.get_value(
+		return frappe.db.get_value(
 			source.reference_doctype, source.reference_name, "credit_to"
 		)
-	if source.is_adhoc and source.party_type == "Supplier":
-		party_account = _get_party_account(
+	else:
+		return _get_party_account(
 			source.party_type, source.party, source.company
 		)
-		frappe.db.get_value(
-			"Party Account",
-			{
-				"parent": source.party,
-				"parenttype": source.party_type,
-				"company": source.company,
-			},
-			"account",
-		)
-		if party_account:
-			account = party_account
-
-	return account

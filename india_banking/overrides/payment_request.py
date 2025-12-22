@@ -392,4 +392,4 @@ def get_party_account(source):
 		return _get_party_account(
 			source.party_type, source.party, source.company
 		)
-		account = party_account
+

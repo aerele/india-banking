@@ -21,6 +21,7 @@ class TestPaymentRequestOverrides(FrappeTestCase):
 
 		self.company = create_company("IB Company")
 		self.supplier = create_supplier("IB Supplier")
+		self.supplier1 = create_supplier("IB Supplier1")
 		self.supplier_bank_account = create_bank_account(
 			bank_name="HDFC Bank",
 			account_no="9876543210",
@@ -722,3 +723,92 @@ class TestPaymentRequestOverrides(FrappeTestCase):
 
 		# Expected: Should be 0 (no reference document)
 		self.assertEqual(gst_amount, 0)
+
+	def test_payment_request_bank_account_belongs_to_party(self):
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=True,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=1000.00,
+		)
+
+		payment_request.insert()
+
+		# Verify that the bank account belongs to the supplier
+		bank_account = frappe.get_doc("Bank Account", payment_request.bank_account)
+		self.assertEqual(bank_account.party_type, "Supplier")
+		self.assertEqual(bank_account.party, self.supplier.name)
+
+	def test_validate_bank_account_mandatory_on_submit(self):
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=True,
+			party_type="Supplier",
+			party=self.supplier1.name,
+			payment_request_type="Outward",
+			net_total=1000.00,
+		)
+
+		payment_request.insert()
+		self.assertFalse(payment_request.bank_account)
+
+		# verify the bank account mandatory on submit
+		with self.assertRaises(frappe.ValidationError) as error:
+			payment_request.on_submit()
+
+		self.assertIn("Default Bank Account is missing for", str(error.exception))
+
+	def test_validate_workflow_on_submit(self):
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=True,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=1000.00,
+		)
+
+		payment_request.insert()
+		self.assertTrue(payment_request.bank_account)
+
+		# verify the bank account mandatory on submit
+		with self.assertRaises(frappe.ValidationError):
+			payment_request.on_submit()
+
+	def test_validate_bank_account_currency_mismatch(self):
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=True,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=1000.00,
+		)
+
+		payment_request.insert()
+		self.assertTrue(payment_request.bank_account)
+
+		# set party account currency to USD to create mismatch
+		payment_request.db_set("currency", "USD")
+
+		# verify the bank account currency mismatch on submit
+		with self.assertRaises(frappe.ValidationError):
+			payment_request.on_submit()
+
+	def test_ensure_party_account_exists(self):
+		from erpnext.accounts.party import get_party_account
+
+		payment_request = self.create_bank_payment_request(
+			is_adhoc=True,
+			party_type="Supplier",
+			party=self.supplier.name,
+			payment_request_type="Outward",
+			net_total=1000.00,
+		)
+
+		payment_request.insert()
+
+		party_account = get_party_account(
+			payment_request.party_type,
+			payment_request.party,
+			payment_request.company,
+		)
+		self.assertTrue(party_account)

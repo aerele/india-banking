@@ -196,12 +196,31 @@ class BankPaymentRequest(PaymentRequest):
 			frappe.throw(_("Amount cannot be zero"))
 
 		self.validate_bank_account()
+		self.validate_party_account()
 
 		if not self.is_adhoc:
 			super().on_submit()
 		else:
 			if self.payment_request_type == "Outward":
 				self.db_set("status", "Initiated")
+
+	def validate_party_account(self):
+		party_account = _get_party_account(
+			self.party_type,
+			self.party,
+			self.company,
+			include_disabled=self.is_adhoc,
+		)
+		if not party_account:
+			frappe.throw(
+				_(
+					"No accounting {0} Account is defined for {1} - {2}".format(
+						self.party_type,
+						self.party_type,
+						frappe.bold(self.party),
+					)
+				)
+			)
 
 	def validate_bank_account(self):
 		bank_account = get_party_bank_account(self.party_type, self.party)
@@ -337,11 +356,10 @@ def get_party_account(source):
 		account = frappe.db.get_value(
 			source.reference_doctype, source.reference_name, "credit_to"
 		)
-	if source.is_adhoc and source.party_type == "Supplier":
+	else:
 		party_account = _get_party_account(
 			source.party_type, source.party, source.company
 		)
-		if party_account:
-			account = party_account
+		account = party_account
 
 	return account

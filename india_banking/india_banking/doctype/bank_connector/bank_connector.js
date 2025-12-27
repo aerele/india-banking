@@ -12,6 +12,23 @@ frappe.ui.form.on("Bank Connector", {
 				},
 			};
 		});
+		frm.trigger("toggle_bulk_transaction");
+	},
+	toggle_bulk_transaction(frm) {
+		frm.call({
+			method: "india_banking.utils.get_bulk_transaction_banks",
+			async: false,
+			callback(r) {
+				let show = 0;
+				if (r.message?.includes(frm.doc.bank)) {
+					show = 1;
+				}
+				frm.set_df_property("bulk_transaction", "hidden", !show);
+			},
+		});
+	},
+	bank_account(frm) {
+		frm.trigger("toggle_bulk_transaction");
 	},
 	enqueue_large_payments_in_the_background(frm) {
 		if (!frm.doc.enqueue_payments_threshold) {

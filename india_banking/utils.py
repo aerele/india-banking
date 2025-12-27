@@ -6,12 +6,17 @@ import frappe
 from frappe import _
 from frappe.utils.background_jobs import is_job_enqueued
 
-from india_banking.default import ALLOWED_PAYMENT_DOCTYPE
+from india_banking.default import ALLOWED_PAYMENT_DOCTYPE, BULK_TRANSACTION_ENABLED_BANK
 
 
 @frappe.whitelist()
 def get_allowed_payment_doctypes():
 	return ALLOWED_PAYMENT_DOCTYPE
+
+
+@frappe.whitelist()
+def get_bulk_transaction_banks():
+	return BULK_TRANSACTION_ENABLED_BANK
 
 
 def get_bank_address_details(bank_account):

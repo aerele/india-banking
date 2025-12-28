@@ -32,11 +32,11 @@ frappe.ui.form.on('Payment Order', {
 	},
 	set_pending_payment_cancel_button(frm) {
 		const has_pending_payment = frm.doc.summary?.filter(
-			(item) => item.payment_status == "Pending"
+			(item) => item.payment_status == "Pending" || item.payment_status == "Initiated"
 		).length;
 		if (
 			has_pending_payment &&
-			has_pending_payment < frm.doc.summary.length &&
+			has_pending_payment <= frm.doc.summary.length &&
 			frm.doc.docstatus == 1
 		){
 			frm.add_custom_button(__("Cancel Pending Payments"), function () {
@@ -490,8 +490,18 @@ const show_update_status_dialog = function (frm) {
 		primary_action_label: __("Update"),
 	});
 
+	let is_admin_user = frappe.session.user == "Administrator";
+	if (!is_admin_user){
+		is_admin_user = frappe.user_roles.includes("Local Admin")
+	}
+
+	let status = ["Pending"]
+	if(is_admin_user){
+		status.push("Initiated")
+	}
+
 	frm.doc.summary.forEach((d) => {
-		if (["Pending"].includes(d.payment_status)) {
+		if (status.includes(d.payment_status)) {
 			dialog.fields_dict.summary.df.data.push({
 				payment_order: frm.doc.name,
 				row_name: d.name,

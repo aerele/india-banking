@@ -1128,8 +1128,9 @@ def cancel_pending_payments(data):
 				)
 
 				if d.payment_entry:
+					status = frappe.db.get_value("Payment Order Summary", d.row_name, "payment_status")
 					payment_entry_doc = frappe.get_doc("Payment Entry", d.payment_entry)
-					if payment_entry_doc.docstatus == 1:
+					if status != "Initiated" and payment_entry_doc.docstatus == 1:
 						payment_entry_doc.cancel()
 
 				process_bank_payment_requests(d.row_name, is_manually_cancelled=True)

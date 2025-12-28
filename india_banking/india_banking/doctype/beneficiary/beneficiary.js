@@ -76,19 +76,19 @@ frappe.ui.form.on("Beneficiary", {
 		else if(frm.doc.beneficiary_status == 'Modified') {
 			frm.add_custom_button("Update Beneficiary", ()=>update_beneficiary_dialog(frm), "Beneficiary Action")
 		}
-		else if(frm.doc.beneficiary_status == 'Submitted') {
-			frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
-			frm.add_custom_button("Reject Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Reject"), "Beneficiary Action")
-		}
+		//else if(frm.doc.beneficiary_status == 'Submitted') {
+		//	frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
+		//	frm.add_custom_button("Reject Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Reject"), "Beneficiary Action")
+		//}
 		else if(['Approved', 'Rejected'].includes(frm.doc.beneficiary_status)) {
 			frm.add_custom_button("Update Beneficiary", ()=>update_beneficiary_dialog(frm), "Beneficiary Action")
-			if(frm.doc.beneficiary_status == 'Approved') {
-				frm.add_custom_button("Suspend Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Suspend"), "Beneficiary Action")
-			}
+			//if(frm.doc.beneficiary_status == 'Approved') {
+			//	frm.add_custom_button("Suspend Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Suspend"), "Beneficiary Action")
+			//}
 		}
-		else if(frm.doc.beneficiary_status == 'Suspended') {
-			frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
-		}
+		//else if(frm.doc.beneficiary_status == 'Suspended') {
+		//	frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
+		//}
 	},
 	submit_beneficiary(frm){
 		frm.call({

@@ -19,6 +19,7 @@
   "retry_period",
   "column_break_laug",
   "update_posting_date_as_payment_date",
+  "show_bank_balance_in_payment_order",
   "doctype_customization_tab",
   "activate_workflow_on_bank_account",
   "doctype_naming_series",
@@ -29,6 +30,7 @@
  ],
  "fields": [
   {
+   "description": "Choose the criteria for summarizing multiple payments before processing the Payment Order.",
    "fieldname": "summarise_payment_based_on",
    "fieldtype": "Select",
    "label": "Summarise Payment Based On",
@@ -40,19 +42,21 @@
   },
   {
    "default": "0",
+   "description": "if enabled, when the payment status becomes \u201cProcessed\u201d, a notification will be sent to the party email configured in the bank account.",
    "fieldname": "notify_party",
    "fieldtype": "Check",
    "label": "Notify Party"
   },
   {
    "default": "1",
+   "description": "If enabled, workflows will be activated for Bank Account DocType.",
    "fieldname": "activate_workflow_on_bank_account",
    "fieldtype": "Check",
    "label": "Activate Workflow on Bank Account"
   },
   {
    "default": "1",
-   "description": "If more than 10 payments need to be initiated to the bank, they will be processed in the background. This prevents delays caused by long bank response times.",
+   "description": "If enabled, payments will always be processed in the background to avoid bank request timeouts. When disabled, only batches of more than 10 payments are moved to background processing automatically",
    "fieldname": "enable_payment_in_the_background",
    "fieldtype": "Check",
    "label": "Enqueue large payments in the background"
@@ -66,7 +70,7 @@
   },
   {
    "default": "0",
-   "description": "If unchecked, user will have to manually fetch the status of every payment order.",
+   "description": "If enabled, the status of each payment order will be fetched automatically.",
    "fieldname": "update_payment_status",
    "fieldtype": "Check",
    "label": "Auto Update Payment Status"
@@ -82,7 +86,7 @@
   },
   {
    "default": "Payment Request\nPayment Entry\nBank Entry",
-   "description": "Enabled doctypes can be pulled in the payment order for payment processing. ",
+   "description": "Enabled doctypes will be visible in the Payment Order and can be pulled in for payment processing",
    "fieldname": "allowed_payment_doctypes",
    "fieldtype": "Small Text",
    "label": "Allowed Payment Doctypes",
@@ -111,19 +115,21 @@
   },
   {
    "default": "3",
-   "description": "Check the payment status for 'Processed' payment from the payment initiation date until the retry period.",
+   "description": "Fetches the status of \u201cProcessed\u201d payments starting from the initiation date up to the retry period.",
    "fieldname": "retry_period",
    "fieldtype": "Int",
    "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
   },
   {
    "default": "0",
+   "description": "If enabled, the Payment Entry date will be set to the Payment Order date.",
    "fieldname": "use_payment_order_date_as_payment_entry_date",
    "fieldtype": "Check",
    "label": "Use Payment Order Date as Payment Entry Date"
   },
   {
    "default": "0",
+   "description": "If enabled, Payment Orders can be created with future dates.",
    "fieldname": "allow_future_date_payment_order",
    "fieldtype": "Check",
    "label": "Allow future Date Payment Order"
@@ -153,12 +159,19 @@
    "fieldname": "basic_configuration_tab",
    "fieldtype": "Tab Break",
    "label": "Basic Configuration"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, the bank balance will be displayed in the Payment Order.",
+   "fieldname": "show_bank_balance_in_payment_order",
+   "fieldtype": "Check",
+   "label": "Show Bank Balance in Payment Order"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-07-18 15:52:13.042530",
+ "modified": "2025-12-29 01:31:11.273048",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",
@@ -182,6 +195,7 @@
    "share": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

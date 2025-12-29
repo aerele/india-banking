@@ -59,10 +59,12 @@ frappe.ui.form.on("Payment Order", {
 			method: "india_banking.india_banking.doctype.bank_connector.bank_connector.get_bank_balance",
 			args: { bank_account_name: bank_account },
 		});
-		const indicator_color = message ? "green" : "orange";
+		const has_valid_balance = message !== null && message !== undefined;
+		const indicator_color = has_valid_balance ? "green" : "orange";
+		const balance_display = has_valid_balance ? message : __("Unavailable");
 		const balance_status = $(
 			`<div class="d-flex indicator ${indicator_color}">
-			Balance:&nbsp;<strong>${message}</strong>
+			Balance:&nbsp;<strong>${balance_display}</strong>
 			</div>
 			<div>
 				<span class="text-right ml-auto">

@@ -86,7 +86,7 @@
   },
   {
    "default": "Payment Request\nPayment Entry\nBank Entry",
-   "description": "Enabled doctypes will be visible in the Payment Order and can be pulled in for payment processing",
+   "description": "Enabled doctypes will be visible in the Payment Order and can be pulled in for payment processing.",
    "fieldname": "allowed_payment_doctypes",
    "fieldtype": "Small Text",
    "label": "Allowed Payment Doctypes",

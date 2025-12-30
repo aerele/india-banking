@@ -593,6 +593,7 @@ class BankConnector(Document):
 						"bank_balance",
 						response_details.balance,
 					)
+					return response_details.balance
 			else:
 				frappe.msgprint(
 					title=_("API Failed"),

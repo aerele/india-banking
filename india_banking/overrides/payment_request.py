@@ -201,7 +201,7 @@ class BankPaymentRequest(PaymentRequest):
 		if not self.grand_total or not self.net_total:
 			frappe.throw(_("Amount cannot be zero"))
 
-		self.validate_payment_type()
+		# self.validate_payment_type() # will be deprecated in v16
 		self.validate_bank_account()
 
 		if not self.is_adhoc:
@@ -384,12 +384,28 @@ def make_payment_order(source_name, target_doc=None):
 
 
 def get_party_account(source):
+	account = None
+	if source.payment_type:
+		account = frappe.db.get_value("Payment Type", source.payment_type, "account")
 	if source.reference_doctype == "Purchase Invoice":
-		return frappe.db.get_value(
+		account = frappe.db.get_value(
 			source.reference_doctype, source.reference_name, "credit_to"
 		)
-	else:
-		return _get_party_account(
-			source.party_type, source.party, source.company
+	if not account:
+		account = _get_party_account(
+			source.party_type,
+			source.party,
+			source.company,
 		)
+
+		if not account:
+			frappe.throw(
+				_(
+					"Cannot find default account for {0} {1}".format(
+						source.party_type, source.party
+					)
+				)
+			)
+
+	return account
 

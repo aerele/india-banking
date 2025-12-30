@@ -72,7 +72,7 @@
   },
   {
    "default": "0",
-   "depends_on": "eval: doc.bank == \"ICICI Bank\"",
+   "depends_on": "eval: [\"ICICI Bank\", \"IDFC Bank\"].includes(doc.bank)",
    "fieldname": "bulk_transaction",
    "fieldtype": "Check",
    "label": "Bulk Transaction"
@@ -80,7 +80,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-09 22:38:54.086376",
+ "modified": "2025-12-30 11:20:01.236058",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Connector",
@@ -100,6 +100,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

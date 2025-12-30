@@ -130,10 +130,21 @@ class CustomPaymentOrder(PaymentOrder):
 			"Payment Entry",
 			"Journal Entry",
 		]:
+			self.validate_party_account()
 			if self.payment_order_type == "Payment Request":
 				make_payment_entries(self.name)
 
 			self.update_payment_status()
+
+	def validate_party_account(self):
+		for reference in self.references:
+			if not reference.account:
+				link = get_link_to_form(reference.party_type, reference.party)
+				frappe.throw(
+					_(
+						f"Please set default account for {reference.party_type} - <b>{link}</b> to proceed."
+					)
+				)
 
 	def on_update_after_submit(self):
 		frappe.throw(_("You cannot modify a payment order"))

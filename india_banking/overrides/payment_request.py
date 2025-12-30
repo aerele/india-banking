@@ -9,6 +9,7 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
 	get_party_tax_withholding_details,
 )
+from erpnext.accounts.party import get_party_account as _get_party_account
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _, bold
 from frappe.utils import (
@@ -200,7 +201,7 @@ class BankPaymentRequest(PaymentRequest):
 		if not self.grand_total or not self.net_total:
 			frappe.throw(_("Amount cannot be zero"))
 
-		self.validate_payment_type()
+		# self.validate_payment_type() # will be deprecated in v16
 		self.validate_bank_account()
 
 		if not self.is_adhoc:
@@ -383,23 +384,27 @@ def make_payment_order(source_name, target_doc=None):
 
 
 def get_party_account(source):
+	account = None
 	if source.payment_type:
 		account = frappe.db.get_value("Payment Type", source.payment_type, "account")
 	if source.reference_doctype == "Purchase Invoice":
 		account = frappe.db.get_value(
 			source.reference_doctype, source.reference_name, "credit_to"
 		)
-	if source.is_adhoc and source.party_type == "Supplier":
-		party_account = frappe.db.get_value(
-			"Party Account",
-			{
-				"parent": source.party,
-				"parenttype": source.party_type,
-				"company": source.company,
-			},
-			"account",
+	if not account:
+		account = _get_party_account(
+			source.party_type,
+			source.party,
+			source.company,
 		)
-		if party_account:
-			account = party_account
+
+		if not account:
+			frappe.throw(
+				_(
+					"Cannot find default account for {0} {1}".format(
+						source.party_type, source.party
+					)
+				)
+			)
 
 	return account

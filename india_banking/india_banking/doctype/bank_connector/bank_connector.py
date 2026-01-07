@@ -132,11 +132,13 @@ class BankConnector(Document):
 
 				self.make_single_request(payment_order, summary)
 
-		if self.action == "initiate_payment":
-			msg = _("Payment Initiated")
+		if self.action == "initiate_payment" and not frappe.flags.error_message:
+			msg = _("Payment(s) Initiated")
 			if not self.bulk_transaction:
 				msg = _(f"{self.success_count} Payment(s) Initiated")
 			frappe.msgprint(msg)
+
+		frappe.flags.error_message = ""
 
 	def verify_response(self, response, payment_order):
 		if self.action == "initiate_payment":
@@ -231,8 +233,13 @@ class BankConnector(Document):
 			frappe.throw(_("Connection Failed"))
 
 	def verify_status_response(self, response, payment_order):
+		status_count_map = {
+			"Processed": 0,
+			"Pending": 0,
+			"Failed": 0,
+			"Rejected": 0,
+		}
 		payment_response = self.get_response_details(response)
-
 		if response.ok:
 			payment_status = payment_response.get("payment_status", "")
 			message = payment_response.get("message", "")
@@ -277,6 +284,7 @@ class BankConnector(Document):
 								)
 
 							self.notify_party(summary)
+							status_count_map[status_details.status] += 1
 
 					elif status_details.status == "Pending":
 						frappe.db.set_value(
@@ -286,7 +294,9 @@ class BankConnector(Document):
 								"payment_initiated": 1,
 								"message": status_details.message,
 							},
+							update_modified=False,
 						)
+						status_count_map[status_details.status] += 1
 
 					elif status_details.status == "Failed":
 						frappe.db.set_value(
@@ -315,6 +325,7 @@ class BankConnector(Document):
 								"payment_status",
 								"Failed",
 							)
+						status_count_map[status_details.status] += 1
 
 					elif status_details.status == "Rejected":
 						frappe.db.set_value(
@@ -343,6 +354,7 @@ class BankConnector(Document):
 								"payment_status",
 								"Failed",
 							)
+						status_count_map[status_details.status] += 1
 
 			elif payment_status == "FAILED":
 				frappe.msgprint(
@@ -354,8 +366,20 @@ class BankConnector(Document):
 			else:
 				extract_error_message(response.json())
 
+			self.show_status_count(status_count_map)
 		else:
 			frappe.throw("Invalid Request")
+
+	def show_status_count(self, status_count_map):
+		msg = ""
+		for status, count in status_count_map.items():
+			if count > 0:
+				msg += f"<b>{status}: {count}"
+		if msg:
+			frappe.msgprint(
+				title="Payment Status",
+				msg=msg,
+			)
 
 	def make_single_request(self, payment_order, summary):
 		url = self.connector_url

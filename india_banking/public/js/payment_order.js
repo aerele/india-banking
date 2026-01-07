@@ -86,11 +86,16 @@ frappe.ui.form.on("Payment Order", {
 	},
 
 	refresh(frm) {
-		frm.remove_custom_button("Payment Entry", "Get Payments from");
-		frm.remove_custom_button("Payment Request", "Get Payments from");
-		frm.remove_custom_button("Bank Entry(JV)", "Get Payments from");
-		// Remove the "Create Journal Entries" button
-		frm.remove_custom_button("Create Journal Entries");
+		// // Remove all custom buttons first
+		const custom_buttons = ["Payment Request", "Payment Entry"];
+
+		Object.entries(frm.custom_buttons)?.map((label) => {
+			if (frm.custom_buttons[label[0]] && custom_buttons.includes(label[0])) {
+				frm.remove_custom_button(label[0], "Get Payments from");
+			}
+		});
+
+		cur_frm.$wrapper.find(`[data-label="Create%20Journal%20Entries"]`).remove();
 
 		frm.trigger("set_get_payments_from_buttons");
 		frm.trigger("set_payment_and_status_buttons");

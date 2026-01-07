@@ -93,6 +93,7 @@ def extract_error_message(response_json, show_message=False) -> str:
 
 		if show_message and failure_message:
 			frappe.msgprint(title=_("Failure Reason"), msg=failure_message)
+			frappe.flags.error_message = failure_message
 
 		elif failure_message:
 			return failure_message

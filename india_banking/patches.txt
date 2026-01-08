@@ -6,3 +6,4 @@ india_banking.patches.v15_0.remove_payroll_entry_custom_fields #31032025
 
 india_banking.patches.v15_0.update_default_bank #3012251
 india_banking.patches.v15_0.update_custom_field #3012252
+india_banking.patches.v15_0.clear_india_banking_request_log #090126

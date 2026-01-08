@@ -5,7 +5,6 @@ import json
 
 import frappe
 import requests
-from frappe import _
 from frappe.model.document import Document
 from requests.models import Response
 
@@ -26,7 +25,7 @@ def format_with_indent(data):
 			return json.dumps(dict(data), indent=4)
 		else:
 			return format_with_indent(json.loads(data))
-	except:
+	except Exception:
 		frappe.log_error(
 			title="Error in formatting data", message=frappe.get_traceback()
 		)
@@ -35,11 +34,14 @@ def format_with_indent(data):
 
 @frappe.whitelist()
 def create_api_log(res, action=None, ref_doctype=None, ref_docname=None):
-	"""Can create API log From response
-
+	"""Create API Log Document
 	Args:
-			res (response object): It is used to obtain an API response.
-			request_from (str): It is optional for the purposes of the API...
+	        res (Response): Response Object from requests library
+	        action (str, optional): Action performed. Defaults to None.
+	        ref_doctype (str, optional): Reference Doctype. Defaults to None.
+	        ref_docname (str, optional): Reference Docname. Defaults to None.
+	Returns:
+	        str: Name of the created log document
 	"""
 	if not isinstance(res, Response):
 		return
@@ -56,7 +58,7 @@ def create_api_log(res, action=None, ref_doctype=None, ref_docname=None):
 		log_doc.reference_doctype = ref_doctype
 		log_doc.reference_docname = ref_docname
 		log_doc.save()
-	except:
+	except Exception:
 		frappe.log_error(
 			title="Error in creating API Log", message=frappe.get_traceback()
 		)

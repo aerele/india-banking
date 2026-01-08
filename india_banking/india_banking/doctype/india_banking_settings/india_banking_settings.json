@@ -176,7 +176,7 @@
    "label": "Log Configuration"
   },
   {
-   "default": "0",
+   "default": "1",
    "description": "if enabled, logs older than the specified number of days will be automatically removed.",
    "fieldname": "clear_india_banking_request_log",
    "fieldtype": "Check",
@@ -194,7 +194,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-09 01:42:52.031800",
+ "modified": "2026-01-09 01:49:13.501926",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

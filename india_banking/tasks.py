@@ -153,7 +153,7 @@ def clear_india_banking_request_log(days=7):
 	if not settings.clear_india_banking_request_log:
 		return
 
-	stale_days = settings.stale_days or 15  # Default to 15 days if not set
+	stale_days = settings.stale_days or 30  # Default to 30 days if not set
 	try:
 		count = frappe.db.count(
 			"India Banking Request Log",

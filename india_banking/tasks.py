@@ -147,19 +147,23 @@ def update_payment_date_as_posting_date():
 		)
 
 
-def clear_india_banking_request_log(months=2):
+def clear_india_banking_request_log(days=7):
 	"""Clear India Banking Request Logs"""
-	months_to_keep = 2  # Keep 2 months of logs
+	settings = frappe.get_single("India Banking Settings")
+	if not settings.clear_india_banking_request_log:
+		return
+
+	stale_days = settings.stale_days or 15  # Default to 15 days if not set
 	try:
 		count = frappe.db.count(
 			"India Banking Request Log",
 			{
-				"creation": ["<", add_to_date(getdate(), months=-months_to_keep)],
+				"creation": ["<", add_to_date(getdate(), days=-stale_days)],
 			},
 		)
-		if count > 50:
-			end = add_to_date(getdate(), months=-months_to_keep)
-			start = add_to_date(end, months=-(months + 1))
+		if count > 50000:
+			end = add_to_date(getdate(), days=-stale_days)
+			start = add_to_date(end, days=-(days + 7))  # Delete in batches of 7 days
 			frappe.db.delete(
 				"India Banking Request Log",
 				{
@@ -169,16 +173,18 @@ def clear_india_banking_request_log(months=2):
 			count = frappe.db.count(
 				"India Banking Request Log",
 				{
-					"creation": ["<", add_to_date(getdate(), months=-months_to_keep)],
+					"creation": ["<", add_to_date(getdate(), days=-stale_days)],
 				},
 			)
-			if count > 50:
-				frappe.enqueue(clear_india_banking_request_log, months=months + 1)
+			if count > 50000:
+				frappe.enqueue(
+					clear_india_banking_request_log, days=days + 7
+				)  # Enqueue next batch
 		else:
 			frappe.db.delete(
 				"India Banking Request Log",
 				{
-					"creation": ["<", add_to_date(getdate(), months=-months_to_keep)],
+					"creation": ["<", add_to_date(getdate(), days=-stale_days)],
 				},
 			)
 	except Exception:

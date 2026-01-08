@@ -26,7 +26,10 @@
   "payment_notifications_tab",
   "payment_notifications_section",
   "notify_party",
-  "payment_notification"
+  "payment_notification",
+  "log_configuration_tab",
+  "clear_india_banking_request_log",
+  "stale_days"
  ],
  "fields": [
   {
@@ -166,12 +169,32 @@
    "fieldname": "show_bank_balance_in_payment_order",
    "fieldtype": "Check",
    "label": "Show Bank Balance in Payment Order"
+  },
+  {
+   "fieldname": "log_configuration_tab",
+   "fieldtype": "Tab Break",
+   "label": "Log Configuration"
+  },
+  {
+   "default": "0",
+   "description": "if enabled, logs older than the specified number of days will be automatically removed.",
+   "fieldname": "clear_india_banking_request_log",
+   "fieldtype": "Check",
+   "label": "Clear India Banking Request Log"
+  },
+  {
+   "depends_on": "clear_india_banking_request_log",
+   "description": "Logs older than this number of days will be automatically removed.",
+   "fieldname": "stale_days",
+   "fieldtype": "Int",
+   "label": "Stale Days",
+   "mandatory_depends_on": "clear_india_banking_request_log"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-29 01:31:11.273048",
+ "modified": "2026-01-09 01:42:52.031800",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

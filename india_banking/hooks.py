@@ -214,7 +214,8 @@ accounting_dimension_doctypes = ['Bank Payment Request']
 
 scheduler_events = {
     "daily": [
-		"india_banking.tasks.daily"
+		"india_banking.tasks.daily",
+        "india_banking.tasks.clear_india_banking_request_log",
 	],
     "cron": {
         "*/20 * * * *": [

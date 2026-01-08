@@ -872,6 +872,7 @@ def notify_party(payment_info, response_data):
 		if notification_details:
 			notification_details = frappe._dict(notification_details)
 			try:
+				party_field = "supplier_name" if payment_info.party_type == "Supplier" else "name"
 				frappe.sendmail(
 					recipients=[
 						payment_info.email
@@ -882,7 +883,7 @@ def notify_party(payment_info, response_data):
 					cc= notification_details.cc,
 					subject="Payment Notification",
 					message="Payment for {0} is completed. Please check the attachment for details".format(
-						payment_info.party_name
+						frappe.get_value(payment_info.party_type, payment_info.party, party_field)
 					),
 					attachments=[
 						{

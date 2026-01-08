@@ -56,7 +56,10 @@ accounting_dimension_doctypes = [
 ]
 
 scheduler_events = {
-	"daily": ["india_banking.tasks.daily"],
+	"daily": [
+		"india_banking.tasks.daily",
+		"india_banking.tasks.clear_india_banking_request_log",
+	],
 	"cron": {
 		"*/20 * * * *": ["india_banking.tasks.job_twenty_minutes"],
 		"0 * * * *": ["india_banking.tasks.job_one_hour"],

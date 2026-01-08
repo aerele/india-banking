@@ -1,5 +1,6 @@
 import frappe
 from frappe.query_builder import DocType
+from frappe.utils import add_to_date, getdate
 
 from india_banking.india_banking.doctype.bank_connector.bank_connector import (
 	get_bank_connector,
@@ -144,3 +145,41 @@ def update_payment_date_as_posting_date():
 			title="Error in Payment Date Update Cron",
 			message=frappe.get_traceback(),
 		)
+
+
+def clear_india_banking_request_log(months=2):
+	"""Clear India Banking Request Logs"""
+	months_to_keep = 2  # Keep 2 months of logs
+	try:
+		count = frappe.db.count(
+			"India Banking Request Log",
+			{
+				"creation": ["<", add_to_date(getdate(), months=-months_to_keep)],
+			},
+		)
+		if count > 50:
+			end = add_to_date(getdate(), months=-months_to_keep)
+			start = add_to_date(end, months=-(months + 1))
+			frappe.db.delete(
+				"India Banking Request Log",
+				{
+					"creation": ["between", [start, end]],
+				},
+			)
+			count = frappe.db.count(
+				"India Banking Request Log",
+				{
+					"creation": ["<", add_to_date(getdate(), months=-months_to_keep)],
+				},
+			)
+			if count > 50:
+				frappe.enqueue(clear_india_banking_request_log, months=months + 1)
+		else:
+			frappe.db.delete(
+				"India Banking Request Log",
+				{
+					"creation": ["<", add_to_date(getdate(), months=-months_to_keep)],
+				},
+			)
+	except Exception:
+		frappe.log_error(title="Failed to clear Bank Request Log")

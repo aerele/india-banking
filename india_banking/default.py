@@ -63,6 +63,10 @@ STD_BANK_LIST = [
 	"City Bank",
 ]
 
+H2H_ENABLED_BANKS = [
+	"City Bank",
+]
+
 DEFAULT_ROLES = ["Payment Manager"]
 
 DEFAULT_WORKFLOW_STATE = [

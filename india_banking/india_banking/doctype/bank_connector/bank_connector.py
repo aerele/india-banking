@@ -12,6 +12,7 @@ from frappe.model.document import Document
 from frappe.utils import add_days, cint, cstr, flt, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
+from india_banking.default import H2H_ENABLED_BANKS
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
 )
@@ -55,6 +56,18 @@ class BankConnector(Document):
 
 	def verify_otp(self, payment_order, otp):
 		pass
+
+	def validate(self):
+		self.validate_integration_mode()
+
+	def validate_integration_mode(self):
+		if self.integration_mode == "H2H":
+			if self.bank not in H2H_ENABLED_BANKS:
+				frappe.throw(
+					_(
+						f"H2H Integration is not supported for {self.bank}. Please select API Integration mode."
+					)
+				)
 
 	def get_payload(self, payment_order, action=None, otp=None):
 		bank_account = frappe.get_doc(

@@ -36,8 +36,10 @@ def format_with_indent(data):
 		else:
 			return format_with_indent(json.loads(data))
 
-	except Exception as e:
-		frappe.log_error(title="Error in formatting data", message=str(e))
+	except Exception:
+		frappe.log_error(
+			title="Error in formatting data", message=frappe.get_traceback()
+		)
 		return data
 
 
@@ -65,8 +67,10 @@ def create_api_log(res, action=None, ref_doctype=None, ref_docname=None):
 		log_doc.reference_docname = ref_docname
 		log_doc.save()
 
-	except Exception as e:
-		frappe.log_error(title="Error in creating API Log", message=str(e))
+	except Exception:
+		frappe.log_error(
+			title="Error in creating API Log", message=frappe.get_traceback()
+		)
 	else:
 		frappe.db.commit()
 		return log_doc.name

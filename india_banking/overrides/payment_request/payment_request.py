@@ -6,9 +6,6 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 	PaymentRequest,
 	get_existing_payment_request_amount,
 )
-from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
-	get_party_tax_withholding_details,
-)
 from erpnext.accounts.party import get_party_account as _get_party_account
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _, bold
@@ -209,7 +206,6 @@ class BankPaymentRequest(PaymentRequest):
 			self.party_type,
 			self.party,
 			self.company,
-			include_disabled=self.is_adhoc,
 		)
 		if not party_account:
 			frappe.throw(
@@ -292,11 +288,6 @@ class BankPaymentRequest(PaymentRequest):
 		doc.base_tax_withholding_net_total = amount
 		doc.tax_withholding_net_total = amount
 		doc.taxes = []
-		taxes = get_party_tax_withholding_details(doc, self.tax_withholding_category)
-		if taxes:
-			return taxes["tax_amount"]
-		else:
-			return 0
 
 
 @frappe.whitelist()

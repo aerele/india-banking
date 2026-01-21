@@ -26,7 +26,7 @@ OTP_ENABLED_BANK = [
 ]
 
 
-class BankConnector(Document):
+class IndiaBankingConnector(Document):
 	def __init__(self, *args, **kwargs):
 		self.success_count = 0
 		self.failed_count = 0
@@ -298,7 +298,7 @@ class BankConnector(Document):
 									},
 								)
 
-							self.notify_party(summary)
+							self._notify_party(summary)
 
 					elif status_details.status == "Pending":
 						frappe.db.set_value(
@@ -539,7 +539,7 @@ class BankConnector(Document):
 				message=frappe.get_traceback(),
 			)
 
-	def notify_party(self, summary_row):
+	def _notify_party(self, summary_row):
 		bank_setting = frappe.get_single("India Banking Settings")
 		if not bank_setting.notify_party or not bank_setting.payment_notification:
 			return
@@ -730,7 +730,7 @@ class BankConnector(Document):
 def get_bank_connector(bank_account, company):
 	# Fetch the connector information
 	bank_connector = frappe.db.exists(
-		"Bank Connector",
+		"India Banking Connector",
 		{
 			"company": company,
 			"bank_account": bank_account,
@@ -739,7 +739,7 @@ def get_bank_connector(bank_account, company):
 	if not bank_connector:
 		frappe.throw(_("Bank Connector is not initialized"))
 
-	return frappe.get_doc("Bank Connector", bank_connector)
+	return frappe.get_doc("India Banking Connector", bank_connector)
 
 
 @frappe.whitelist()

@@ -8,14 +8,11 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 from erpnext.accounts.doctype.payment_request import payment_request as PR
 from erpnext.accounts.doctype.payment_request.payment_request import (
 	PaymentRequest,
-	get_existing_payment_request_amount,
 )
-from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
-	get_party_tax_withholding_details,
-)
+
+# get_existing_payment_request_amount,
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _
-from frappe.model.document import Document
 from frappe.utils.data import cstr, flt, today
 
 
@@ -155,11 +152,6 @@ class BankPaymentRequest(PaymentRequest):
 		doc.base_tax_withholding_net_total = amount
 		doc.tax_withholding_net_total = amount
 		doc.taxes = []
-		taxes = get_party_tax_withholding_details(doc, self.tax_withholding_category)
-		if taxes:
-			return taxes["tax_amount"]
-		else:
-			return 0
 
 	def valdidate_bank_for_wire_transfer(self):
 		if self.mode_of_payment == "Wire Transfer" and not self.bank_account:
@@ -172,7 +164,7 @@ class BankPaymentRequest(PaymentRequest):
 
 			if self.mode_of_payment == "Wire Transfer" and status != "Approved":
 				frappe.throw(_("Cannot proceed with un-approved bank account"))
-		except:
+		except Exception:
 			frappe.throw(_("Workflow Not Found for Bank Account"))
 
 
@@ -472,6 +464,7 @@ def get_existing_payment_request_amount(
 		if existing_payment_request_amount
 		else 0
 	)
+
 
 def get_amount(ref_doc, payment_account=None):
 	"""get amount based on doctype"""

@@ -2,9 +2,8 @@ import time
 
 import frappe
 from frappe.query_builder import DocType
-from frappe.utils.background_jobs import is_job_enqueued
 
-from india_banking.india_banking.doctype.bank_connector.bank_connector import (
+from india_banking.india_banking.doctype.india_banking_connector.india_banking_connector import (
 	get_bank_connector,
 	get_payment_status,
 )
@@ -163,7 +162,7 @@ def process_batch_payment(payment_details):
 			payment_order_doc.company_bank_account, payment_order_doc.company
 		)
 		last_call = None
-		payment_delay = bank_connector.payment_call_interval or 10 # default 10 sec
+		payment_delay = bank_connector.payment_call_interval or 10  # default 10 sec
 		for summary_row in payment_order_doc.summary:
 			if not last_call:
 				last_call = time.time()

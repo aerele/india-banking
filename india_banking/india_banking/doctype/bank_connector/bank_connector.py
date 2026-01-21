@@ -68,6 +68,7 @@ class BankConnector(Document):
 						f"H2H Integration is not supported for {self.bank}. Please select API Integration mode."
 					)
 				)
+			self.bulk_transaction = 1
 
 	def get_payload(self, payment_order, action=None, otp=None):
 		bank_account = frappe.get_doc(
@@ -85,6 +86,7 @@ class BankConnector(Document):
 		)
 		payment_payload.method = self.get("action", "") or action
 		payment_payload.bulk_transaction = self.bulk_transaction
+		payment_payload.integration_mode = self.integration_mode
 		payment_payload.doc.otp = otp
 
 		return payment_payload
@@ -611,6 +613,7 @@ class BankConnector(Document):
 		payload.doc = doc
 		payload.method = "get_bank_balance"
 		payload.bulk_transaction = self.bulk_transaction
+		payload.integration_mode = self.integration_mode
 
 		response = request.post(
 			self.connector_url, headers=self.headers, data=json.dumps(payload)
@@ -703,6 +706,7 @@ class BankConnector(Document):
 		payload.doc = doc
 		payload.method = "get_bank_statement"
 		payload.bulk_transaction = self.bulk_transaction
+		payload.integration_mode = self.integration_mode
 
 		response = request.post(
 			self.connector_url, headers=self.headers, data=json.dumps(payload)

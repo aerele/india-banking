@@ -60,6 +60,7 @@ STD_BANK_LIST = [
 	"Union Bank of India",
 	"Bank of Baroda",
 	"IDFC Bank",
+	"City Bank",
 ]
 
 DEFAULT_ROLES = ["Payment Manager"]

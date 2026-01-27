@@ -14,7 +14,7 @@ def daily():
 
 
 def job_twenty_minutes():
-	for connector in frappe.get_all("India Banking Connector", pluck=["bank_account"]):
+	for connector in frappe.get_all("India Banking Connector", pluck="name"):
 		if (
 			frappe.db.get_value("India Banking Connector", connector, "status_check")
 			== "Every 20 Minutes"
@@ -24,7 +24,7 @@ def job_twenty_minutes():
 
 
 def job_one_hour():
-	for connector in frappe.get_all("India Banking Connector", pluck=["bank_account"]):
+	for connector in frappe.get_all("India Banking Connector", pluck="name"):
 		if (
 			frappe.db.get_value("India Banking Connector", connector, "status_check")
 			== "Every Hour"
@@ -34,7 +34,7 @@ def job_one_hour():
 
 
 def job_at_midnight():
-	for connector in frappe.get_all("India Banking Connector", pluck=["bank_account"]):
+	for connector in frappe.get_all("India Banking Connector", pluck="name"):
 		if (
 			frappe.db.get_value("India Banking Connector", connector, "status_check")
 			== "Every Day at Midnight"

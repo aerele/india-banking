@@ -47,6 +47,12 @@ class IndiaBankingConnector(Document):
 	def connector_url(self):
 		return f"{self.url}/api/method/india_banking_connector.api.connect"
 
+	def onload(self):
+		self.set_onload(
+			"connector_installed",
+			"india_banking_connector" in frappe.get_installed_apps(),
+		)
+
 	def check_otp_enabled(self, otp=None):
 		if (self.bank, self.bulk_transaction) in OTP_ENABLED_BANK and otp is None:
 			return True

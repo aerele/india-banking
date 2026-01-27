@@ -23,12 +23,6 @@
   "enable_payment_delay",
   "payment_call_interval",
   "settings",
-  "basic_configuration_section",
-  "summarise_payment_based_on",
-  "use_payment_order_date_as_payment_entry_date",
-  "allow_future_date_payment_order",
-  "column_break_qaoq",
-  "allowed_payment_doctypes",
   "auto_update_configurations_section",
   "payment_configuration_column",
   "auto_post_payments",
@@ -76,28 +70,31 @@
    "reqd": 1
   },
   {
+   "depends_on": "!doc.__onload.connector_installed\n",
    "fieldname": "url",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "URL",
-   "reqd": 1
+   "read_only_depends_on": "!doc.__onload.connector_installed\n"
   },
   {
    "fieldname": "column_break_mdgf",
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "!doc.__onload.connector_installed\n",
    "fieldname": "api_key",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "API Key",
-   "reqd": 1
+   "mandatory_depends_on": "!doc.__onload.connector_installed\n"
   },
   {
+   "depends_on": "!doc.__onload.connector_installed\n",
    "fieldname": "api_secret",
    "fieldtype": "Password",
    "label": "API Secret",
-   "reqd": 1
+   "mandatory_depends_on": "!doc.__onload.connector_installed\n"
   },
   {
    "default": "0",
@@ -148,41 +145,6 @@
    "label": "Settings"
   },
   {
-   "fieldname": "basic_configuration_section",
-   "fieldtype": "Section Break",
-   "label": "Basic Configuration"
-  },
-  {
-   "fieldname": "summarise_payment_based_on",
-   "fieldtype": "Select",
-   "label": "Summarise Payment Based On",
-   "options": "Party\nVoucher"
-  },
-  {
-   "default": "0",
-   "fieldname": "use_payment_order_date_as_payment_entry_date",
-   "fieldtype": "Check",
-   "label": "Use Payment Order Date as Payment Entry Date"
-  },
-  {
-   "default": "0",
-   "fieldname": "allow_future_date_payment_order",
-   "fieldtype": "Check",
-   "label": "Allow future Date Payment Order"
-  },
-  {
-   "description": "Enabled doctypes can be pulled in the payment order for payment processing.",
-   "fieldname": "column_break_qaoq",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "Payment Request\nPayment Entry\nBank Entry",
-   "fieldname": "allowed_payment_doctypes",
-   "fieldtype": "Small Text",
-   "label": "Allowed Payment Doctypes",
-   "read_only": 1
-  },
-  {
    "fieldname": "auto_update_configurations_section",
    "fieldtype": "Section Break",
    "label": "Auto Update Configurations"
@@ -228,7 +190,7 @@
   },
   {
    "default": "Every Day at Midnight",
-   "depends_on": "update_payment_status",
+   "depends_on": "auto_update_payment_status",
    "fieldname": "status_check_at",
    "fieldtype": "Select",
    "label": "Status check at",
@@ -236,7 +198,7 @@
   },
   {
    "default": "3",
-   "depends_on": "update_payment_status",
+   "depends_on": "auto_update_payment_status",
    "description": "Check the payment status for 'Processed' payment from the payment initiation date until the retry period.",
    "fieldname": "retry_period",
    "fieldtype": "Int",
@@ -286,7 +248,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-21 12:37:20.593108",
+ "modified": "2026-01-27 17:24:15.266903",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Connector",

@@ -14,33 +14,48 @@ def daily():
 
 
 def job_twenty_minutes():
-	if frappe.get_single("India Banking Settings").status_check == "Every 20 Minutes":
-		update_payment_date_as_posting_date()
-		update_payment_status()
+	for connector in frappe.get_all("India Banking Connector", pluck=["bank_account"]):
+		if (
+			frappe.db.get_value("India Banking Connector", connector, "status_check")
+			== "Every 20 Minutes"
+		):
+			update_payment_date_as_posting_date()
+			update_payment_status()
 
 
 def job_one_hour():
-	if frappe.get_single("India Banking Settings").status_check == "Every Hour":
-		update_payment_date_as_posting_date()
-		update_payment_status()
+	for connector in frappe.get_all("India Banking Connector", pluck=["bank_account"]):
+		if (
+			frappe.db.get_value("India Banking Connector", connector, "status_check")
+			== "Every Hour"
+		):
+			update_payment_date_as_posting_date()
+			update_payment_status()
 
 
 def job_at_midnight():
-	if (
-		frappe.get_single("India Banking Settings").status_check
-		== "Every Day at Midnight"
+	for connector in frappe.get_all("India Banking Connector", pluck=["bank_account"]):
+		if (
+			frappe.db.get_value("India Banking Connector", connector, "status_check")
+			== "Every Day at Midnight"
+		):
+			update_payment_date_as_posting_date()
+			update_payment_status()
+
+
+def update_payment_status(check_processed_payments=False, connector=None):
+	if connector and frappe.db.get_value(
+		"India Banking Connector", connector, "auto_update_payment_status"
 	):
-		update_payment_date_as_posting_date()
-		update_payment_status()
-
-
-def update_payment_status(check_processed_payments=False):
-	if not frappe.get_single("India Banking Settings").update_payment_status:
 		return
 
+	PaymentOrder = DocType("Payment Order")
 	PaymentOrderSummary = DocType("Payment Order Summary")
+
 	orders = (
-		frappe.qb.from_(PaymentOrderSummary)
+		frappe.qb.from_(PaymentOrder)
+		.join(PaymentOrderSummary)
+		.on(PaymentOrder.name == PaymentOrderSummary.parent)
 		.select(PaymentOrderSummary.parent)
 		.where(
 			(PaymentOrderSummary.docstatus == 1)

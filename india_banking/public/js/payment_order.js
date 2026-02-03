@@ -72,7 +72,7 @@ frappe.ui.form.on("Payment Order", {
 		}
 	},
 	set_unlink_vouchers_button(frm) {
-		if (frm.doc.docstatus == 1 && frm.doc.references) {
+		if (frm.doc.docstatus == 1 && frm.doc.references.length) {
 			frm.add_custom_button(__("Unlink Allocation"), function () {
 				let dialog = new frappe.ui.Dialog({
 					title: __("Unlink Allocation"),

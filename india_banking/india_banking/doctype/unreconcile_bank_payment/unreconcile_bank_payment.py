@@ -20,6 +20,9 @@ class UnreconcileBankPayment(Document):
 				_("Only {0} are supported").format(comma_and(self.supported_types))
 			)
 
+		if not self.allocations:
+			frappe.throw(_("At least one Allocation is required before submission."))
+
 	def add_references(self):
 		allocations = self.get_reference_from_payment_order()
 
@@ -98,6 +101,15 @@ class UnreconcileBankPayment(Document):
 
 			for voucher in vouchers:
 				if voucher["payment_request"]:
+					if not frappe.has_permission(
+						"Payment Request", "cancel", voucher["payment_request"]
+					):
+						frappe.throw(
+							_(
+								"You do not have permission to cancel Payment Request {0}."
+							).format(voucher["payment_request"])
+						)
+
 					payment_request = frappe.get_doc(
 						"Payment Request", voucher["payment_request"]
 					)

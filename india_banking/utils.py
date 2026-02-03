@@ -124,7 +124,7 @@ def unlink_bank_payment(payment_order_summary=None):
 		payment_order_summary.get("summary_references")
 	)
 	for reference in summary_references:
-		payment_request = frappe.get_doc(
+		payment_request = frappe.get_value(
 			"Payment Order Reference", reference, "payment_request"
 		)
 		if payment_request:

@@ -162,9 +162,8 @@ frappe.ui.form.on("Payment Order", {
 								freeze: true,
 								async: true,
 								callback: function (r) {
-									if (r.message) {
-										dialog.hide();
-									}
+									dialog.hide();
+									frm.reload_doc();
 								},
 							});
 						} else {

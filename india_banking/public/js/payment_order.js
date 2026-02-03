@@ -58,6 +58,7 @@ frappe.ui.form.on("Payment Order", {
 		frm.trigger("set_get_payments_from_buttons");
 		frm.trigger("set_payment_and_status_buttons");
 		frm.trigger("set_pending_payment_cancel_button");
+		frm.trigger("set_unlink_vouchers_button");
 	},
 
 	set_pending_payment_cancel_button(frm) {
@@ -67,6 +68,116 @@ frappe.ui.form.on("Payment Order", {
 		if (has_pending_payment && has_pending_payment < frm.doc.summary.length && frm.doc.docstatus == 1) {
 			frm.add_custom_button(__("Cancel Pending Payments"), function () {
 				show_update_status_dialog(frm);
+			});
+		}
+	},
+	set_unlink_vouchers_button(frm) {
+		if (frm.doc.docstatus == 1 && frm.doc.references) {
+			frm.add_custom_button(__("Unlink Allocation"), function () {
+				let dialog = new frappe.ui.Dialog({
+					title: __("Unlink Allocation"),
+					fields: [
+						{
+							label: __("Allocations"),
+							fieldname: "allocations",
+							fieldtype: "Table",
+							fields: [
+								{
+									columns: 2,
+									fieldname: "party_type",
+									fieldtype: "Data",
+									in_list_view: 1,
+									label: "Party Type",
+								},
+								{
+									columns: 2,
+									fieldname: "party",
+									fieldtype: "Data",
+									in_list_view: 1,
+									label: "Party",
+								},
+								{
+									columns: 2,
+									fieldname: "reference_type",
+									fieldtype: "Link",
+									in_list_view: 1,
+									label: "Reference Type",
+									options: "DocType",
+								},
+								{
+									columns: 2,
+									fieldname: "reference_name",
+									fieldtype: "Dynamic Link",
+									in_list_view: 1,
+									label: "Reference Name",
+									options: "reference_type",
+								},
+								{
+									fieldname: "amount",
+									fieldtype: "Currency",
+									in_list_view: 1,
+									label: "Amount",
+								},
+								{
+									fieldname: "account",
+									fieldtype: "Link",
+									label: "Account",
+									options: "Account",
+								},
+								{
+									fieldname: "payment_request",
+									fieldtype: "Data",
+									label: "Payment Request",
+								},
+							],
+							data: frm.doc.references.map((row) => {
+								return {
+									party_type: row.party_type,
+									party: row.party,
+									reference_type: row.reference_doctype,
+									reference_name: row.reference_name,
+									amount: row.amount,
+									account: row.account,
+									payment_request: row.payment_request,
+								};
+							}),
+						},
+					],
+					primary_action_label: __("Submit"),
+					primary_action: function () {
+						let values = dialog.get_values();
+						let selected_allocations = values.allocations.filter((x) => x.__checked);
+
+						if (selected_allocations.length) {
+							frappe.call({
+								method: "india_banking.india_banking.doctype.unreconcile_bank_payment.unreconcile_bank_payment.create_unreconcile_bank_doc_for_selection",
+								args: {
+									args: {
+										company: frm.doc.company,
+										voucher_type: frm.doc.doctype,
+										voucher_no: frm.doc.name,
+										selections: selected_allocations,
+									},
+								},
+								freeze: true,
+								async: true,
+								callback: function (r) {
+									if (r.message) {
+										dialog.hide();
+									}
+								},
+							});
+						} else {
+							dialog.hide();
+						}
+					},
+					secondary_action_label: __("Cancel"),
+					secondary_action: function () {
+						dialog.hide();
+					},
+					size: "large",
+				});
+				dialog.show();
 			});
 		}
 	},

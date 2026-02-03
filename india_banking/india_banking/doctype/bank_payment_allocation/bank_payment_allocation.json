@@ -18,16 +18,19 @@
   {
    "columns": 2,
    "fieldname": "party_type",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Party Type"
+   "label": "Party Type",
+   "options": "DocType"
   },
   {
    "columns": 2,
    "fieldname": "party",
-   "fieldtype": "Data",
+   "fieldtype": "Dynamic Link",
    "in_list_view": 1,
-   "label": "Party"
+   "label": "Party",
+   "mask": 1,
+   "options": "party_type"
   },
   {
    "columns": 2,
@@ -59,15 +62,16 @@
   },
   {
    "fieldname": "payment_request",
-   "fieldtype": "Data",
-   "label": "Payment Request"
+   "fieldtype": "Link",
+   "label": "Payment Request",
+   "options": "Payment Request"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-02-03 15:59:08.865457",
+ "modified": "2026-02-03 18:42:24.373612",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Allocation",

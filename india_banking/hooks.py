@@ -72,3 +72,6 @@ scheduler_events = {
 		"0 0 * * *": ["india_banking.tasks.job_at_midnight"],
 	},
 }
+
+
+ignore_links_on_delete = ["Unreconcile Bank Payment", "Bank Payment Allocation"]

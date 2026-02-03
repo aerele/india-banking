@@ -18,7 +18,7 @@ frappe.ui.form.on("Bank Connector", {
 		frm.events.toggle_fields(frm);
 	},
 	toggle_fields(frm) {
-		if (frm.doc.bank === "City Bank") {
+		if (frm.doc.bank === "CITI Bank") {
 			if (frm.is_new()) {
 				frm.set_value("integration_mode", "H2H");
 			}

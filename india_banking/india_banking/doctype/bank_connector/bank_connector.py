@@ -115,7 +115,7 @@ class BankConnector(Document):
 		if otp:
 			self.verify_otp(payment_order, otp)
 
-		if self.bulk_transaction:
+		if self.bulk_transaction or self.integration_mode == "H2H":
 			url = self.connector_url
 			headers = self.headers
 

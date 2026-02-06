@@ -4,7 +4,7 @@ from india_banking.utils import get_payment_order_summary, unlink_bank_payment
 
 
 def on_submit(doc, method=None):
-	if doc.voucher_type != "Payment Entry":
+	if doc.voucher_type != "Payment Entry" or frappe.flags.from_payment_order:
 		return
 
 	if (

@@ -145,15 +145,16 @@ def create_payment_request_custom_fields():
 			"options": "Payment Type",
 			"mandatory_depends_on": "",
 			"insert_after": "mode_of_payment",
-			"hidden": 1,  # Not used currently
+			"hidden": 1,  # deprecated
 		},
-		{
-			"label": "Is Adhoc",
-			"fieldname": "is_adhoc",
-			"fieldtype": "Check",
-			"depends_on": "eval:doc.mode_of_payment == 'Wire Transfer' && doc.payment_request_type ==  'Outward'",
-			"insert_after": "payment_type",
-		},
+		# deprecated
+		# {
+		# 	"label": "Is Adhoc",
+		# 	"fieldname": "is_adhoc",
+		# 	"fieldtype": "Check",
+		# 	"depends_on": "eval:doc.mode_of_payment == 'Wire Transfer' && doc.payment_request_type ==  'Outward'",
+		# 	"insert_after": "payment_type",
+		# },
 		{
 			"label": "Net Total",
 			"fieldname": "net_total",
@@ -169,21 +170,23 @@ def create_payment_request_custom_fields():
 			"insert_after": "net_total",
 			"read_only": 1,
 		},
-		{
-			"label": "Apply Tax Withholding Amount",
-			"fieldname": "apply_tax_withholding_amount",
-			"fieldtype": "Check",
-			"depends_on": "eval:doc.is_adhoc",
-			"insert_after": "currency",
-		},
-		{
-			"label": "Tax Withholding Category",
-			"fieldname": "tax_withholding_category",
-			"fieldtype": "Link",
-			"options": "Tax Withholding Category",
-			"depends_on": "eval:doc.apply_tax_withholding_amount",
-			"insert_after": "payment_term",
-		},
+		# deprecated
+		# {
+		# 	"label": "Apply Tax Withholding Amount",
+		# 	"fieldname": "apply_tax_withholding_amount",
+		# 	"fieldtype": "Check",
+		# 	"depends_on": "eval:doc.is_adhoc",
+		# 	"insert_after": "currency",
+		# },
+		# deprecated
+		# {
+		# 	"label": "Tax Withholding Category",
+		# 	"fieldname": "tax_withholding_category",
+		# 	"fieldtype": "Link",
+		# 	"options": "Tax Withholding Category",
+		# 	"depends_on": "eval:doc.apply_tax_withholding_amount",
+		# 	"insert_after": "payment_term",
+		# },
 		{
 			"label": "Payment Term",
 			"fieldname": "payment_term",
@@ -431,12 +434,13 @@ def create_payment_order_custom_fields():
 				"depends_on": 'eval:doc.party_type == "Supplier"',
 				"insert_after": "party",
 			},
-			{
-				"label": "Is Adhoc",
-				"fieldname": "is_adhoc",
-				"fieldtype": "Check",
-				"insert_after": "tax_withholding_category",
-			},
+			# deprecated
+			# {
+			# 	"label": "Is Adhoc",
+			# 	"fieldname": "is_adhoc",
+			# 	"fieldtype": "Check",
+			# 	"insert_after": "tax_withholding_category",
+			# },
 			{
 				"label": "Payment Term",
 				"fieldname": "payment_term",

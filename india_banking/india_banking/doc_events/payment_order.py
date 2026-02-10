@@ -93,21 +93,27 @@ def make_payment_entries(docname):
 		pe.cost_center = row.cost_center
 		pe.project = row.project
 		pe.posting_date = nowdate()
+
 		if frappe.get_single(
 			"India Banking Settings"
 		).use_payment_order_date_as_payment_entry_date:
 			pe.posting_date = payment_order_doc.posting_date
+
 		pe.mode_of_payment = "Wire Transfer"
 		pe.party_type = row.party_type
 		pe.party = row.party
 		pe.bank_account = payment_order_doc.company_bank_account
 		pe.party_bank_account = row.bank_account
+
 		if pe.party_type == "Supplier":
 			pe.ensure_supplier_is_not_blocked()
+
 		pe.payment_order = payment_order_doc.name
 		pe.paid_from = payment_order_doc.account
+
 		if row.account:
 			pe.paid_to = row.account
+
 		pe.paid_from_account_currency = "INR"
 		pe.paid_to_account_currency = "INR"
 		pe.paid_amount = row.amount
@@ -119,110 +125,91 @@ def make_payment_entries(docname):
 			pe.update({dimension: row.get(dimension, "")})
 
 		summary_references = ast.literal_eval(row.summary_references)
-		if row.tax_withholding_category:
-			net_total = 0
-			for sr_name in summary_references:
-				reference = frappe.get_doc("Payment Order Reference", sr_name)
-				net_total += frappe.db.get_value(
-					"Payment Request",
-					reference.payment_request,
-					"net_total",
-				)
-
-			pe.paid_amount = net_total
-			pe.received_amount = net_total
-			pe.apply_tax_withholding_amount = 1
-			pe.tax_withholding_category = row.tax_withholding_category
 
 		for sr_name in summary_references:
 			reference = frappe.get_doc("Payment Order Reference", sr_name)
-			if not reference.is_adhoc:
-				reference_amount = frappe.db.get_value(
-					"Payment Request",
-					reference.payment_request,
-					"net_total",
-				)
-				payment_term = frappe.db.get_value(
-					"Payment Request",
-					reference.payment_request,
-					"payment_term",
-				)
+			reference_amount = frappe.db.get_value(
+				"Payment Request",
+				reference.payment_request,
+				"net_total",
+			)
+			payment_term = frappe.db.get_value(
+				"Payment Request",
+				reference.payment_request,
+				"payment_term",
+			)
 
-				if not payment_term:
-					template = frappe.db.get_value(
-						reference.reference_doctype,
-						reference.reference_name,
-						"payment_terms_template",
+			if not payment_term:
+				template = frappe.db.get_value(
+					reference.reference_doctype,
+					reference.reference_name,
+					"payment_terms_template",
+				)
+				if template:
+					splited_invoice_rows = get_split_invoice_rows(
+						frappe._dict({"voucher_no": reference.reference_name}),
+						template,
+						exc_rates={
+							reference.reference_name: frappe.get_doc(
+								reference.reference_doctype,
+								reference.reference_name,
+							)
+						},
 					)
-					if template:
-						splited_invoice_rows = get_split_invoice_rows(
-							frappe._dict({"voucher_no": reference.reference_name}),
-							template,
-							exc_rates={
-								reference.reference_name: frappe.get_doc(
-									reference.reference_doctype,
-									reference.reference_name,
+					is_term_applied = frappe.db.get_value(
+						"Payment Terms Template",
+						template,
+						"allocate_payment_based_on_payment_terms",
+					)
+					if splited_invoice_rows and is_term_applied:
+						for term_row in splited_invoice_rows:
+							if reference_amount <= 0:
+								break
+							term_paid = (
+								frappe.get_value(
+									"Payment Entry Reference",
+									{
+										"reference_doctype": reference.reference_doctype,
+										"reference_name": reference.reference_name,
+										"payment_term": term_row.get("payment_term"),
+										"docstatus": 1,
+									},
+									"sum(allocated_amount)",
 								)
-							},
-						)
-						is_term_applied = frappe.db.get_value(
-							"Payment Terms Template",
-							template,
-							"allocate_payment_based_on_payment_terms",
-						)
-						if splited_invoice_rows and is_term_applied:
-							for term_row in splited_invoice_rows:
-								if reference_amount <= 0:
-									break
-								term_paid = (
-									frappe.get_value(
-										"Payment Entry Reference",
-										{
-											"reference_doctype": reference.reference_doctype,
-											"reference_name": reference.reference_name,
-											"payment_term": term_row.get(
-												"payment_term"
-											),
-											"docstatus": 1,
-										},
-										"sum(allocated_amount)",
-									)
-									or 0
+								or 0
+							)
+							per = (
+								frappe.db.get_value(
+									"Payment Term",
+									term_row.get("payment_term"),
+									"invoice_portion",
 								)
-								per = (
-									frappe.db.get_value(
-										"Payment Term",
-										term_row.get("payment_term"),
-										"invoice_portion",
-									)
-									/ 100
+								/ 100
+							)
+							invoice_amount = frappe.db.get_value(
+								reference.reference_doctype,
+								reference.reference_name,
+								"grand_total",
+							)
+							to_be_pay = per * invoice_amount
+							paid_amount = min(reference_amount, to_be_pay - term_paid)
+							if paid_amount > 0:
+								_append_reference(
+									pe,
+									reference,
+									invoice_amount,
+									allocated_amount=paid_amount,
+									payment_term=term_row.get("payment_term"),
 								)
-								invoice_amount = frappe.db.get_value(
-									reference.reference_doctype,
-									reference.reference_name,
-									"grand_total",
-								)
-								to_be_pay = per * invoice_amount
-								paid_amount = min(
-									reference_amount, to_be_pay - term_paid
-								)
-								if paid_amount > 0:
-									_append_reference(
-										pe,
-										reference,
-										invoice_amount,
-										allocated_amount=paid_amount,
-										payment_term=term_row.get("payment_term"),
-									)
-									reference_amount -= paid_amount
-						else:
-							_append_reference(pe, reference, reference_amount)
+								reference_amount -= paid_amount
 					else:
 						_append_reference(pe, reference, reference_amount)
 				else:
-					_append_reference(
-						pe, reference, reference_amount, payment_term=payment_term
-					)
+					_append_reference(pe, reference, reference_amount)
+			else:
+				_append_reference(
+					pe, reference, reference_amount, payment_term=payment_term
+				)
 		pe.update(
 			{
 				"reference_no": payment_order_doc.name,
@@ -249,7 +236,12 @@ def group_by_invoices(self):
 	grouped_references = {}
 	if self.references:
 		for ref in self.references:
-			key = (ref.reference_name, ref.reference_doctype, ref.payment_term, ref.payment_request)
+			key = (
+				ref.reference_name,
+				ref.reference_doctype,
+				ref.payment_term,
+				ref.payment_request,
+			)
 			if key not in grouped_references:
 				grouped_references[key] = ref
 			else:

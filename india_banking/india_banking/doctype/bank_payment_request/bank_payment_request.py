@@ -10,12 +10,8 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 	PaymentRequest,
 	get_existing_payment_request_amount,
 )
-from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
-	get_party_tax_withholding_details,
-)
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _
-from frappe.model.document import Document
 from frappe.utils.data import cstr, flt, today
 
 
@@ -25,33 +21,13 @@ class BankPaymentRequest(PaymentRequest):
 
 	def validate(self):
 		frappe.log_error(title="India - banking", message=cstr(self.as_dict()))
-		if (
-			self.apply_tax_withholding_amount
-			and self.tax_withholding_category
-			and self.payment_request_type == "Outward"
-		):
-			if not self.net_total:
-				self.net_total = self.grand_total
-			tds_amount = self.calculate_pr_tds(self.net_total)
-			self.taxes_deducted = tds_amount
-			self.grand_total = self.net_total - self.taxes_deducted
-		else:
-			if self.net_total and not self.grand_total:
-				self.grand_total = self.net_total
-			if (
-				self.grand_total
-				and self.net_total != self.grand_total
-				and not self.apply_tax_withholding_amount
-			):
-				self.grand_total = self.net_total
 
-		if not self.is_adhoc:
-			super().validate()
-		else:
-			if self.get("__islocal"):
-				self.status = "Draft"
-			if self.reference_doctype or self.reference_name:
-				frappe.throw(_("Payments with references cannot be marked as ad-hoc"))
+		if self.net_total and not self.grand_total:
+			self.grand_total = self.net_total
+		if self.grand_total and self.net_total != self.grand_total:
+			self.grand_total = self.net_total
+
+		super().validate()
 
 		self.valdidate_bank_for_wire_transfer()
 
@@ -131,12 +107,8 @@ class BankPaymentRequest(PaymentRequest):
 					)
 				)
 			)
-		if not self.is_adhoc:
-			super().on_submit()
-		else:
-			if self.payment_request_type == "Outward":
-				self.db_set("status", "Initiated")
-				return
+
+		super().on_submit()
 
 	def create_payment_entry(self, submit=True):
 		payment_entry = super().create_payment_entry(submit=submit)
@@ -147,19 +119,6 @@ class BankPaymentRequest(PaymentRequest):
 			)
 
 		return payment_entry
-
-	def calculate_pr_tds(self, amount):
-		doc = self
-		doc.supplier = self.party
-		doc.company = self.company
-		doc.base_tax_withholding_net_total = amount
-		doc.tax_withholding_net_total = amount
-		doc.taxes = []
-		taxes = get_party_tax_withholding_details(doc, self.tax_withholding_category)
-		if taxes:
-			return taxes["tax_amount"]
-		else:
-			return 0
 
 	def valdidate_bank_for_wire_transfer(self):
 		if self.mode_of_payment == "Wire Transfer" and not self.bank_account:
@@ -172,7 +131,7 @@ class BankPaymentRequest(PaymentRequest):
 
 			if self.mode_of_payment == "Wire Transfer" and status != "Approved":
 				frappe.throw(_("Cannot proceed with un-approved bank account"))
-		except:
+		except Exception:
 			frappe.throw(_("Workflow Not Found for Bank Account"))
 
 
@@ -352,10 +311,8 @@ def make_payment_order(source_name, target_doc=None, args=None):
 				"mode_of_payment": source.mode_of_payment,
 				"bank_account": source.bank_account,
 				"account": account,
-				"is_adhoc": source.is_adhoc,
 				"cost_center": source.cost_center,
 				"project": source.project,
-				"tax_withholding_category": source.tax_withholding_category,
 			},
 		)
 		target.status = "Pending"
@@ -439,39 +396,40 @@ def make_payment_order(source_name, target_doc=None, args=None):
 	return doclist
 
 
-def get_existing_payment_request_amount(
-	ref_dt, ref_dn, submitted=True, update=None, payment_term=None
-):
-	"""
-	Get the existing Bank payment request which are unpaid or partially paid for payment channel other than Phone
-	and get the summation of existing paid Bank payment request for Phone payment channel.
-	"""
+# def get_existing_payment_request_amount(
+# 	ref_dt, ref_dn, submitted=True, update=None, payment_term=None
+# ):
+# 	"""
+# 	Get the existing Bank payment request which are unpaid or partially paid for payment channel other than Phone
+# 	and get the summation of existing paid Bank payment request for Phone payment channel.
+# 	"""
 
-	docstatus = 1 if submitted else 0
+# 	docstatus = 1 if submitted else 0
 
-	where_conditions = (
-		"AND payment_term = '{0}'".format(payment_term.replace("%", "%%"))
-		if payment_term
-		else "AND payment_term is null"
-	)
+# 	where_conditions = (
+# 		"AND payment_term = '{0}'".format(payment_term.replace("%", "%%"))
+# 		if payment_term
+# 		else "AND payment_term is null"
+# 	)
 
-	existing_payment_request_amount = frappe.db.sql(
-		"""
-		select sum(net_total)
-		from `tabBank Payment Request`
-		where
-			name != %s
-			and reference_doctype = %s
-			and reference_name = %s
-			and docstatus = %s {0}
-	""".format(where_conditions),
-		(update or "", ref_dt, ref_dn, docstatus),
-	)
-	return (
-		flt(existing_payment_request_amount[0][0])
-		if existing_payment_request_amount
-		else 0
-	)
+# 	existing_payment_request_amount = frappe.db.sql(
+# 		"""
+# 		select sum(net_total)
+# 		from `tabBank Payment Request`
+# 		where
+# 			name != %s
+# 			and reference_doctype = %s
+# 			and reference_name = %s
+# 			and docstatus = %s {0}
+# 	""".format(where_conditions),
+# 		(update or "", ref_dt, ref_dn, docstatus),
+# 	)
+# 	return (
+# 		flt(existing_payment_request_amount[0][0])
+# 		if existing_payment_request_amount
+# 		else 0
+# 	)
+
 
 def get_amount(ref_doc, payment_account=None):
 	"""get amount based on doctype"""

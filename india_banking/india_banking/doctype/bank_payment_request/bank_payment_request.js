@@ -1,22 +1,29 @@
 // Copyright (c) 2024, Aerele Technologies Private Limited and contributors
 // For license information, please see license.txt
 
-//purpose fully comman this doc-event to prevent getting errors
+//purpose commented this doc-event to prevent getting errors
 
 frappe.ui.form.on("Bank Payment Request", {
-  refresh(frm) {
-    frm.disable_form();
-  },
+	refresh(frm) {
+		frm.disable_form();
+		frm.dashboard.add_comment(
+			__(
+				"The Bank Payment Request doctype is deprecated. Please use Payment Request from ERPNext instead."
+			),
+			"red",
+			true
+		);
+	},
 });
-//purpose fully comman this doc-event to prevent getting errors
+//purpose commented this doc-event to prevent getting errors
 /*
 frappe.ui.form.on('Bank Payment Request', {
 	setup: function (frm) {
 		frm.set_query("party_type", function () {
 			return {
 				filters: {
-                    "name": ["in", ["Supplier", "Employee"]]
-                }
+					"name": ["in", ["Supplier", "Employee"]]
+				}
 			};
 		});
 	},

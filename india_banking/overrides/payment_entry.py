@@ -68,20 +68,20 @@ def make_payment_order(source_name, target_doc=None):
 
 		def _get_reference_data(reference=None):
 			return {
-				"reference_doctype": reference.reference_doctype
-				if reference
-				else "Payment Entry",
-				"reference_name": reference.reference_name
-				if reference
-				else source.name,
-				"amount": reference.allocated_amount
-				if reference
-				else source.paid_amount,
+				"reference_doctype": (
+					reference.reference_doctype if reference else "Payment Entry"
+				),
+				"reference_name": (
+					reference.reference_name if reference else source.name
+				),
+				"amount": (
+					reference.allocated_amount if reference else source.paid_amount
+				),
 				"party_type": source.party_type,
 				"party": source.party,
-				"mode_of_payment": source.mode_of_payment
-				if reference
-				else "Wire Transfer",
+				"mode_of_payment": (
+					source.mode_of_payment if reference else "Wire Transfer"
+				),
 				"bank_account": _get_default_bank_account(
 					source.party_type, source.party
 				),
@@ -91,9 +91,6 @@ def make_payment_order(source_name, target_doc=None):
 				"payment_entry": source.name,
 				**_update_dimensions(source),
 			}
-
-		for reference in source.references:
-			target.append("references", _get_reference_data(reference))
 
 		if not source.references:
 			target.append("references", _get_reference_data())
@@ -120,42 +117,34 @@ def make_payment_order(source_name, target_doc=None):
 def get_payment_entry(doctype, txt, searchfield, start, page_len, filters):
 	payment_order = DocType("Payment Order")
 	payment_order_reference = DocType("Payment Order Reference")
-	pe_query = (
+
+	payment_entries = (
 		frappe.qb.from_(payment_order)
 		.left_join(payment_order_reference)
 		.on(payment_order.name == payment_order_reference.parent)
 		.select(
 			payment_order_reference.payment_entry,
+			frappe.qb.terms.Case()
+			.when(
+				payment_order_reference.reference_doctype.eq("Payment Entry"),
+				payment_order_reference.reference_name,
+			)
+			.else_(0)
+			.as_("payment_entry_reference"),
 		)
 		.where(
 			payment_order.payment_order_type.eq("Payment Entry")
 			& payment_order.docstatus
 			!= 2
 		)
-	)
-	pe_query_entry = pe_query.run()
-	re_query = (
-		frappe.qb.from_(payment_order)
-		.left_join(payment_order_reference)
-		.on(payment_order.name == payment_order_reference.parent)
-		.select(
-			payment_order_reference.reference_name.as_("payment_entry"),
-		)
-		.where(
-			payment_order.payment_order_type.eq("Payment Entry")
-			& payment_order_reference.reference_doctype.eq("Payment Entry")
-			& payment_order.docstatus
-			!= 2
-		)
-	)
-	re_query_entry = re_query.run()
+	).run(as_dict=1)
+
+	order_entry = [
+		(pe.payment_entry if pe.payment_entry_reference == 0 else pe.payment_entry)
+		for pe in payment_entries
+	]
 
 	existing_payment_entries = filters["existing_payment_entries"] or []
-	pe_query_entry = [d[0] for d in pe_query_entry] or []
-	re_query_entry = [d[0] for d in re_query_entry] or []
-
-	order_entry = pe_query_entry + re_query_entry
-
 	order_entry += existing_payment_entries
 	if order_entry:
 		filters["name"] = ["not in", order_entry]

@@ -6,9 +6,6 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 	PaymentRequest,
 	get_existing_payment_request_amount,
 )
-from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
-	get_party_tax_withholding_details,
-)
 from erpnext.accounts.party import get_party_account as _get_party_account
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _, bold
@@ -24,30 +21,15 @@ from frappe.utils import (
 class BankPaymentRequest(PaymentRequest):
 	def validate(self):
 		self.set_default_value()
-		if (
-			self.apply_tax_withholding_amount
-			and self.tax_withholding_category
-			and self.payment_request_type == "Outward"
-		):
-			tds_amount = self.calculate_pr_tds(self.net_total)
-			self.taxes_deducted = tds_amount
-			self.grand_total = self.net_total - self.taxes_deducted
-		else:
-			self.grand_total = self.net_total or self.grand_total
+		self.grand_total = self.net_total or self.grand_total
 
-		if not self.is_adhoc:
-			super().validate()
-		else:
-			if self.is_new():
-				self.status = "Draft"
-			if self.reference_doctype or self.reference_name:
-				frappe.throw(_("Payments with references cannot be marked as ad-hoc"))
+		super().validate()
 
 		if self.remarks:
 			self.remarks = self.remarks[:48]
 
 	def validate_and_update_gst_payables(self, update=False):
-		if self.is_adhoc or "india_compliance" not in frappe.get_installed_apps():
+		if "india_compliance" not in frappe.get_installed_apps():
 			return
 
 		if frappe.flags.ignore_hold_gst_payables:
@@ -198,18 +180,13 @@ class BankPaymentRequest(PaymentRequest):
 		self.validate_bank_account()
 		self.validate_party_account()
 
-		if not self.is_adhoc:
-			super().on_submit()
-		else:
-			if self.payment_request_type == "Outward":
-				self.db_set("status", "Initiated")
+		super().on_submit()
 
 	def validate_party_account(self):
 		party_account = _get_party_account(
 			self.party_type,
 			self.party,
 			self.company,
-			include_disabled=self.is_adhoc,
 		)
 		if not party_account:
 			frappe.throw(
@@ -285,19 +262,6 @@ class BankPaymentRequest(PaymentRequest):
 						)
 					)
 
-	def calculate_pr_tds(self, amount):
-		doc = self
-		doc.supplier = self.party
-		doc.company = self.company
-		doc.base_tax_withholding_net_total = amount
-		doc.tax_withholding_net_total = amount
-		doc.taxes = []
-		taxes = get_party_tax_withholding_details(doc, self.tax_withholding_category)
-		if taxes:
-			return taxes["tax_amount"]
-		else:
-			return 0
-
 
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None):
@@ -323,10 +287,8 @@ def make_payment_order(source_name, target_doc=None):
 			"mode_of_payment": source.mode_of_payment,
 			"bank_account": source.bank_account,
 			"account": account,
-			"is_adhoc": source.is_adhoc,
 			"cost_center": source.cost_center,
 			"project": source.project,
-			"tax_withholding_category": source.tax_withholding_category,
 		}
 		reference.update(_update_dimensions(source))
 

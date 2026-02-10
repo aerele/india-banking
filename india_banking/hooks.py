@@ -73,5 +73,9 @@ scheduler_events = {
 	},
 }
 
+default_log_clearing_doctypes = {
+	"India Banking Request Log": 60,
+}
 
 ignore_links_on_delete = ["Unreconcile Bank Payment", "Bank Payment Allocation"]
+

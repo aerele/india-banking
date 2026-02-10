@@ -5,7 +5,6 @@ import json
 
 import frappe
 import requests
-from frappe import _
 from frappe.model.document import Document
 from requests.models import Response
 
@@ -17,6 +16,16 @@ class IndiaBankingRequestLog(Document):
 	def show_failure_message(self):
 		extract_error_message(json.loads(self.response), show_message=True)
 
+	@staticmethod
+	def clear_old_logs(days=30):
+		from frappe.query_builder import Interval
+		from frappe.query_builder.functions import Now
+
+		table = frappe.qb.DocType("India Banking Request Log")
+		frappe.db.delete(
+			table, filters=(table.creation < (Now() - Interval(days=days)))
+		)
+
 
 def format_with_indent(data):
 	try:
@@ -26,7 +35,8 @@ def format_with_indent(data):
 			return json.dumps(dict(data), indent=4)
 		else:
 			return format_with_indent(json.loads(data))
-	except:
+
+	except Exception:
 		frappe.log_error(
 			title="Error in formatting data", message=frappe.get_traceback()
 		)
@@ -38,8 +48,8 @@ def create_api_log(res, action=None, ref_doctype=None, ref_docname=None):
 	"""Can create API log From response
 
 	Args:
-			res (response object): It is used to obtain an API response.
-			request_from (str): It is optional for the purposes of the API...
+	                res (response object): It is used to obtain an API response.
+	                request_from (str): It is optional for the purposes of the API...
 	"""
 	if not isinstance(res, Response):
 		return
@@ -56,7 +66,8 @@ def create_api_log(res, action=None, ref_doctype=None, ref_docname=None):
 		log_doc.reference_doctype = ref_doctype
 		log_doc.reference_docname = ref_docname
 		log_doc.save()
-	except:
+
+	except Exception:
 		frappe.log_error(
 			title="Error in creating API Log", message=frappe.get_traceback()
 		)

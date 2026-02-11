@@ -8,28 +8,35 @@ def execute():
 				"dt": "Payment Request",
 				"fieldname": "is_adhoc",
 			},
-			"property": {"hidden": 1},
+			"property": {"read_only": 1},
 		},
 		{
 			"filters": {
 				"dt": "Payment Request",
 				"fieldname": "apply_tax_withholding_amount",
 			},
-			"property": {"hidden": 1},
+			"property": {"read_only": 1},
+		},
+		{
+			"filters": {
+				"dt": "Payment Request",
+				"fieldname": "tax_withholding_category",
+			},
+			"property": {"read_only": 1},
 		},
 		{
 			"filters": {
 				"dt": "Payment Order Reference",
 				"fieldname": "tax_withholding_category",
 			},
-			"property": {"hidden": 1},
+			"property": {"read_only": 1},
 		},
 		{
 			"filters": {
 				"dt": "Payment Order Reference",
 				"fieldname": "is_adhoc",
 			},
-			"property": {"hidden": 1},
+			"property": {"read_only": 1},
 		},
 	]
 

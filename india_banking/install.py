@@ -51,9 +51,7 @@ def toggle_payment_request_creation(allow=True):
 			"Enabling" if allow else "Disabling"
 		)
 	)
-	frappe.db.set_value(
-		"DocType", "Payment Request", {"in_create": not allow, "track_changes": allow}
-	)
+	frappe.db.set_value("DocType", "Payment Request", {"track_changes": allow})
 
 
 def create_bank_doc_custom_fields():

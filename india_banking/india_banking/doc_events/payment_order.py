@@ -128,10 +128,16 @@ def make_payment_entries(docname):
 
 		for sr_name in summary_references:
 			reference = frappe.get_doc("Payment Order Reference", sr_name)
-			reference_amount = frappe.db.get_value(
-				"Payment Request",
-				reference.payment_request,
-				"net_total",
+			reference_amount = (
+				flt(reference.amount)
+				if reference.amount is not None
+				else flt(
+					frappe.db.get_value(
+						"Payment Request",
+						reference.payment_request,
+						"net_total",
+					)
+				)
 			)
 			payment_term = frappe.db.get_value(
 				"Payment Request",

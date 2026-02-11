@@ -60,6 +60,11 @@ STD_BANK_LIST = [
 	"Union Bank of India",
 	"Bank of Baroda",
 	"IDFC Bank",
+	"CITI Bank",
+]
+
+H2H_ENABLED_BANKS = [
+	"CITI Bank",
 ]
 
 DEFAULT_ROLES = ["Payment Manager"]

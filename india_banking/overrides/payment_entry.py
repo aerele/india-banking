@@ -130,12 +130,7 @@ def get_payment_entry(doctype, txt, searchfield, start, page_len, filters):
 	).run(as_dict=1)
 
 	order_entry = [
-		(
-			pe.payment_entry
-			if pe.payment_entry_reference == 0
-			else pe.payment_entry_reference
-		)
-		for pe in payment_entries
+		pe.payment_entry_reference or pe.payment_entry for pe in payment_entries
 	]
 
 	existing_payment_entries = filters["existing_payment_entries"] or []

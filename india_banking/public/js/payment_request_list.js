@@ -1,4 +1,5 @@
 frappe.listview_settings["Payment Request"] = {
+	...frappe.listview_settings["Payment Request"],
 	onload: function (listview) {
 		$(".page-head").after(
 			`<div class="form-message-container">

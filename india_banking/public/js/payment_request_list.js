@@ -1,3 +1,6 @@
+/* global INDICATORS */
+INDICATORS["Payment Ordered"] = "blue";
+
 frappe.listview_settings["Payment Request"] = {
 	...frappe.listview_settings["Payment Request"],
 	onload: function (listview) {

@@ -45,6 +45,8 @@ class CustomPaymentOrder(PaymentOrder):
 		self.validate_summary()
 
 	def validate_summary(self):
+		a2a_mode = "A2A/FT/Internal"
+
 		if not self.summary:
 			frappe.throw(_("Please validate the summary"))
 
@@ -52,6 +54,9 @@ class CustomPaymentOrder(PaymentOrder):
 			frappe.get_doc("Mode of Transfer", self.default_mode_of_transfer)
 			if self.default_mode_of_transfer
 			else None
+		)
+		a2a_transfer_modes = frappe.db.get_all(
+			"Mode of Transfer", {"mode": a2a_mode, "disabled": 0}, pluck="name"
 		)
 
 		summary_total = 0
@@ -83,6 +88,21 @@ class CustomPaymentOrder(PaymentOrder):
 					)
 				)
 
+			print(
+				"mode_of_transfer.mode not in a2a_transfer_modes",
+				mode_of_transfer.mode,
+				a2a_transfer_modes,
+			)
+			print("payment.bank == self.company_bank", payment.bank, self.company_bank)
+			if (
+				payment.bank == self.company_bank
+				and mode_of_transfer.mode not in a2a_transfer_modes
+			):
+				if not a2a_transfer_modes:
+					frappe.throw("Mode of Transfer: {0} not found".format(a2a_mode))
+
+				payment.mode_of_transfer = a2a_transfer_modes[0]
+
 			if not mode_of_transfer:
 				frappe.throw(_("Define a specific mode of transfer or a default one"))
 
@@ -97,7 +117,6 @@ class CustomPaymentOrder(PaymentOrder):
 					)
 				)
 
-			payment.mode_of_transfer = mode_of_transfer.mode
 			summary_total += payment.amount
 
 		references_total = 0
@@ -147,6 +166,11 @@ class CustomPaymentOrder(PaymentOrder):
 					)
 				)
 		super().on_cancel()
+
+		self.ignore_linked_doctypes = [
+			"Unreconcile Bank Payment",
+			"Bank Payment Allocation",
+		]
 
 	def on_update(self):
 		if self.docstatus == 0:

@@ -20,6 +20,10 @@ def cancel_pending_payments(payment_order_type, data):
 	for d in data:
 		d = parse_json(d)
 
+		# ignore pending rows
+		if if d.status != "Failed":
+			continue
+		
 		if payment_order_type != "Payment Request":
 			success_count += unlink_payment_reference(summary=d)
 			continue

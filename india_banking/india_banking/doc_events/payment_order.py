@@ -12,13 +12,22 @@ from india_banking.utils import get_bank_payment_naming_series
 
 
 @frappe.whitelist()
-def cancel_pending_payments(data):
+def cancel_pending_payments(payment_order_type, data):
 	if isinstance(data, str) or isinstance(data, dict):
 		data = parse_json(data)
 
 	success_count = 0
 	for d in data:
 		d = parse_json(d)
+
+		# ignore pending rows
+		if if d.status != "Failed":
+			continue
+		
+		if payment_order_type != "Payment Request":
+			success_count += unlink_payment_reference(summary=d)
+			continue
+
 		if d.row_name:
 			if d.status == "Failed":
 				frappe.db.set_value(
@@ -37,6 +46,49 @@ def cancel_pending_payments(data):
 				success_count += 1
 	if success_count:
 		frappe.msgprint(_(f"{success_count} payment(s) updated"))
+
+
+def unlink_payment_reference(summary):
+	_comments = []
+	try:
+		po, po_references = frappe.db.get_value(
+			"Payment Order Summary", summary.row_name, ["parent", "summary_references"]
+		)
+		summary_references = ast.literal_eval(po_references)
+		for reference in summary_references:
+			ref_type, ref_name = frappe.db.get_value(
+				"Payment Order Reference",
+				reference,
+				["reference_doctype", "reference_name"],
+			)
+			frappe.db.set_value(
+				"Payment Order Reference",
+				reference,
+				{
+					"reference_name": "",
+					"payment_entry": "",
+				},
+			)
+			_comments.append(
+				"{} - {} has been unlinked from the reference {}".format(
+					ref_type, ref_name, reference
+				)
+			)
+		else:
+			frappe.db.set_value(
+				"Payment Order Summary",
+				summary.row_name,
+				{"payment_status": "Failed", "payment_initiated": 1},
+			)
+		frappe.get_doc("Payment Order", po).add_comment(
+			"Comment", "<br>".join(_comments)
+		)
+		return 1
+	except Exception:
+		frappe.log_error(
+			"Failed to unlink payment", frappe.get_traceback(with_context=1)
+		)
+		return 0
 
 
 def process_payment_requests(payment_order_summary):
@@ -249,7 +301,12 @@ def group_by_invoices(self):
 	grouped_references = {}
 	if self.references:
 		for ref in self.references:
-			key = (ref.reference_name, ref.reference_doctype, ref.payment_term, ref.payment_request)
+			key = (
+				ref.reference_name,
+				ref.reference_doctype,
+				ref.payment_term,
+				ref.payment_request,
+			)
 			if key not in grouped_references:
 				grouped_references[key] = ref
 			else:

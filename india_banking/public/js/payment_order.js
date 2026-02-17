@@ -235,7 +235,7 @@ frappe.ui.form.on("Payment Order", {
 					label: "Company",
 					fieldname: "company",
 					options: "Company",
-					default: frappe.defaults.get_user_default("company"),
+					default: frm.doc.company || frappe.defaults.get_user_default("company"),
 				},
 				{
 					fieldtype: "Select",
@@ -273,9 +273,7 @@ frappe.ui.form.on("Payment Order", {
 		// Check if the document is in a pending state and user has write permissions
 		if (frm.doc.docstatus === 1 && frm.has_perm("write")) {
 			// Check if any summary item has a payment status of "Pending"
-			const has_pending_payments = frm.doc.summary.some(
-				(item) => item.payment_status === "Pending"
-			);
+			const has_pending_payments = frm.doc.summary.some((item) => item.payment_status === "Pending");
 
 			if (frappe.user_roles.includes("Payment Manager") && has_pending_payments) {
 				// Add a custom button to initiate payment
@@ -292,7 +290,9 @@ frappe.ui.form.on("Payment Order", {
 
 			if (has_initiated_or_non_pending) {
 				frm.dashboard.add_comment(
-					"Payment is already initiated. Check the status using the 'Get Status' button before trying again."
+					"Payment is already initiated. Check the status using the 'Get Status' button before trying again.",
+					"blue",
+					false
 				);
 				frm.add_custom_button(__("Get Status"), () => {
 					frappe.call({
@@ -529,6 +529,7 @@ const show_update_status_dialog = function (frm) {
 				method: "india_banking.india_banking.doc_events.payment_order.cancel_pending_payments",
 				args: {
 					data: dialog.get_values()["summary"],
+					payment_order_type: frm.doc.payment_order_type,
 				},
 				freeze: true,
 				freeze_message: __("Cancelling..."),

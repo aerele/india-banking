@@ -82,9 +82,8 @@ def make_payment_order(source_name, target_doc=None):
 				"mode_of_payment": source.mode_of_payment
 				if reference
 				else "Wire Transfer",
-				"bank_account": _get_default_bank_account(
-					source.party_type, source.party
-				),
+				"bank_account": source.party_bank_account
+				or _get_default_bank_account(source.party_type, source.party),
 				"account": account if reference else source.paid_to,
 				"cost_center": source.cost_center,
 				"project": source.project,

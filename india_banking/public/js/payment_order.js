@@ -188,7 +188,7 @@ frappe.ui.form.on("Payment Order", {
 					label: "Company",
 					fieldname: "company",
 					options: "Company",
-					default: frappe.defaults.get_user_default("company"),
+					default: frm.doc.company || frappe.defaults.get_user_default("company"),
 				},
 				{
 					fieldtype: "Select",

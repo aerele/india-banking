@@ -273,9 +273,7 @@ frappe.ui.form.on("Payment Order", {
 		// Check if the document is in a pending state and user has write permissions
 		if (frm.doc.docstatus === 1 && frm.has_perm("write")) {
 			// Check if any summary item has a payment status of "Pending"
-			const has_pending_payments = frm.doc.summary.some(
-				(item) => item.payment_status === "Pending"
-			);
+			const has_pending_payments = frm.doc.summary.some((item) => item.payment_status === "Pending");
 
 			if (frappe.user_roles.includes("Payment Manager") && has_pending_payments) {
 				// Add a custom button to initiate payment

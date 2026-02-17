@@ -1,4 +1,7 @@
 frappe.ui.form.on("Payment Order", {
+	setup: function (frm) {
+		frm.ignore_doctypes_on_cancel_all = ["Unreconcile Bank Payment", "Bank Payment Allocation"];
+	},
 	onload(frm) {
 		// Set summary based on party or voucher
 		if (frm.doc.docstatus == 0) {

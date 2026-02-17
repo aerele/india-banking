@@ -29,5 +29,10 @@ frappe.ui.form.on("Bank Connector", {
 			}
 			frm.set_df_property("integration_mode", "hidden", 1);
 		}
+		frm.call("get_bulk_transaction_banks").then((res) => {
+			if (res?.message.includes(frm.doc.bank)) {
+				frm.set_df_property("bulk_transaction", "hidden", 0);
+			}
+		});
 	},
 });

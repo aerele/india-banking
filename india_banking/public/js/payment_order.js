@@ -2,6 +2,7 @@ frappe.ui.form.on("Payment Order", {
 	onload(frm) {
 		// Set summary based on party or voucher
 		if (frm.doc.docstatus == 0) {
+<<<<<<< HEAD
 			frappe.db
 				.get_single_value("India Banking Settings", "summarise_payment_based_on")
 				.then((res) => {
@@ -9,6 +10,13 @@ frappe.ui.form.on("Payment Order", {
 						frm.set_value("summarise_payment_based_on", res);
 					}
 				});
+=======
+			frappe.db.get_single_value("India Banking Settings", "summarise_payment_based_on").then((res) => {
+				if (!res.exc) {
+					frm.set_value("summarise_payment_based_on", res);
+				}
+			});
+>>>>>>> e3a8fd1 (fix(payment-order): unlink payment entry)
 		}
 
 		// Clear the references table for new documents
@@ -106,11 +114,15 @@ frappe.ui.form.on("Payment Order", {
 		const has_pending_payment = frm.doc.summary?.filter(
 			(item) => item.payment_status == "Pending"
 		).length;
+<<<<<<< HEAD
 		if (
 			has_pending_payment &&
 			has_pending_payment < frm.doc.summary.length &&
 			frm.doc.docstatus == 1
 		) {
+=======
+		if (has_pending_payment && has_pending_payment < frm.doc.summary.length && frm.doc.docstatus == 1) {
+>>>>>>> e3a8fd1 (fix(payment-order): unlink payment entry)
 			frm.add_custom_button(__("Cancel Pending Payments"), function () {
 				show_update_status_dialog(frm);
 			});
@@ -254,9 +266,13 @@ frappe.ui.form.on("Payment Order", {
 			get_query: function () {
 				// Extract unique reference names from the references table
 				const existing_journal_entries = [
+<<<<<<< HEAD
 					...new Set(
 						(frm.doc.references || []).map((reference) => reference.reference_name)
 					),
+=======
+					...new Set((frm.doc.references || []).map((reference) => reference.reference_name)),
+>>>>>>> e3a8fd1 (fix(payment-order): unlink payment entry)
 				];
 				return {
 					query: "india_banking.overrides.journal_entry.get_bank_entry",
@@ -273,9 +289,7 @@ frappe.ui.form.on("Payment Order", {
 		// Check if the document is in a pending state and user has write permissions
 		if (frm.doc.docstatus === 1 && frm.has_perm("write")) {
 			// Check if any summary item has a payment status of "Pending"
-			const has_pending_payments = frm.doc.summary.some(
-				(item) => item.payment_status === "Pending"
-			);
+			const has_pending_payments = frm.doc.summary.some((item) => item.payment_status === "Pending");
 
 			if (frappe.user_roles.includes("Payment Manager") && has_pending_payments) {
 				// Add a custom button to initiate payment
@@ -292,7 +306,13 @@ frappe.ui.form.on("Payment Order", {
 
 			if (has_initiated_or_non_pending) {
 				frm.dashboard.add_comment(
+<<<<<<< HEAD
 					"Payment is already initiated. Check the status using the 'Get Status' button before trying again."
+=======
+					"Payment is already initiated. Check the status using the 'Get Status' button before trying again.",
+					"blue",
+					false
+>>>>>>> e3a8fd1 (fix(payment-order): unlink payment entry)
 				);
 				frm.add_custom_button(__("Get Status"), () => {
 					frappe.call({
@@ -529,6 +549,7 @@ const show_update_status_dialog = function (frm) {
 				method: "india_banking.india_banking.doc_events.payment_order.cancel_pending_payments",
 				args: {
 					data: dialog.get_values()["summary"],
+					payment_order_type: frm.doc.payment_order_type,
 				},
 				freeze: true,
 				freeze_message: __("Cancelling..."),

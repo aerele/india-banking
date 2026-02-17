@@ -88,12 +88,6 @@ class CustomPaymentOrder(PaymentOrder):
 					)
 				)
 
-			print(
-				"mode_of_transfer.mode not in a2a_transfer_modes",
-				mode_of_transfer.mode,
-				a2a_transfer_modes,
-			)
-			print("payment.bank == self.company_bank", payment.bank, self.company_bank)
 			if (
 				payment.bank == self.company_bank
 				and mode_of_transfer.mode not in a2a_transfer_modes

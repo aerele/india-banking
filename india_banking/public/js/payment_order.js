@@ -3,8 +3,11 @@ frappe.ui.form.on("Payment Order", {
 		// Set summary based on party or voucher
 		if (frm.doc.docstatus == 0) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
+=======
+>>>>>>> 35c26e3 (Update payment_order.js)
 			frappe.db
 				.get_single_value("India Banking Settings", "summarise_payment_based_on")
 				.then((res) => {
@@ -12,6 +15,7 @@ frappe.ui.form.on("Payment Order", {
 						frm.set_value("summarise_payment_based_on", res);
 					}
 				});
+<<<<<<< HEAD
 =======
 >>>>>>> 00815c6 (fix(payment-order): unlink payment entry)
 			frappe.db.get_single_value("India Banking Settings", "summarise_payment_based_on").then((res) => {
@@ -23,6 +27,8 @@ frappe.ui.form.on("Payment Order", {
 =======
 >>>>>>> e3a8fd1 (fix(payment-order): unlink payment entry)
 >>>>>>> 00815c6 (fix(payment-order): unlink payment entry)
+=======
+>>>>>>> 35c26e3 (Update payment_order.js)
 		}
 
 		// Clear the references table for new documents
@@ -81,18 +87,24 @@ frappe.ui.form.on("Payment Order", {
 			(item) => item.payment_status == "Pending"
 		).length;
 <<<<<<< HEAD
+<<<<<<< HEAD
 		if (has_pending_payment && has_pending_payment < frm.doc.summary.length && frm.doc.docstatus == 1) {
 =======
 <<<<<<< HEAD
+=======
+>>>>>>> 35c26e3 (Update payment_order.js)
 		if (
 			has_pending_payment &&
 			has_pending_payment < frm.doc.summary.length &&
 			frm.doc.docstatus == 1
 		) {
+<<<<<<< HEAD
 =======
 		if (has_pending_payment && has_pending_payment < frm.doc.summary.length && frm.doc.docstatus == 1) {
 >>>>>>> e3a8fd1 (fix(payment-order): unlink payment entry)
 >>>>>>> 00815c6 (fix(payment-order): unlink payment entry)
+=======
+>>>>>>> 35c26e3 (Update payment_order.js)
 			frm.add_custom_button(__("Cancel Pending Payments"), function () {
 				show_update_status_dialog(frm);
 			});
@@ -236,6 +248,7 @@ frappe.ui.form.on("Payment Order", {
 				// Extract unique reference names from the references table
 				const existing_journal_entries = [
 <<<<<<< HEAD
+<<<<<<< HEAD
 					...new Set((frm.doc.references || []).map((reference) => reference.reference_name)),
 =======
 <<<<<<< HEAD
@@ -246,6 +259,11 @@ frappe.ui.form.on("Payment Order", {
 					...new Set((frm.doc.references || []).map((reference) => reference.reference_name)),
 >>>>>>> e3a8fd1 (fix(payment-order): unlink payment entry)
 >>>>>>> 00815c6 (fix(payment-order): unlink payment entry)
+=======
+					...new Set(
+						(frm.doc.references || []).map((reference) => reference.reference_name)
+					),
+>>>>>>> 35c26e3 (Update payment_order.js)
 				];
 				return {
 					query: "india_banking.overrides.journal_entry.get_bank_entry",
@@ -280,6 +298,7 @@ frappe.ui.form.on("Payment Order", {
 			if (has_initiated_or_non_pending) {
 				frm.dashboard.add_comment(
 <<<<<<< HEAD
+<<<<<<< HEAD
 					"Payment is already initiated. Check the status using the 'Get Status' button before trying again.",
 					"blue",
 					false
@@ -292,6 +311,11 @@ frappe.ui.form.on("Payment Order", {
 					false
 >>>>>>> e3a8fd1 (fix(payment-order): unlink payment entry)
 >>>>>>> 00815c6 (fix(payment-order): unlink payment entry)
+=======
+					"Payment is already initiated. Check the status using the 'Get Status' button before trying again.",
+					"blue",
+					false
+>>>>>>> 35c26e3 (Update payment_order.js)
 				);
 				frm.add_custom_button(__("Get Status"), () => {
 					frappe.call({

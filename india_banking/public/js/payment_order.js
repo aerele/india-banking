@@ -2,16 +2,11 @@ frappe.ui.form.on("Payment Order", {
 	onload(frm) {
 		// Set summary based on party or voucher
 		if (frm.doc.docstatus == 0) {
-			frappe.db
-				.get_single_value(
-					"India Banking Settings",
-					"summarise_payment_based_on"
-				)
-				.then((res) => {
-					if (!res.exc) {
-						frm.set_value("summarise_payment_based_on", res);
-					}
-				});
+			frappe.db.get_single_value("India Banking Settings", "summarise_payment_based_on").then((res) => {
+				if (!res.exc) {
+					frm.set_value("summarise_payment_based_on", res);
+				}
+			});
 		}
 
 		// Clear the references table for new documents
@@ -69,11 +64,7 @@ frappe.ui.form.on("Payment Order", {
 		const has_pending_payment = frm.doc.summary?.filter(
 			(item) => item.payment_status == "Pending"
 		).length;
-		if (
-			has_pending_payment &&
-			has_pending_payment < frm.doc.summary.length &&
-			frm.doc.docstatus == 1
-		){
+		if (has_pending_payment && has_pending_payment < frm.doc.summary.length && frm.doc.docstatus == 1) {
 			frm.add_custom_button(__("Cancel Pending Payments"), function () {
 				show_update_status_dialog(frm);
 			});
@@ -151,7 +142,7 @@ frappe.ui.form.on("Payment Order", {
 				bank: frm.doc.bank,
 				name: ["not in", existing_payment_requests],
 				company: frm.doc.company,
-				transaction_date: ["<=", frappe.datetime.get_today()]
+				transaction_date: ["<=", frappe.datetime.get_today()],
 			},
 		});
 	},
@@ -197,7 +188,7 @@ frappe.ui.form.on("Payment Order", {
 					label: "Company",
 					fieldname: "company",
 					options: "Company",
-					default: frappe.defaults.get_user_default("company"),
+					default: frm.doc.company || frappe.defaults.get_user_default("company"),
 				},
 				{
 					fieldtype: "Select",
@@ -216,11 +207,7 @@ frappe.ui.form.on("Payment Order", {
 			get_query: function () {
 				// Extract unique reference names from the references table
 				const existing_journal_entries = [
-					...new Set(
-						(frm.doc.references || []).map(
-							(reference) => reference.reference_name
-						)
-					),
+					...new Set((frm.doc.references || []).map((reference) => reference.reference_name)),
 				];
 				return {
 					query: "india_banking.overrides.journal_entry.get_bank_entry",
@@ -235,14 +222,9 @@ frappe.ui.form.on("Payment Order", {
 
 	set_payment_and_status_buttons(frm) {
 		// Check if the document is in a pending state and user has write permissions
-		if (
-			frm.doc.docstatus === 1 &&
-			frm.has_perm("write")
-		) {
+		if (frm.doc.docstatus === 1 && frm.has_perm("write")) {
 			// Check if any summary item has a payment status of "Pending"
-			const has_pending_payments = frm.doc.summary.some(
-				(item) => item.payment_status === "Pending"
-			);
+			const has_pending_payments = frm.doc.summary.some((item) => item.payment_status === "Pending");
 
 			if (frappe.user_roles.includes("Payment Manager") && has_pending_payments) {
 				// Add a custom button to initiate payment
@@ -252,25 +234,20 @@ frappe.ui.form.on("Payment Order", {
 			}
 		}
 
-		if (
-			frm.doc.docstatus === 1 &&
-			frm.has_perm("write")
-		) {
+		if (frm.doc.docstatus === 1 && frm.has_perm("write")) {
 			const has_initiated_or_non_pending = frm.doc.summary.some(
-				(item) =>
-					item.payment_status === "Initiated" ||
-					item.payment_status !== "Pending"
+				(item) => item.payment_status === "Initiated" || item.payment_status !== "Pending"
 			);
 
 			if (has_initiated_or_non_pending) {
 				frm.dashboard.add_comment(
 					"Payment is already initiated. Check the status using the 'Get Status' button before trying again.",
-					permanent = false
+					"blue",
+					false
 				);
 				frm.add_custom_button(__("Get Status"), () => {
 					frappe.call({
-						method:
-							"india_banking.india_banking.doctype.bank_connector.bank_connector.get_payment_status",
+						method: "india_banking.india_banking.doctype.bank_connector.bank_connector.get_payment_status",
 						freeze: true,
 						freeze_message: __("Fetching payment status..."),
 						args: {
@@ -287,8 +264,7 @@ frappe.ui.form.on("Payment Order", {
 
 	make_payment: function (frm) {
 		frappe.call({
-			method:
-				"india_banking.india_banking.doctype.bank_connector.bank_connector.make_payment",
+			method: "india_banking.india_banking.doctype.bank_connector.bank_connector.make_payment",
 			freeze: true,
 			freeze_message: __("Initiating Payment..."),
 			args: {
@@ -328,8 +304,7 @@ frappe.ui.form.on("Payment Order", {
 				}
 
 				frappe.call({
-					method:
-						"india_banking.india_banking.doctype.bank_connector.bank_connector.make_payment",
+					method: "india_banking.india_banking.doctype.bank_connector.bank_connector.make_payment",
 					freeze: true,
 					freeze_message: __("Verifying OTP and processing payment..."),
 					args: {
@@ -493,10 +468,10 @@ const show_update_status_dialog = function (frm) {
 		],
 		primary_action: () => {
 			frm.call({
-				method:
-					"india_banking.india_banking.doc_events.payment_order.cancel_pending_payments",
+				method: "india_banking.india_banking.doc_events.payment_order.cancel_pending_payments",
 				args: {
 					data: dialog.get_values()["summary"],
+					payment_order_type: frm.doc.payment_order_type,
 				},
 				freeze: true,
 				freeze_message: __("Cancelling..."),

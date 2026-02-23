@@ -259,6 +259,10 @@ class BankConnector(Document):
 			frappe.throw(_("Connection Failed"))
 
 	def verify_status_response(self, response, payment_order):
+		from india_banking.india_banking.doc_events.payment_order import (
+			unlink_payment_reference,
+		)
+
 		status_count_map = {
 			"Processed": 0,
 			"Pending": 0,
@@ -275,6 +279,7 @@ class BankConnector(Document):
 			if payment_status == "PROCESSED":
 				for summary in payment_order.summary:
 					status_details = frappe._dict(summary_details.get(summary.name, ""))
+					summary_ref = frappe._dict({"row_name": summary.name})
 					if status_details.status == "Processed":
 						if status_details.utr_number and status_details.status not in [
 							"Rejected",
@@ -337,12 +342,14 @@ class BankConnector(Document):
 
 						if summary.payment_entry:
 							self.process_bank_payment_requests(payment_order, summary)
-
-							payment_entry_doc = frappe.get_doc(
-								"Payment Entry", summary.payment_entry
-							)
-							if payment_entry_doc.docstatus == 1:
-								payment_entry_doc.cancel()
+							if payment_order.payment_order_type == "Payment Request":
+								payment_entry_doc = frappe.get_doc(
+									"Payment Entry", summary.payment_entry
+								)
+								if payment_entry_doc.docstatus == 1:
+									payment_entry_doc.cancel()
+							else:
+								unlink_payment_reference(summary_ref)
 
 						if summary.journal_entry_account:
 							frappe.db.set_value(
@@ -366,12 +373,14 @@ class BankConnector(Document):
 
 						if summary.payment_entry:
 							self.process_bank_payment_requests(payment_order, summary)
-
-							payment_entry_doc = frappe.get_doc(
-								"Payment Entry", summary.payment_entry
-							)
-							if payment_entry_doc.docstatus == 1:
-								payment_entry_doc.cancel()
+							if payment_order.payment_order_type == "Payment Request":
+								payment_entry_doc = frappe.get_doc(
+									"Payment Entry", summary.payment_entry
+								)
+								if payment_entry_doc.docstatus == 1:
+									payment_entry_doc.cancel()
+							else:
+								unlink_payment_reference(summary_ref)
 
 						if summary.journal_entry_account:
 							frappe.db.set_value(

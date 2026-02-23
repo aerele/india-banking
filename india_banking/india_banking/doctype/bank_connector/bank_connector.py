@@ -31,6 +31,7 @@ class BankConnector(Document):
 	def __init__(self, *args, **kwargs):
 		self.success_count = 0
 		self.failed_count = 0
+		self.same_site = "No"
 		super().__init__(*args, **kwargs)
 
 	def check_user_permission(self):
@@ -39,6 +40,8 @@ class BankConnector(Document):
 
 	@property
 	def headers(self):
+		if self.same_site == "Yes":
+			return {"Authorization": "No Authorization"}
 		return {
 			"Authorization": f"token {self.get_password('api_key')}:{self.get_password('api_secret')}",
 			"Content-Type": "application/json",
@@ -59,6 +62,8 @@ class BankConnector(Document):
 
 	def validate(self):
 		self.validate_integration_mode()
+		if self.same_site == "Yes":
+			self.validate_connector_app_installed()
 
 	def validate_integration_mode(self):
 		if self.integration_mode == "H2H":
@@ -95,6 +100,7 @@ class BankConnector(Document):
 		try:
 			return frappe._dict(response.json().get("message"))
 		except Exception:
+			frappe.log_error("Invalid Response", frappe.get_traceback(with_context=1))
 			frappe.throw(_("Invalid Response: Check API Log"))
 
 	def make_post_request(self, payment_order, otp=None, action=None):
@@ -121,7 +127,11 @@ class BankConnector(Document):
 
 			payload = self.get_payload(payment_order, otp=otp)
 
-			response = request.post(url, headers=headers, data=json.dumps(payload))
+			response = None
+			if self.same_site == "Yes":
+				response = self.handle_same_site_request(payload)
+			else:
+				response = request.post(url, headers=headers, data=json.dumps(payload))
 
 			# create api request log
 			create_api_log(
@@ -240,6 +250,7 @@ class BankConnector(Document):
 					msg=_(message),
 					indicator="red",
 				)
+				frappe.flags.error_message = message
 
 			else:
 				extract_error_message(response.json(), show_message=True)
@@ -248,6 +259,10 @@ class BankConnector(Document):
 			frappe.throw(_("Connection Failed"))
 
 	def verify_status_response(self, response, payment_order):
+		from india_banking.india_banking.doc_events.payment_order import (
+			unlink_payment_reference,
+		)
+
 		status_count_map = {
 			"Processed": 0,
 			"Pending": 0,
@@ -264,6 +279,7 @@ class BankConnector(Document):
 			if payment_status == "PROCESSED":
 				for summary in payment_order.summary:
 					status_details = frappe._dict(summary_details.get(summary.name, ""))
+					summary_ref = frappe._dict({"row_name": summary.name})
 					if status_details.status == "Processed":
 						if status_details.utr_number and status_details.status not in [
 							"Rejected",
@@ -326,12 +342,14 @@ class BankConnector(Document):
 
 						if summary.payment_entry:
 							self.process_bank_payment_requests(payment_order, summary)
-
-							payment_entry_doc = frappe.get_doc(
-								"Payment Entry", summary.payment_entry
-							)
-							if payment_entry_doc.docstatus == 1:
-								payment_entry_doc.cancel()
+							if payment_order.payment_order_type == "Payment Request":
+								payment_entry_doc = frappe.get_doc(
+									"Payment Entry", summary.payment_entry
+								)
+								if payment_entry_doc.docstatus == 1:
+									payment_entry_doc.cancel()
+							else:
+								unlink_payment_reference(summary_ref)
 
 						if summary.journal_entry_account:
 							frappe.db.set_value(
@@ -355,12 +373,14 @@ class BankConnector(Document):
 
 						if summary.payment_entry:
 							self.process_bank_payment_requests(payment_order, summary)
-
-							payment_entry_doc = frappe.get_doc(
-								"Payment Entry", summary.payment_entry
-							)
-							if payment_entry_doc.docstatus == 1:
-								payment_entry_doc.cancel()
+							if payment_order.payment_order_type == "Payment Request":
+								payment_entry_doc = frappe.get_doc(
+									"Payment Entry", summary.payment_entry
+								)
+								if payment_entry_doc.docstatus == 1:
+									payment_entry_doc.cancel()
+							else:
+								unlink_payment_reference(summary_ref)
 
 						if summary.journal_entry_account:
 							frappe.db.set_value(
@@ -407,7 +427,11 @@ class BankConnector(Document):
 		)
 		payload.address = json.dumps(get_bank_address_details(summary.bank_account))
 
-		response = request.post(url, headers=headers, data=json.dumps(payload))
+		response = None
+		if self.same_site == "Yes":
+			response = self.handle_same_site_request(payload)
+		else:
+			response = request.post(url, headers=headers, data=json.dumps(payload))
 
 		# create api request log
 		create_api_log(response, self.action, payment_order.doctype, payment_order.name)
@@ -467,13 +491,17 @@ class BankConnector(Document):
 
 	def generate_otp(self, payment_order):
 		payment_order.reload()
-
+		payload = self.get_payload(payment_order, "generate_otp")
 		# Generate OTP using POST request
-		response = request.post(
-			self.connector_url,
-			headers=self.headers,
-			data=json.dumps(self.get_payload(payment_order, "generate_otp")),
-		)
+		response = None
+		if self.same_site == "Yes":
+			response = self.handle_same_site_request(payload)
+		else:
+			response = request.post(
+				self.connector_url,
+				headers=self.headers,
+				data=json.dumps(payload),
+			)
 
 		# create api response log
 		create_api_log(
@@ -615,9 +643,13 @@ class BankConnector(Document):
 		payload.bulk_transaction = self.bulk_transaction
 		payload.integration_mode = self.integration_mode
 
-		response = request.post(
-			self.connector_url, headers=self.headers, data=json.dumps(payload)
-		)
+		response = None
+		if self.same_site == "Yes":
+			response = self.handle_same_site_request(payload)
+		else:
+			response = request.post(
+				self.connector_url, headers=self.headers, data=json.dumps(payload)
+			)
 		# create api request log
 		create_api_log(
 			response, "Get Bank Balance", "Bank Account", bank_account.bank_account_no
@@ -708,9 +740,13 @@ class BankConnector(Document):
 		payload.bulk_transaction = self.bulk_transaction
 		payload.integration_mode = self.integration_mode
 
-		response = request.post(
-			self.connector_url, headers=self.headers, data=json.dumps(payload)
-		)
+		response = None
+		if self.same_site == "Yes":
+			response = self.handle_same_site_request(payload)
+		else:
+			response = request.post(
+				self.connector_url, headers=self.headers, data=json.dumps(payload)
+			)
 		# create api request log
 		create_api_log(
 			response, "Get Bank Statement", "Bank Account", bank_account.bank_account_no
@@ -743,6 +779,32 @@ class BankConnector(Document):
 				msg=_("Statement Fetch Failed"),
 				indicator="red",
 			)
+
+	def handle_same_site_request(self, payload):
+		self.validate_connector_app_installed()
+		from india_banking_connector.api import connect
+		from india_banking_connector.utils import ResponseObject
+
+		try:
+			response = connect(**payload)
+			response = ResponseObject(response, 200)
+		except Exception as e:
+			response = ResponseObject({"message": str(e)}, 201)
+			frappe.log_error(
+				"Payment initiation failed", frappe.get_traceback(with_context=1)
+			)
+
+		return response
+
+	def validate_connector_app_installed(self):
+		if "india_banking_connector" not in frappe.get_installed_apps():
+			frappe.throw("Connector App Not Installed")
+
+	@frappe.whitelist()
+	def get_bulk_transaction_banks(self):
+		from india_banking.default import BULK_TRANSACTION_ENABLED_BANK
+
+		return BULK_TRANSACTION_ENABLED_BANK
 
 
 def get_bank_connector(bank_account, company):

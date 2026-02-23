@@ -11,12 +11,13 @@
   "company",
   "bank_account",
   "bank",
-  "url",
-  "column_break_mdgf",
   "integration_mode",
+  "bulk_transaction",
+  "column_break_mdgf",
+  "same_site",
+  "url",
   "api_key",
-  "api_secret",
-  "bulk_transaction"
+  "api_secret"
  ],
  "fields": [
   {
@@ -41,28 +42,31 @@
    "unique": 1
   },
   {
+   "depends_on": "eval: doc.same_site != \"Yes\";",
    "fieldname": "url",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "URL",
-   "reqd": 1
+   "mandatory_depends_on": "eval: doc.same_site != \"Yes\";"
   },
   {
    "fieldname": "column_break_mdgf",
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval: doc.same_site != \"Yes\";",
    "fieldname": "api_key",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "API Key",
-   "reqd": 1
+   "mandatory_depends_on": "eval: doc.same_site != \"Yes\";"
   },
   {
+   "depends_on": "eval: doc.same_site != \"Yes\";",
    "fieldname": "api_secret",
    "fieldtype": "Password",
    "label": "API Secret",
-   "reqd": 1
+   "mandatory_depends_on": "eval: doc.same_site != \"Yes\";"
   },
   {
    "fetch_from": "bank_account.bank",
@@ -73,9 +77,9 @@
   },
   {
    "default": "0",
-   "depends_on": "eval: [\"ICICI Bank\", \"IDFC Bank\"].includes(doc.bank)",
    "fieldname": "bulk_transaction",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Bulk Transaction"
   },
   {
@@ -85,11 +89,19 @@
    "hidden": 1,
    "label": "Integration Mode",
    "options": "API\nH2H"
+  },
+  {
+   "default": "No",
+   "fieldname": "same_site",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Is the Connector Installed on the Same Site?(Beta)",
+   "options": "Yes\nNo"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-21 11:18:25.159516",
+ "modified": "2026-02-23 05:48:29.704953",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Connector",

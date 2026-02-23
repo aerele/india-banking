@@ -129,3 +129,9 @@ DEFAULT_WORKFLOW_LIST = [
 ]
 
 ALLOWED_PAYMENT_DOCTYPE = ["Payment Request", "Payment Entry", "Bank Entry(JV)"]
+
+BULK_TRANSACTION_ENABLED_BANK = [
+	"ICICI Bank",
+	"IDFC Bank",
+	"Axis Bank",
+]

@@ -31,6 +31,7 @@ class BankConnector(Document):
 	def __init__(self, *args, **kwargs):
 		self.success_count = 0
 		self.failed_count = 0
+		self.same_site = "No"
 		super().__init__(*args, **kwargs)
 
 	def check_user_permission(self):

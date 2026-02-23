@@ -94,13 +94,14 @@
    "default": "No",
    "fieldname": "same_site",
    "fieldtype": "Select",
-   "label": "Is the Connector Installed on the Same Site?",
+   "hidden": 1,
+   "label": "Is the Connector Installed on the Same Site?(Beta)",
    "options": "Yes\nNo"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-13 16:56:54.684166",
+ "modified": "2026-02-23 05:48:29.704953",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Connector",

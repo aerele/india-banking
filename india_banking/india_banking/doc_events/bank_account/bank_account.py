@@ -1,6 +1,7 @@
 import re
 
 import frappe
+import requests
 from frappe import _
 from frappe.utils import cstr
 
@@ -15,6 +16,13 @@ def validate(doc, method=None):
 	validate_ifsc_code(doc)
 	validate_unique_acc_no(doc)
 	update_party_transaction_currency(doc)
+
+	if (
+		(not doc.get_doc_before_save())
+		or doc.has_value_changed("branch_code")
+		and doc.branch_code
+	):
+		doc.bank_details_json = get_bank_details_from_branch_code(doc.branch_code)
 
 
 def validate_unique_acc_no(doc):
@@ -77,3 +85,18 @@ def update_party_transaction_currency(doc):
 		) or frappe.db.get_value("Company", doc.company, "default_currency")
 	elif doc.is_company_account:
 		doc.currency = frappe.db.get_value("Company", doc.company, "default_currency")
+
+
+def get_bank_details_from_branch_code(branch_code):
+	url = f"https://ifsc.razorpay.com/{branch_code}"
+
+	try:
+		response = requests.get(url)
+		bank_details_json = {}
+		if response.ok:
+			bank_details_json = response.json()
+
+		return bank_details_json
+
+	except Exception:
+		frappe.log_error("IFSC Bank Details Fetch Error", frappe.get_traceback())

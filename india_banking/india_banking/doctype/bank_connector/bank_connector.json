@@ -21,7 +21,8 @@
   "enqueue_payments_threshold",
   "column_break_rnqz",
   "enable_payment_delay",
-  "payment_call_interval"
+  "payment_call_interval",
+  "is_post_delay"
  ],
  "fields": [
   {
@@ -118,11 +119,19 @@
    "fieldname": "enqueue_payments_threshold",
    "fieldtype": "Int",
    "label": "Enqueue Payments Threshold"
+  },
+  {
+   "default": "0",
+   "depends_on": "enable_payment_delay",
+   "description": "If enabled, consecutive requests wait Payment Call Interval (N seconds) after the previous one completes.",
+   "fieldname": "is_post_delay",
+   "fieldtype": "Check",
+   "label": "Is Post delay"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-07 11:26:52.813118",
+ "modified": "2026-02-26 13:31:33.665293",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Connector",

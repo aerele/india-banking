@@ -12,6 +12,9 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, cint, cstr, flt, getdate
 
+from india_banking.india_banking.doc_events.payment_order import (
+	unlink_payment_reference,
+)
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
 )
@@ -172,8 +175,8 @@ class BankConnector(Document):
 							"file_sequence_number": file_sequence_number,
 						},
 					)
-
 				for _name, details in summary_details.items():
+					summary_ref = frappe._dict({"row_name": _name})
 					if details.get("payment_status", "") == "Accepted":
 						frappe.db.set_value(
 							"Payment Order Summary",
@@ -200,7 +203,14 @@ class BankConnector(Document):
 						summary = frappe.get_doc("Payment Order Summary", _name)
 						if summary.payment_entry:
 							self.process_bank_payment_requests(payment_order, summary)
-
+							if payment_order.payment_order_type == "Payment Request":
+								payment_entry_doc = frappe.get_doc(
+									"Payment Entry", summary.payment_entry
+								)
+								if payment_entry_doc.docstatus == 1:
+									payment_entry_doc.cancel()
+							else:
+								unlink_payment_reference(summary_ref)
 							payment_entry_doc = frappe.get_doc(
 								"Payment Entry", summary.payment_entry
 							)
@@ -264,10 +274,6 @@ class BankConnector(Document):
 			)
 
 	def verify_status_response(self, response, payment_order):
-		from india_banking.india_banking.doc_events.payment_order import (
-			unlink_payment_reference,
-		)
-
 		status_count_map = {
 			"Processed": 0,
 			"Pending": 0,

@@ -428,13 +428,18 @@ class BankConnector(Document):
 			return None
 
 		payment_delay = 0
-		if not last_call:
-			last_call = time.time()
+
+		# Add a N-second delay between consecutive payment call if enabled
+		if self.is_post_delay:
+			payment_delay = payment_call_interval
 		else:
-			last_duration_in_seconds = math.ceil(time.time() - last_call)
-			payment_delay = payment_call_interval - last_duration_in_seconds
-			if payment_delay < 0:
-				payment_delay = 0
+			if not last_call:
+				last_call = time.time()
+			else:
+				last_duration_in_seconds = math.ceil(time.time() - last_call)
+				payment_delay = payment_call_interval - last_duration_in_seconds
+				if payment_delay < 0:
+					payment_delay = 0
 
 		if payment_delay:
 			# Minimum 1-minute delay to avoid invalid behavior

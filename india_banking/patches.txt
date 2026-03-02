@@ -7,3 +7,4 @@ india_banking.patches.v15_0.update_default_bank #23925
 india_banking.patches.v15_0.update_custom_field #910251029
 india_banking.patches.v15_0.update_auto_post_cron_schedule
 india_banking.patches.v15_0.apply_custom_properties #810251029
+india_banking.patches.v16_0.fetch_bank_details_branch_code

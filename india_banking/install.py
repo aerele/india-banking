@@ -586,6 +586,19 @@ def create_bank_account_custom_fields():
 				"insert_after": "email",
 				"reqd": 1,
 			},
+			{
+				"label": "Bank Details JSON",
+				"fieldname": "bank_details_json",
+				"hidden": 1,
+				"fieldtype": "JSON",
+				"insert_after": "bank_balance",
+			},
+			{
+				"label": "Bank Details HTML",
+				"fieldname": "bank_details_html",
+				"fieldtype": "HTML",
+				"insert_after": "bank_details_json",
+			},
 		]
 	}
 

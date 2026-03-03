@@ -53,6 +53,9 @@ doc_events = {
 	"Unreconcile Payment": {
 		"on_submit": "india_banking.india_banking.doc_events.unreconcile_payment.on_submit",
 	},
+	"Journal Entry": {
+		"before_save": ["india_banking.overrides.journal_entry.update_party_bank"]
+	},
 }
 
 
@@ -78,4 +81,3 @@ default_log_clearing_doctypes = {
 }
 
 ignore_links_on_delete = ["Unreconcile Bank Payment", "Bank Payment Allocation"]
-

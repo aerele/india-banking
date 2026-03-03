@@ -67,7 +67,7 @@ scheduler_events = {
 	"daily": ["india_banking.tasks.daily"],
 	"cron": {
 		"*/20 * * * *": ["india_banking.tasks.job_twenty_minutes"],
-		"*/5 * * * *": ["india_banking.tasks.process_payment_in_the_background"],
+		"*/1 * * * *": ["india_banking.tasks.process_payment_in_the_background"],
 		"0 * * * *": ["india_banking.tasks.job_one_hour"],
 		"0 0 * * *": ["india_banking.tasks.job_at_midnight"],
 	},
@@ -78,3 +78,5 @@ ignore_links_on_delete = ["Unreconcile Bank Payment", "Bank Payment Allocation"]
 default_log_clearing_doctypes = {
 	"India Banking Request Log": 60,
 }
+
+ignore_links_on_delete = ["Unreconcile Bank Payment", "Bank Payment Allocation"]

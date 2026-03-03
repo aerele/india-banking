@@ -28,6 +28,7 @@
   "auto_post_payments",
   "retry_interval_minutes",
   "batch_size",
+  "last_execution",
   "status_configuration_column",
   "auto_update_payment_status",
   "status_check_at",
@@ -101,7 +102,7 @@
    "fieldname": "bulk_transaction",
    "fieldtype": "Check",
    "hidden": 1,
-   "label": "Bulk Transaction"
+   "label": "Enable Bulk Transaction"
   },
   {
    "fieldname": "payment_configuration_tab",
@@ -244,11 +245,18 @@
    "fieldname": "payment_notification",
    "fieldtype": "Table",
    "options": "Payment Notification"
+  },
+  {
+   "depends_on": "auto_post_payments",
+   "fieldname": "last_execution",
+   "fieldtype": "Datetime",
+   "label": "Last Execution",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-27 17:24:15.266903",
+ "modified": "2026-03-02 18:34:17.549434",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Connector",

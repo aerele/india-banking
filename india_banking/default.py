@@ -1,6 +1,6 @@
 BULK_TRANSACTION_ENABLED_BANK = [
 	"ICICI Bank",
-	"IDFC Bank",
+	"IDFC First Bank",
 ]
 
 PAYMENT_SUMMARY_FIELDS = [
@@ -64,7 +64,7 @@ STD_BANK_LIST = [
 	"Kotak Mahindra Bank",
 	"Union Bank of India",
 	"Bank of Baroda",
-	"IDFC Bank",
+	"IDFC First Bank",
 ]
 
 DEFAULT_ROLES = ["Payment Manager"]

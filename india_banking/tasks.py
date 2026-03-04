@@ -2,46 +2,62 @@ import time
 
 import frappe
 from frappe.query_builder import DocType
-from frappe.utils.background_jobs import is_job_enqueued
+from frappe.utils import get_datetime, time_diff_in_seconds
 
-from india_banking.india_banking.doctype.bank_connector.bank_connector import (
+from india_banking.india_banking.doctype.india_banking_connector.india_banking_connector import (
 	get_bank_connector,
 	get_payment_status,
 )
 
 
 def daily():
-	update_payment_status(check_processed_payments=True)
+	for connector in frappe.get_all("India Banking Connector", pluck="name"):
+		update_payment_status(check_processed_payments=True, connector=connector)
 
 
 def job_twenty_minutes():
-	if frappe.get_single("India Banking Settings").status_check == "Every 20 Minutes":
-		update_payment_date_as_posting_date()
-		update_payment_status()
+	for connector in frappe.get_all("India Banking Connector", pluck="name"):
+		if (
+			frappe.db.get_value("India Banking Connector", connector, "status_check")
+			== "Every 20 Minutes"
+		):
+			update_payment_date_as_posting_date(connector=connector)
+			update_payment_status(connector=connector)
 
 
 def job_one_hour():
-	if frappe.get_single("India Banking Settings").status_check == "Every Hour":
-		update_payment_date_as_posting_date()
-		update_payment_status()
+	for connector in frappe.get_all("India Banking Connector", pluck="name"):
+		if (
+			frappe.db.get_value("India Banking Connector", connector, "status_check")
+			== "Every Hour"
+		):
+			update_payment_date_as_posting_date(connector=connector)
+			update_payment_status(connector=connector)
 
 
 def job_at_midnight():
-	if (
-		frappe.get_single("India Banking Settings").status_check
-		== "Every Day at Midnight"
+	for connector in frappe.get_all("India Banking Connector", pluck="name"):
+		if (
+			frappe.db.get_value("India Banking Connector", connector, "status_check")
+			== "Every Day at Midnight"
+		):
+			update_payment_date_as_posting_date(connector=connector)
+			update_payment_status(connector=connector)
+
+
+def update_payment_status(check_processed_payments=False, connector=None):
+	if connector and frappe.db.get_value(
+		"India Banking Connector", connector, "auto_update_payment_status"
 	):
-		update_payment_date_as_posting_date()
-		update_payment_status()
-
-
-def update_payment_status(check_processed_payments=False):
-	if not frappe.get_single("India Banking Settings").update_payment_status:
 		return
 
+	PaymentOrder = DocType("Payment Order")
 	PaymentOrderSummary = DocType("Payment Order Summary")
+
 	orders = (
-		frappe.qb.from_(PaymentOrderSummary)
+		frappe.qb.from_(PaymentOrder)
+		.join(PaymentOrderSummary)
+		.on(PaymentOrder.name == PaymentOrderSummary.parent)
 		.select(PaymentOrderSummary.parent)
 		.where(
 			(PaymentOrderSummary.docstatus == 1)
@@ -65,12 +81,14 @@ def update_payment_status(check_processed_payments=False):
 			)
 
 
-def update_payment_date_as_posting_date():
+def update_payment_date_as_posting_date(connector=False):
 	"""Update Payment Entry posting dates based on Payment date in Payment Order Summary and repost accounting ledgers."""
 	try:
-		if not frappe.get_single(
-			"India Banking Settings"
-		).update_posting_date_as_payment_date:
+		if connector and frappe.db.get_value(
+			"India Banking Connector",
+			connector,
+			"auto_update_posting_date_as_payment_date",
+		):
 			return
 
 		PaymentEntry = DocType("Payment Entry")
@@ -123,11 +141,50 @@ def update_payment_date_as_posting_date():
 		)
 
 
-def process_payment_in_the_background():
+def process_payment_in_the_background(connector=None, force=False):
 	"""Enqueue payment processing in the background."""
+	connectors = []
+	if connector:
+		connectors = [connector]
+	else:
+		connectors = frappe.get_all(
+			"India Banking Connector",
+			{"auto_post_payments": 1},
+			["name", "last_execution", "retry_interval_minutes", "batch_size"],
+		)
+
+	for connector in connectors:
+		retry_interval_minutes = connector.retry_interval_minutes or 5
+		if (
+			force
+			or not connector.last_execution
+			or time_diff_in_seconds(
+				str(get_datetime()).split(".")[0],
+				connector.last_execution.split(".")[0],
+			)
+			/ 60
+			> retry_interval_minutes
+		):
+			orders = fetch_pending_payments(connector.name).run(as_dict=True)
+			payment_details = {}
+			for order in orders:
+				if order["payment_order"] not in payment_details:
+					payment_details[order["payment_order"]] = [order["payment"]]
+				else:
+					payment_details[order["payment_order"]].append(order["payment"])
+
+			process_batch_payment(payment_details, connector.batch_size)
+			frappe.db.set_value(
+				"India Banking Connector",
+				connector.name,
+				"last_execution",
+				get_datetime(),
+			)
+
+
+def fetch_pending_payments(company_bank_account):
 	PO = DocType("Payment Order")
 	POS = DocType("Payment Order Summary")
-
 	orders = (
 		frappe.qb.from_(PO)
 		.join(POS)
@@ -138,23 +195,16 @@ def process_payment_in_the_background():
 			& (POS.payment_initiated == 0)
 			& (PO.enqueue_status.isin(["Queued", "In Progress"]))
 			& (PO.docstatus == 1)
+			& (PO.company_bank_account == company_bank_account)
 		)
-		.run(as_dict=1)
 	)
-	payment_details = {}
-	for order in orders:
-		if order["payment_order"] not in payment_details:
-			payment_details[order["payment_order"]] = [order["payment"]]
-		else:
-			payment_details[order["payment_order"]].append(order["payment"])
 
-	process_batch_payment(payment_details)
+	return orders
 
 
-def process_batch_payment(payment_details):
+def process_batch_payment(payment_details, batch_size):
 	start_time = time.time()
 	enqueue_count = 0
-	batch_size = frappe.get_single("India Banking Settings").batch_size
 
 	for payment_order, summary in payment_details.items():
 		payment_order_doc = frappe.get_doc("Payment Order", payment_order)
@@ -163,7 +213,7 @@ def process_batch_payment(payment_details):
 			payment_order_doc.company_bank_account, payment_order_doc.company
 		)
 		last_call = None
-		payment_delay = bank_connector.payment_call_interval or 10 # default 10 sec
+		payment_delay = bank_connector.payment_call_interval or 10  # default 10 sec
 		for summary_row in payment_order_doc.summary:
 			if not last_call:
 				last_call = time.time()

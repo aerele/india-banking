@@ -1,0 +1,61 @@
+name: Linters
+
+on:
+  pull_request:
+
+jobs:
+  commit-lint:
+    name: Semantic Commits
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 200
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check commit titles
+        run: |
+          npm install @commitlint/cli @commitlint/config-conventional
+          npx commitlint --verbose \
+            --from ${{ github.event.pull_request.base.sha }} \
+            --to ${{ github.event.pull_request.head.sha }}
+
+  linter:
+    name: Frappe Linter
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit on changed files
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          pre-commit run \
+            --from-ref origin/${{ github.event.pull_request.base.ref }} \
+            --to-ref HEAD
+
+      - name: Download Semgrep rules
+        run: git clone --depth 1 https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep on changed files
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          semgrep \
+            --config ./frappe-semgrep-rules/rules \
+            --config r/python.lang.correctness \
+            $(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)

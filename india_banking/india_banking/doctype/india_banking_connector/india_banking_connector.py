@@ -10,7 +10,7 @@ import frappe
 import requests as request
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days, cint, cstr, flt, getdate
+from frappe.utils import add_days, cint, cstr, flt, get_datetime, getdate
 
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
@@ -26,7 +26,7 @@ OTP_ENABLED_BANK = [
 ]
 
 
-class BankConnector(Document):
+class IndiaBankingConnector(Document):
 	def __init__(self, *args, **kwargs):
 		self.success_count = 0
 		self.failed_count = 0
@@ -46,6 +46,63 @@ class BankConnector(Document):
 	@property
 	def connector_url(self):
 		return f"{self.url}/api/method/india_banking_connector.api.connect"
+
+	def onload(self):
+		self.set_onload(
+			"connector_installed",
+			"india_banking_connector" in frappe.get_installed_apps(),
+		)
+
+	def validate(self):
+		self.validate_document_series()
+
+		if (
+			(not self.get_doc_before_save())
+			or self.has_value_changed("auto_post_payments")
+			and self.auto_post_payments
+		):
+			self.update_cron_job()
+
+		self.enable_payment_entry_reposting()
+
+		if not self.notify_party:
+			self.payment_notification = []
+
+	def enable_payment_entry_reposting(self):
+		if self.auto_update_posting_date_as_payment_date:
+			if not frappe.db.exists(
+				"Repost Allowed Types",
+				{
+					"parent": "Repost Accounting Ledger Settings",
+					"document_type": "Payment Entry",
+					"allowed": 1,
+				},
+			):
+				doc = frappe.get_single("Repost Accounting Ledger Settings")
+				doc.append(
+					"allowed_types",
+					{
+						"document_type": "Payment Entry",
+						"allowed": 1,
+					},
+				)
+				doc.save()
+
+	def validate_document_series(self):
+		if self.doctype_naming_series:
+			for series in self.doctype_naming_series:
+				if series.series:
+					options = frappe.get_meta(series.doctype_name).get_options(
+						"naming_series"
+					)
+					options_list = options.split("\n")
+					if options and series.series not in options_list:
+						frappe.throw(
+							f"You can only select a series that starts with <b>{options_list}</b> at #Row {frappe.bold(series.idx)}"
+						)
+
+	def update_cron_job(self):
+		self.last_execution = get_datetime()
 
 	def check_otp_enabled(self, otp=None):
 		if (self.bank, self.bulk_transaction) in OTP_ENABLED_BANK and otp is None:
@@ -129,7 +186,11 @@ class BankConnector(Document):
 					statuses = ["Pending", "Initiated"]
 					if check_processed_payments:
 						retry_period = cint(
-							frappe.get_single("India Banking Settings").retry_period
+							frappe.db.get_value(
+								"India Banking Connector",
+								payment_order.company_bank_account,
+								"retry_period",
+							)
 						)
 						if summary.payment_date >= add_days(getdate(), -(retry_period)):
 							statuses.append("Processed")
@@ -298,7 +359,7 @@ class BankConnector(Document):
 									},
 								)
 
-							self.notify_party(summary)
+							self._notify_party(summary)
 
 					elif status_details.status == "Pending":
 						frappe.db.set_value(
@@ -426,6 +487,8 @@ class BankConnector(Document):
 
 	def add_payment_in_the_background(self, payment_order):
 		"""Process payments in the background."""
+		from india_banking.tasks import process_payment_in_the_background
+
 		pending_payments = []
 		for summary in payment_order.summary:
 			summary.load_from_db()
@@ -435,9 +498,9 @@ class BankConnector(Document):
 			payment_order.db_set("enqueue_status", "Queued", update_modified=False)
 			error = None
 			try:
-				frappe.get_doc(
-					"Scheduled Job Type", "tasks.process_payment_in_the_background"
-				).enqueue(force=True)  # Execute job immediately
+				process_payment_in_the_background(
+					payment_order.company_bank_account, True
+				)  # Execute job immediately
 			except Exception as e:
 				error = e
 			if error:
@@ -539,9 +602,8 @@ class BankConnector(Document):
 				message=frappe.get_traceback(),
 			)
 
-	def notify_party(self, summary_row):
-		bank_setting = frappe.get_single("India Banking Settings")
-		if not bank_setting.notify_party or not bank_setting.payment_notification:
+	def _notify_party(self, summary_row):
+		if not self.notify_party or not self.payment_notification:
 			return
 
 		if summary_row.payment_entry:
@@ -730,7 +792,7 @@ class BankConnector(Document):
 def get_bank_connector(bank_account, company):
 	# Fetch the connector information
 	bank_connector = frappe.db.exists(
-		"Bank Connector",
+		"India Banking Connector",
 		{
 			"company": company,
 			"bank_account": bank_account,
@@ -739,7 +801,7 @@ def get_bank_connector(bank_account, company):
 	if not bank_connector:
 		frappe.throw(_("Bank Connector is not initialized"))
 
-	return frappe.get_doc("Bank Connector", bank_connector)
+	return frappe.get_doc("India Banking Connector", bank_connector)
 
 
 @frappe.whitelist()

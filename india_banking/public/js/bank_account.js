@@ -97,7 +97,7 @@ frappe.ui.form.on("Bank Account", {
 			__("Bank Balance"),
 			function () {
 				frappe.call({
-					method: "india_banking.india_banking.doctype.bank_connector.bank_connector.get_bank_balance",
+					method: "india_banking.india_banking.doctype.india_banking_connector.india_banking_connector.get_bank_balance",
 					freeze: true,
 					args: {
 						bank_account_name: frm.doc.name,
@@ -160,7 +160,7 @@ frappe.ui.form.on("Bank Account", {
 					fields,
 					primary_action: () => {
 						frm.call({
-							method: "india_banking.india_banking.doctype.bank_connector.bank_connector.get_bank_statements",
+							method: "india_banking.india_banking.doctype.india_banking_connector.india_banking_connector.get_bank_statements",
 							args: {
 								bank_account_name: dialog.get_value("bank_account"),
 								from_date: dialog.get_value("from_date"),

@@ -5,55 +5,18 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "basic_configuration_tab",
+  "basic_configuration_section",
   "summarise_payment_based_on",
   "use_payment_order_date_as_payment_entry_date",
   "allow_future_date_payment_order",
-  "column_break_wjye",
+  "column_break_sstt",
   "allowed_payment_doctypes",
-  "auto_update_configurations_tab",
-  "automatic_update_configuration_section",
-  "column_break_laug",
-  "auto_post_payments",
-  "retry_interval_minutes",
-  "batch_size",
-  "status_configuration_column",
-  "update_payment_status",
-  "status_check",
-  "retry_period",
-  "reposting_configurations_section",
-  "reposting_configurations_column",
-  "update_posting_date_as_payment_date",
-  "column_break_kagd",
-  "doctype_customization_tab",
   "bank_account_section",
   "enable_bank_account_workflow",
   "enable_unique_account_no",
-  "section_break_ilkp",
-  "custom_app_priority",
-  "doctype_naming_series",
-  "payment_notifications_tab",
-  "payment_notifications_section",
-  "notify_party",
-  "payment_notification"
+  "custom_app_priority"
  ],
  "fields": [
-  {
-   "fieldname": "summarise_payment_based_on",
-   "fieldtype": "Select",
-   "label": "Summarise Payment Based On",
-   "options": "Party\nVoucher"
-  },
-  {
-   "fieldname": "column_break_wjye",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "0",
-   "fieldname": "notify_party",
-   "fieldtype": "Check",
-   "label": "Notify Party"
-  },
   {
    "default": "1",
    "description": "If enabled, Bank Accounts will follow workflow rules and require approvals based on the configured workflow.",
@@ -62,153 +25,9 @@
    "label": "Enable Bank A/c Workflow"
   },
   {
-   "default": "0",
-   "description": "A Payment Entry is created before initiating the payment. If the bank requires post-authorization and the approver approves the payment on a later date, the payment date in the bank statement may differ from the ledger's posting date. Enabling this setting ensures the ledger is updated accordingly.",
-   "fieldname": "update_posting_date_as_payment_date",
-   "fieldtype": "Check",
-   "label": "Auto Update Posting Date as Payment Date"
-  },
-  {
-   "default": "0",
-   "description": "If unchecked, user will have to manually fetch the status of every payment order.",
-   "fieldname": "update_payment_status",
-   "fieldtype": "Check",
-   "label": "Auto Update Payment Status"
-  },
-  {
-   "fieldname": "automatic_update_configuration_section",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "column_break_laug",
-   "fieldtype": "Column Break",
-   "label": "Payment Configuration"
-  },
-  {
-   "default": "Payment Request\nPayment Entry\nBank Entry",
-   "description": "Enabled doctypes can be pulled in the payment order for payment processing. ",
-   "fieldname": "allowed_payment_doctypes",
-   "fieldtype": "Small Text",
-   "label": "Allowed Payment Doctypes",
-   "read_only": 1
-  },
-  {
-   "default": "Every Day at Midnight",
-   "depends_on": "update_payment_status",
-   "fieldname": "status_check",
-   "fieldtype": "Select",
-   "label": "Status check at",
-   "mandatory_depends_on": "update_payment_status",
-   "options": "Every 20 Minutes\nEvery Hour\nEvery Day at Midnight"
-  },
-  {
-   "fieldname": "payment_notifications_section",
-   "fieldtype": "Section Break",
-   "label": "Payment Notifications "
-  },
-  {
-   "depends_on": "notify_party",
-   "fieldname": "payment_notification",
-   "fieldtype": "Table",
-   "mandatory_depends_on": "notify_party",
-   "options": "Payment Notification"
-  },
-  {
-   "default": "3",
-   "depends_on": "update_payment_status",
-   "description": "Check the payment status for 'Processed' payment from the payment initiation date until the retry period.",
-   "fieldname": "retry_period",
-   "fieldtype": "Int",
-   "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
-  },
-  {
-   "default": "0",
-   "fieldname": "use_payment_order_date_as_payment_entry_date",
-   "fieldtype": "Check",
-   "label": "Use Payment Order Date as Payment Entry Date"
-  },
-  {
-   "default": "0",
-   "fieldname": "allow_future_date_payment_order",
-   "fieldtype": "Check",
-   "label": "Allow future Date Payment Order"
-  },
-  {
-   "fieldname": "doctype_naming_series",
-   "fieldtype": "Table",
-   "label": "Doctype Naming Series",
-   "options": "Naming Series Map"
-  },
-  {
-   "fieldname": "doctype_customization_tab",
-   "fieldtype": "Tab Break",
-   "label": "DocType Configuration"
-  },
-  {
-   "fieldname": "auto_update_configurations_tab",
-   "fieldtype": "Tab Break",
-   "label": "Auto Update Configurations"
-  },
-  {
-   "fieldname": "payment_notifications_tab",
-   "fieldtype": "Tab Break",
-   "label": "Payment Notifications "
-  },
-  {
-   "fieldname": "basic_configuration_tab",
-   "fieldtype": "Tab Break",
-   "label": "Basic Configuration"
-  },
-  {
-   "default": "0",
-   "description": "If enabled, payments will be processed automatically in the background, according to the bank connector\u2019s.",
-   "fieldname": "auto_post_payments",
-   "fieldtype": "Check",
-   "label": "Auto Post Payments"
-  },
-  {
-   "default": "5",
-   "depends_on": "auto_post_payments",
-   "description": "Time (in minutes) between attempts to process queued payments",
-   "fieldname": "retry_interval_minutes",
-   "fieldtype": "Int",
-   "label": "Retry Interval (minutes)"
-  },
-  {
-   "fieldname": "status_configuration_column",
-   "fieldtype": "Column Break",
-   "label": "Status Configuration"
-  },
-  {
-   "fieldname": "reposting_configurations_section",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "reposting_configurations_column",
-   "fieldtype": "Column Break",
-   "label": "Reposting configurations"
-  },
-  {
-   "fieldname": "column_break_kagd",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "10",
-   "depends_on": "auto_post_payments",
-   "description": "Max payments per batch in background processing.",
-   "fieldname": "batch_size",
-   "fieldtype": "Int",
-   "label": "Batch Size"
-  },
-  {
-   "collapsible": 1,
    "fieldname": "bank_account_section",
    "fieldtype": "Section Break",
    "label": "Bank Account"
-  },
-  {
-   "fieldname": "section_break_ilkp",
-   "fieldtype": "Section Break"
   },
   {
    "default": "1",
@@ -224,12 +43,47 @@
    "fieldtype": "Select",
    "label": "Custom App Priority(Beta)",
    "options": "India Banking"
+  },
+  {
+   "fieldname": "basic_configuration_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Configuration"
+  },
+  {
+   "fieldname": "summarise_payment_based_on",
+   "fieldtype": "Select",
+   "label": "Summarise Payment Based On",
+   "options": "Party\nVoucher"
+  },
+  {
+   "default": "0",
+   "fieldname": "use_payment_order_date_as_payment_entry_date",
+   "fieldtype": "Check",
+   "label": "Use Payment Order Date as Payment Entry Date"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_future_date_payment_order",
+   "fieldtype": "Check",
+   "label": "Allow future Date Payment Order"
+  },
+  {
+   "description": "Enabled doctypes can be pulled in the payment order for payment processing.",
+   "fieldname": "column_break_sstt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "allowed_payment_doctypes",
+   "fieldtype": "Small Text",
+   "label": "Allowed Payment Doctypes",
+   "options": "Payment Request\nPayment Entry\nBank Entry",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-08 10:08:08.661140",
+ "modified": "2026-01-27 11:41:53.696071",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

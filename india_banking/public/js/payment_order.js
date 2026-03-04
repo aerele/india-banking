@@ -355,7 +355,7 @@ frappe.ui.form.on("Payment Order", {
 				);
 				frm.add_custom_button(__("Get Status"), () => {
 					frappe.call({
-						method: "india_banking.india_banking.doctype.bank_connector.bank_connector.get_payment_status",
+						method: "india_banking.india_banking.doctype.india_banking_connector.india_banking_connector.get_payment_status",
 						freeze: true,
 						freeze_message: __("Fetching payment status..."),
 						args: {
@@ -372,7 +372,7 @@ frappe.ui.form.on("Payment Order", {
 
 	make_payment: function (frm) {
 		frappe.call({
-			method: "india_banking.india_banking.doctype.bank_connector.bank_connector.make_payment",
+			method: "india_banking.india_banking.doctype.india_banking_connector.india_banking_connector.make_payment",
 			freeze: true,
 			freeze_message: __("Initiating Payment..."),
 			args: {
@@ -412,7 +412,7 @@ frappe.ui.form.on("Payment Order", {
 				}
 
 				frappe.call({
-					method: "india_banking.india_banking.doctype.bank_connector.bank_connector.make_payment",
+					method: "india_banking.india_banking.doctype.india_banking_connector.india_banking_connector.make_payment",
 					freeze: true,
 					freeze_message: __("Verifying OTP and processing payment..."),
 					args: {

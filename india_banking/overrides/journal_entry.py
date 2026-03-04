@@ -4,7 +4,7 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 )
 from frappe import _
 from frappe.query_builder import DocType
-from frappe.query_builder.functions import Sum
+from frappe.query_builder.functions import Coalesce, Sum
 from frappe.utils import get_url_to_form
 
 
@@ -17,28 +17,19 @@ def make_payment_order(source_name, target_doc=None, args=None):
 			return
 
 		JournalEntryAccount = DocType("Journal Entry Account")
-		BankAccount = DocType("Bank Account")
 
 		bank_account_query = (
 			frappe.qb.from_(JournalEntryAccount)
-			.left_join(BankAccount)
-			.on(JournalEntryAccount.party == BankAccount.party)
-			.select(
-				JournalEntryAccount.party_type,
-				JournalEntryAccount.party,
-				BankAccount.name.as_("bank_account"),
-			)
+			.select(JournalEntryAccount.party_type, JournalEntryAccount.party)
 			.where(
 				(JournalEntryAccount.parent == bank_entry)
+				& (Coalesce(JournalEntryAccount.bank_account, "").eq(""))
+				& (Coalesce(JournalEntryAccount.party_type, "").ne(""))
+				& (Coalesce(JournalEntryAccount.party, "").ne(""))
 				& (
 					JournalEntryAccount.payment_status.notin(
 						["Paid", "Ordered", "Payment Ordered"]
 					)
-				)
-				& (
-					(BankAccount.name.isnull())
-					| (BankAccount.disabled == 1)
-					| (BankAccount.is_default == 0)
 				)
 			)
 			.groupby(JournalEntryAccount.party)
@@ -53,18 +44,12 @@ def make_payment_order(source_name, target_doc=None, args=None):
 				and (party_type := party_details.get("party_type"))
 				and (party := party_details.get("party"))
 			):
-				if not party_details.get("bank_account"):
-					msg += (
-						f"<b>{party_type}-{party}</b> does not have a bank account.<br>"
-					)
-				else:
-					msg += (
-						f"<b>{party_type}-{party}</b> has no default bank account.<br>"
-					)
+				msg += f"<b>{party_type}-{party}</b> does not have a bank account.<br>"
+
 		if msg:
 			frappe.msgprint(
 				_(
-					"We can see Some bank entries are missing bank account details and have been ignored. Please update the bank account information and try again.</br></br><p style='color:red'><b>Missing Details are below</b></p>"
+					"Some bank entries are missing bank account details and have been excluded from processing. Please update the bank account information and try again.</br></br><p style='color:red'><b>Missing Details are below</b></p>"
 					+ msg
 				),
 				title=_("Missing Bank Account"),
@@ -73,7 +58,6 @@ def make_payment_order(source_name, target_doc=None, args=None):
 
 	def update_bank_entry(source, target):
 		JournalEntryAccount = DocType("Journal Entry Account")
-		BankAccount = DocType("Bank Account")
 
 		select_field = [
 			"name",
@@ -84,6 +68,7 @@ def make_payment_order(source_name, target_doc=None, args=None):
 			"party",
 			"party_type",
 			"parent as journal",
+			"bank_account",
 		]
 		select_field.extend(get_accounting_dimensions())
 
@@ -93,28 +78,29 @@ def make_payment_order(source_name, target_doc=None, args=None):
 		# Build the query
 		query = (
 			frappe.qb.from_(JournalEntryAccount)
-			.join(BankAccount)
-			.on(JournalEntryAccount.party == BankAccount.party)
 			.select(
 				*[
-					getattr(JournalEntryAccount, field.split(" as ")[0]).as_(
-						field.split(" as ")[1]
+					(
+						getattr(JournalEntryAccount, field.split(" as ")[0]).as_(
+							field.split(" as ")[1]
+						)
+						if " as " in field
+						else getattr(JournalEntryAccount, field)
 					)
-					if " as " in field
-					else getattr(JournalEntryAccount, field)
 					for field in select_field
 				],
-				BankAccount.name.as_("party_bank_account"),
 			)
 			.where(
 				(JournalEntryAccount.parent == source.name)
+				& (Coalesce(JournalEntryAccount.bank_account, "").ne(""))
+				& (Coalesce(JournalEntryAccount.party_type, "").ne(""))
+				& (Coalesce(JournalEntryAccount.party, "").ne(""))
+				& (JournalEntryAccount.debit > 0)
 				& (
 					JournalEntryAccount.payment_status.notin(
 						["Paid", "Ordered", "Payment Ordered"]
 					)
 				)
-				& (BankAccount.disabled == 0)
-				& (BankAccount.is_default == 1)
 			)
 			.groupby(JournalEntryAccount.name)
 		)
@@ -132,9 +118,7 @@ def make_payment_order(source_name, target_doc=None, args=None):
 			}
 
 		for journal_account in journal_accounts:
-			bank_account = frappe.get_doc(
-				"Bank Account", journal_account.party_bank_account
-			)
+			bank_account = frappe.get_doc("Bank Account", journal_account.bank_account)
 			if frappe.db.get_single_value(
 				"India Banking Settings", "enable_bank_account_workflow"
 			):
@@ -146,9 +130,9 @@ def make_payment_order(source_name, target_doc=None, args=None):
 								journal_account.party_type,
 								journal_account.party,
 								get_url_to_form(
-									"Bank Account", journal_account.party_bank_account
+									"Bank Account", journal_account.bank_account
 								),
-								frappe.bold(journal_account.party_bank_account),
+								frappe.bold(journal_account.bank_account),
 							)
 						),
 					)
@@ -161,9 +145,9 @@ def make_payment_order(source_name, target_doc=None, args=None):
 							journal_account.party_type,
 							journal_account.party,
 							get_url_to_form(
-								"Bank Account", journal_account.party_bank_account
+								"Bank Account", journal_account.bank_account
 							),
-							frappe.bold(journal_account.party_bank_account),
+							frappe.bold(journal_account.bank_account),
 						)
 					),
 				)
@@ -177,7 +161,7 @@ def make_payment_order(source_name, target_doc=None, args=None):
 				"party_type": journal_account.party_type,
 				"party": journal_account.party,
 				"mode_of_payment": "",
-				"bank_account": journal_account.party_bank_account,
+				"bank_account": journal_account.bank_account,
 				"account": journal_account.account,
 				"project": journal_account.project,
 				"cost_center": journal_account.cost_center,
@@ -244,3 +228,23 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 	bank_entries = query.run(as_dict=as_dict)
 
 	return bank_entries
+
+
+def update_party_bank(self, method):
+	if self.voucher_type != "Bank Entry":
+		return
+
+	for row in self.accounts:
+		if row.party_type and row.party and not row.bank_account:
+			account_type = frappe.get_cached_value(
+				"Account", row.account, "account_type"
+			)
+
+			if account_type in ["Receivable", "Payable"]:
+				bank_account = frappe.db.get_value(
+					"Bank Account",
+					{"party_type": row.party_type, "party": row.party},
+					order_by="is_default desc, modified desc",
+				)
+				if bank_account:
+					row.bank_account = bank_account

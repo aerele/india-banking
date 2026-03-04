@@ -1,18 +1,7 @@
 import frappe
 from frappe.query_builder import DocType
 
-BANK_COLORS = {
-	"Axis Bank": ["#ae285d", "#ffffff"],
-	"HDFC Bank": ["#004c8f", "#ed232a"],
-	"ICICI Bank": ["#ae282e", "#f06321"],
-	"Kotak Mahindra Bank": ["#ed1c24", "#003874"],
-	"Union Bank of India": ["#da251c", "#03599d"],
-	"Bank of Baroda": ["#f15a29", "#ffffff"],
-	"IDFC First Bank": ["#9d1d27", "#fefefe"],
-	"HSBC Bank": ["#db0011", "#000000"],
-	"Citi Bank": ["#255be3", "#ff3c28"],
-	"Yes Bank": ["#002eda", "#eb1f48"],
-}
+from india_banking.default import BANK_CARD_COLORS
 
 
 @frappe.whitelist()
@@ -54,8 +43,8 @@ def get_connected_bank_accounts():
 		row.update(
 			{
 				"logo": f"/assets/india_banking/assets/bank-logos/{row.get('bank_name').replace(' ', '_')}.png",
-				"primary_color": BANK_COLORS[row.bank_name][0],
-				"secondary_color": BANK_COLORS[row.bank_name][1],
+				"primary_color": BANK_CARD_COLORS[row.bank_name][0],
+				"secondary_color": BANK_CARD_COLORS[row.bank_name][1],
 			}
 		)
 		connected_bank_details.append(row)

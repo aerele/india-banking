@@ -156,14 +156,14 @@ def process_payment_in_the_background(connector=None, force=False):
 	for connector in connectors:
 		retry_interval_minutes = connector.retry_interval_minutes or 5
 		if (
-			not connector.last_execution
+			force
+			or not connector.last_execution
 			or time_diff_in_seconds(
 				str(get_datetime()).split(".")[0],
 				connector.last_execution.split(".")[0],
 			)
 			/ 60
 			> retry_interval_minutes
-			and not force
 		):
 			orders = fetch_pending_payments(connector.name).run(as_dict=True)
 			payment_details = {}

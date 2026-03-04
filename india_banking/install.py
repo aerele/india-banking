@@ -51,9 +51,7 @@ def toggle_payment_request_creation(allow=True):
 			"Enabling" if allow else "Disabling"
 		)
 	)
-	frappe.db.set_value(
-		"DocType", "Payment Request", {"in_create": not allow, "track_changes": allow}
-	)
+	frappe.db.set_value("DocType", "Payment Request", {"track_changes": allow})
 
 
 def create_bank_doc_custom_fields():
@@ -139,58 +137,11 @@ def create_payment_request_custom_fields():
 	click.secho(" -> Installing Custom Fields in a Payment Request")
 	custom_field = [
 		{
-			"label": "Payment Type",
-			"fieldname": "payment_type",
-			"fieldtype": "Link",
-			"options": "Payment Type",
-			"mandatory_depends_on": "",
-			"insert_after": "mode_of_payment",
-			"hidden": 1,  # Not used currently
-		},
-		{
-			"label": "Is Adhoc",
-			"fieldname": "is_adhoc",
-			"fieldtype": "Check",
-			"depends_on": "eval:doc.mode_of_payment == 'Wire Transfer' && doc.payment_request_type ==  'Outward'",
-			"insert_after": "payment_type",
-		},
-		{
 			"label": "Net Total",
 			"fieldname": "net_total",
 			"fieldtype": "Currency",
 			"reqd": 1,
 			"insert_after": "transaction_details",
-		},
-		{
-			"label": "Taxes Deducted",
-			"fieldname": "taxes_deducted",
-			"fieldtype": "Currency",
-			"depends_on": "eval:doc.tax_withholding_category",
-			"insert_after": "net_total",
-			"read_only": 1,
-		},
-		{
-			"label": "Apply Tax Withholding Amount",
-			"fieldname": "apply_tax_withholding_amount",
-			"fieldtype": "Check",
-			"depends_on": "eval:doc.is_adhoc",
-			"insert_after": "currency",
-		},
-		{
-			"label": "Tax Withholding Category",
-			"fieldname": "tax_withholding_category",
-			"fieldtype": "Link",
-			"options": "Tax Withholding Category",
-			"depends_on": "eval:doc.apply_tax_withholding_amount",
-			"insert_after": "payment_term",
-		},
-		{
-			"label": "Payment Term",
-			"fieldname": "payment_term",
-			"fieldtype": "Link",
-			"options": "Payment Term",
-			"read_only": 1,
-			"insert_after": "tax_withholding_category",
 		},
 		{
 			"label": "",
@@ -210,8 +161,16 @@ def create_payment_request_custom_fields():
 			"fieldname": "hold_gst_payables",
 			"fieldtype": "Check",
 			"owner": "Administrator",
-			"insert_after": "tax_withholding_category",
+			"insert_after": "remarks",
 			"hidden": 1,
+		},
+		{
+			"label": "Payment Term",
+			"fieldname": "payment_term",
+			"fieldtype": "Link",
+			"options": "Payment Term",
+			"read_only": 1,
+			"insert_after": "hold_gst_payables",
 		},
 	]
 
@@ -431,12 +390,13 @@ def create_payment_order_custom_fields():
 				"depends_on": 'eval:doc.party_type == "Supplier"',
 				"insert_after": "party",
 			},
-			{
-				"label": "Is Adhoc",
-				"fieldname": "is_adhoc",
-				"fieldtype": "Check",
-				"insert_after": "tax_withholding_category",
-			},
+			# deprecated
+			# {
+			# 	"label": "Is Adhoc",
+			# 	"fieldname": "is_adhoc",
+			# 	"fieldtype": "Check",
+			# 	"insert_after": "tax_withholding_category",
+			# },
 			{
 				"label": "Payment Term",
 				"fieldname": "payment_term",

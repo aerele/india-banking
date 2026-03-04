@@ -1,4 +1,7 @@
 frappe.ui.form.on("Payment Order", {
+	setup: function (frm) {
+		frm.ignore_doctypes_on_cancel_all = ["Unreconcile Bank Payment", "Bank Payment Allocation"];
+	},
 	onload(frm) {
 		// Set summary based on party or voucher
 		if (frm.doc.docstatus == 0) {
@@ -72,6 +75,62 @@ frappe.ui.form.on("Payment Order", {
 		}
 	},
 	set_unlink_vouchers_button(frm) {
+		const dialog_fields = [
+			{
+				columns: 2,
+				fieldname: "party_type",
+				fieldtype: "Data",
+				in_list_view: 1,
+				label: "Party Type",
+				read_only: 1,
+			},
+			{
+				columns: 2,
+				fieldname: "party",
+				fieldtype: "Data",
+				in_list_view: 1,
+				label: "Party",
+				read_only: 1,
+			},
+			{
+				columns: 2,
+				fieldname: "reference_type",
+				fieldtype: "Link",
+				in_list_view: 1,
+				label: "Reference Type",
+				options: "DocType",
+				read_only: 1,
+			},
+			{
+				columns: 2,
+				fieldname: "reference_name",
+				fieldtype: "Dynamic Link",
+				in_list_view: 1,
+				label: "Reference Name",
+				options: "reference_type",
+				read_only: 1,
+			},
+			{
+				fieldname: "amount",
+				fieldtype: "Currency",
+				in_list_view: 1,
+				label: "Amount",
+				read_only: 1,
+			},
+			{
+				fieldname: "account",
+				fieldtype: "Link",
+				label: "Account",
+				options: "Account",
+				read_only: 1,
+			},
+			{
+				fieldname: "payment_request",
+				fieldtype: "Data",
+				label: "Payment Request",
+				read_only: 1,
+			},
+		];
 		if (frm.doc.docstatus == 1 && frm.doc.references.length) {
 			frm.add_custom_button(__("Unlink Allocation"), function () {
 				let dialog = new frappe.ui.Dialog({
@@ -81,55 +140,7 @@ frappe.ui.form.on("Payment Order", {
 							label: __("Allocations"),
 							fieldname: "allocations",
 							fieldtype: "Table",
-							fields: [
-								{
-									columns: 2,
-									fieldname: "party_type",
-									fieldtype: "Data",
-									in_list_view: 1,
-									label: "Party Type",
-								},
-								{
-									columns: 2,
-									fieldname: "party",
-									fieldtype: "Data",
-									in_list_view: 1,
-									label: "Party",
-								},
-								{
-									columns: 2,
-									fieldname: "reference_type",
-									fieldtype: "Link",
-									in_list_view: 1,
-									label: "Reference Type",
-									options: "DocType",
-								},
-								{
-									columns: 2,
-									fieldname: "reference_name",
-									fieldtype: "Dynamic Link",
-									in_list_view: 1,
-									label: "Reference Name",
-									options: "reference_type",
-								},
-								{
-									fieldname: "amount",
-									fieldtype: "Currency",
-									in_list_view: 1,
-									label: "Amount",
-								},
-								{
-									fieldname: "account",
-									fieldtype: "Link",
-									label: "Account",
-									options: "Account",
-								},
-								{
-									fieldname: "payment_request",
-									fieldtype: "Data",
-									label: "Payment Request",
-								},
-							],
+							fields: dialog_fields,
 							data: frm.doc.references.map((row) => {
 								return {
 									party_type: row.party_type,

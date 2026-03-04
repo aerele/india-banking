@@ -11,6 +11,15 @@ frappe.ui.form.on("Payment Request", {
 		}
 
 		set_bank_account_query(frm);
+
+		frm.dashboard.clear_headline();
+		frm.dashboard.add_comment(
+			__(
+				"<b>Warning: </b>The Adhoc Payment Request feature is deprecated. Please create a Payment Entry and pull it into the Payment Order instead."
+			),
+			"yellow",
+			true
+		);
 	},
 	mode_of_payment(frm) {
 		set_bank_account_query(frm);

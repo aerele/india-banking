@@ -113,6 +113,10 @@ class UnreconcileBankPayment(Document):
 					payment_request = frappe.get_doc(
 						"Payment Request", voucher["payment_request"]
 					)
+					payment_request.ignore_linked_doctypes = [
+						"Unreconcile Bank Payment",
+						"Bank Payment Allocation",
+					]
 					payment_request.cancel()
 					payment_request.add_comment(
 						"Comment",
@@ -175,7 +179,9 @@ def create_unreconcile_bank_doc_for_selection(args):
 					"reference_name": row["reference_name"],
 					"amount": row["amount"],
 					"account": row["account"],
-					"payment_request": row["payment_request"],
+					"payment_request": (
+						row["payment_request"] if "payment_request" in row else None
+					),
 				},
 			)
 

@@ -19,10 +19,10 @@
  "fields": [
   {
    "default": "1",
-   "description": "If enabled, Bank Accounts will follow workflow rules and require approvals based on the configured workflow.",
+   "description": "If enabled, bank account records must follow the configured workflow and require approval before they can be used.",
    "fieldname": "enable_bank_account_workflow",
    "fieldtype": "Check",
-   "label": "Enable Bank A/c Workflow"
+   "label": "Enable Bank Account Approval Workflow"
   },
   {
    "fieldname": "bank_account_section",
@@ -31,17 +31,17 @@
   },
   {
    "default": "1",
-   "description": "If enabled, the system will prevent saving duplicate bank account numbers.\n",
+   "description": "Prevents duplicate bank account numbers from being saved in the system.",
    "fieldname": "enable_unique_account_no",
    "fieldtype": "Check",
-   "label": "Enable Unique Bank A/c No"
+   "label": "Enforce Unique Bank Account Numbers"
   },
   {
    "default": "India Banking",
-   "description": "Determines the override order when multiple custom apps modify the same feature. Apps with a higher priority value take precedence during execution.",
+   "description": "Defines the priority of this application when multiple custom apps override the same functionality.",
    "fieldname": "custom_app_priority",
    "fieldtype": "Select",
-   "label": "Custom App Priority(Beta)",
+   "label": "Custom Application Priority (Beta)",
    "options": "India Banking"
   },
   {
@@ -50,29 +50,32 @@
    "label": "Basic Configuration"
   },
   {
+   "description": "Party \u2192 Payments are grouped by party.</br>\nVoucher \u2192 Payments are grouped by the source document (Purchase Order, Purchase Invoice etc.).",
    "fieldname": "summarise_payment_based_on",
    "fieldtype": "Select",
-   "label": "Summarise Payment Based On",
+   "label": "Summarize Payments By",
    "options": "Party\nVoucher"
   },
   {
    "default": "0",
+   "description": "If enabled, the Payment Entry date will automatically use the Payment Order date instead of the current system date.",
    "fieldname": "use_payment_order_date_as_payment_entry_date",
    "fieldtype": "Check",
-   "label": "Use Payment Order Date as Payment Entry Date"
+   "label": "Use Payment Order Date for Payment Entry"
   },
   {
    "default": "0",
+   "description": "Allows users to create payment orders with a future transaction date.",
    "fieldname": "allow_future_date_payment_order",
    "fieldtype": "Check",
    "label": "Allow future Date Payment Order"
   },
   {
-   "description": "Enabled doctypes can be pulled in the payment order for payment processing.",
    "fieldname": "column_break_sstt",
    "fieldtype": "Column Break"
   },
   {
+   "description": "Enabled doctypes can be pulled in the payment order for payment processing.",
    "fieldname": "allowed_payment_doctypes",
    "fieldtype": "Small Text",
    "label": "Allowed Payment Doctypes",
@@ -83,8 +86,8 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-27 11:41:53.696071",
- "modified_by": "Administrator",
+ "modified": "2026-03-05 13:03:48.885425",
+ "modified_by": "bhavan@aerele.in",
  "module": "India Banking",
  "name": "India Banking Settings",
  "owner": "Administrator",

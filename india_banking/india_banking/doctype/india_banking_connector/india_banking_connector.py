@@ -487,7 +487,6 @@ class IndiaBankingConnector(Document):
 
 	def add_payment_in_the_background(self, payment_order):
 		"""Process payments in the background."""
-		from india_banking.tasks import process_payment_in_the_background
 
 		pending_payments = []
 		for summary in payment_order.summary:
@@ -498,9 +497,10 @@ class IndiaBankingConnector(Document):
 			payment_order.db_set("enqueue_status", "Queued", update_modified=False)
 			error = None
 			try:
-				process_payment_in_the_background(
-					payment_order.company_bank_account, True
-				)  # Execute job immediately
+				frappe.get_doc(
+					"Scheduled Job Type",
+					{"method": "india_banking.tasks.process_payment_in_the_background"},
+				).enqueue(force=True)  # Execute job immediately
 			except Exception as e:
 				error = e
 			if error:

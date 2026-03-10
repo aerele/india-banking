@@ -71,7 +71,7 @@
    "reqd": 1
   },
   {
-   "depends_on": "!doc.__onload.connector_installed\n",
+   "depends_on": "eval: !doc.__onload.connector_installed",
    "fieldname": "url",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -83,7 +83,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "!doc.__onload.connector_installed\n",
+   "depends_on": "eval: !doc.__onload.connector_installed",
    "fieldname": "api_key",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -91,7 +91,7 @@
    "mandatory_depends_on": "!doc.__onload.connector_installed\n"
   },
   {
-   "depends_on": "!doc.__onload.connector_installed\n",
+   "depends_on": "eval: !doc.__onload.connector_installed",
    "fieldname": "api_secret",
    "fieldtype": "Password",
    "label": "API Secret",
@@ -256,7 +256,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-02 18:34:17.549434",
+ "modified": "2026-03-10 09:12:36.432674",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Connector",

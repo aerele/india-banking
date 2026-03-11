@@ -82,8 +82,7 @@ def make_payment_order(source_name, target_doc=None):
 				**_update_dimensions(source),
 			}
 
-		if not source.references:
-			target.append("references", _get_reference_data())
+		target.append("references", _get_reference_data())
 
 		target.status = "Pending"
 

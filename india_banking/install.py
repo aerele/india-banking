@@ -195,6 +195,14 @@ properties = {
 			"property_type": "Check",
 			"value": 0,
 		},
+		{
+			"doctype_or_field": "DocField",
+			"doctype": "Payment Request",
+			"fieldname": "recipient_and_message",
+			"property": "depends_on",
+			"property_type": "Code",
+			"value": "eval: doc.payment_request_type == 'Inward'",
+		},
 	],
 	"Bank Account": [
 		{

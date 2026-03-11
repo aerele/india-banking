@@ -2,7 +2,7 @@ import time
 
 import frappe
 from frappe.query_builder import DocType
-from frappe.utils import get_datetime, time_diff_in_seconds
+from frappe.utils import cstr, get_datetime, time_diff_in_seconds
 
 from india_banking.india_banking.doctype.india_banking_connector.india_banking_connector import (
 	get_bank_connector,
@@ -18,7 +18,7 @@ def daily():
 def job_twenty_minutes():
 	for connector in frappe.get_all("India Banking Connector", pluck="name"):
 		if (
-			frappe.db.get_value("India Banking Connector", connector, "status_check")
+			frappe.db.get_value("India Banking Connector", connector, "status_check_at")
 			== "Every 20 Minutes"
 		):
 			update_payment_date_as_posting_date(connector=connector)
@@ -28,7 +28,7 @@ def job_twenty_minutes():
 def job_one_hour():
 	for connector in frappe.get_all("India Banking Connector", pluck="name"):
 		if (
-			frappe.db.get_value("India Banking Connector", connector, "status_check")
+			frappe.db.get_value("India Banking Connector", connector, "status_check_at")
 			== "Every Hour"
 		):
 			update_payment_date_as_posting_date(connector=connector)
@@ -38,7 +38,7 @@ def job_one_hour():
 def job_at_midnight():
 	for connector in frappe.get_all("India Banking Connector", pluck="name"):
 		if (
-			frappe.db.get_value("India Banking Connector", connector, "status_check")
+			frappe.db.get_value("India Banking Connector", connector, "status_check_at")
 			== "Every Day at Midnight"
 		):
 			update_payment_date_as_posting_date(connector=connector)
@@ -46,7 +46,7 @@ def job_at_midnight():
 
 
 def update_payment_status(check_processed_payments=False, connector=None):
-	if connector and frappe.db.get_value(
+	if connector and not frappe.db.get_value(
 		"India Banking Connector", connector, "auto_update_payment_status"
 	):
 		return
@@ -154,38 +154,43 @@ def process_payment_in_the_background(connector=None, force=False):
 		)
 
 	for connector in connectors:
-		retry_interval_minutes = connector.retry_interval_minutes or 5
-		if (
-			force
-			or not connector.last_execution
-			or time_diff_in_seconds(
-				str(get_datetime()).split(".")[0],
-				connector.last_execution.split(".")[0],
+		try:
+			retry_interval_minutes = connector.retry_interval_minutes or 5
+			if (
+				force
+				or not connector.last_execution
+				or time_diff_in_seconds(
+					cstr(get_datetime()).split(".")[0],
+					cstr(connector.last_execution).split(".")[0],
+				)
+				/ 60
+				> retry_interval_minutes
+			):
+				orders = get_pending_payments(connector.name).run(as_dict=True)
+				payment_details = {}
+				for order in orders:
+					if order["payment_order"] not in payment_details:
+						payment_details[order["payment_order"]] = [order["payment"]]
+					else:
+						payment_details[order["payment_order"]].append(order["payment"])
+
+				process_batch_payment(payment_details, connector.batch_size)
+				frappe.db.set_value(
+					"India Banking Connector",
+					connector.name,
+					"last_execution",
+					get_datetime(),
+				)
+		except Exception:
+			frappe.log_error(
+				"Background Payment failed!", frappe.get_traceback(with_context=1)
 			)
-			/ 60
-			> retry_interval_minutes
-		):
-			orders = fetch_pending_payments(connector.name).run(as_dict=True)
-			payment_details = {}
-			for order in orders:
-				if order["payment_order"] not in payment_details:
-					payment_details[order["payment_order"]] = [order["payment"]]
-				else:
-					payment_details[order["payment_order"]].append(order["payment"])
-
-			process_batch_payment(payment_details, connector.batch_size)
-			frappe.db.set_value(
-				"India Banking Connector",
-				connector.name,
-				"last_execution",
-				get_datetime(),
-			)
 
 
-def fetch_pending_payments(company_bank_account):
+def get_pending_payments(company_bank_account):
 	PO = DocType("Payment Order")
 	POS = DocType("Payment Order Summary")
-	orders = (
+	return (
 		frappe.qb.from_(PO)
 		.join(POS)
 		.on(PO.name == POS.parent)
@@ -198,8 +203,6 @@ def fetch_pending_payments(company_bank_account):
 			& (PO.company_bank_account == company_bank_account)
 		)
 	)
-
-	return orders
 
 
 def process_batch_payment(payment_details, batch_size):

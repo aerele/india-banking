@@ -6,6 +6,8 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 )
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
 from frappe import _, parse_json
+from frappe.query_builder import DocType
+from frappe.query_builder.functions import Sum
 from frappe.utils import flt, nowdate
 
 from india_banking.utils import get_bank_payment_naming_series
@@ -171,19 +173,29 @@ def make_payment_entries(docname):
 						for term_row in splited_invoice_rows:
 							if reference_amount <= 0:
 								break
-							term_paid = (
-								frappe.get_value(
-									"Payment Entry Reference",
-									{
-										"reference_doctype": reference.reference_doctype,
-										"reference_name": reference.reference_name,
-										"payment_term": term_row.get("payment_term"),
-										"docstatus": 1,
-									},
-									"sum(allocated_amount)",
+
+							per = DocType("Payment Entry Reference")
+
+							result = (
+								frappe.qb.from_(per)
+								.select(Sum(per.allocated_amount).as_("allocated"))
+								.where(
+									(
+										per.reference_doctype
+										== reference.reference_doctype
+									)
+									& (per.reference_name == reference.reference_name)
+									& (per.payment_term == term_row.get("payment_term"))
+									& (per.docstatus == 1)
 								)
-								or 0
+							).run(as_dict=True)
+
+							term_paid = (
+								result[0].allocated
+								if result and result[0].allocated
+								else 0
 							)
+
 							per = (
 								frappe.db.get_value(
 									"Payment Term",

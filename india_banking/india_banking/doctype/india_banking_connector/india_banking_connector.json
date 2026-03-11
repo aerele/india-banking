@@ -16,6 +16,9 @@
   "api_key",
   "api_secret",
   "bulk_transaction",
+  "service_subscriptions_section",
+  "fetch_bank_balance",
+  "fetch_bank_statement",
   "payment_configuration_tab",
   "enqueue_large_payments_in_the_background",
   "enqueue_payments_threshold",
@@ -252,11 +255,28 @@
    "fieldtype": "Datetime",
    "label": "Last Execution",
    "read_only": 1
+  },
+  {
+   "fieldname": "service_subscriptions_section",
+   "fieldtype": "Section Break",
+   "label": "Service Subscriptions"
+  },
+  {
+   "default": "0",
+   "fieldname": "fetch_bank_balance",
+   "fieldtype": "Check",
+   "label": "Fetch Bank Balance"
+  },
+  {
+   "default": "0",
+   "fieldname": "fetch_bank_statement",
+   "fieldtype": "Check",
+   "label": "Fetch Bank Statement"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-10 09:12:36.432674",
+ "modified": "2026-03-11 12:33:36.394960",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Connector",

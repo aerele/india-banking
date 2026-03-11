@@ -33,6 +33,9 @@ override_doctype_class = {
 	"Payment Order": "india_banking.overrides.payment_order.CustomPaymentOrder",
 }
 
+override_doctype_dashboards = {
+	"Bank Account": "india_banking.india_banking.doc_events.bank_account.bank_account.get_data"
+}
 
 doc_events = {
 	"Bank": {

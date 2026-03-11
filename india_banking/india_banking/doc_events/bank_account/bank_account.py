@@ -9,6 +9,20 @@ IFSC_PATTERN = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
 NAME_PATTERN = re.compile(r"^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$")
 
 
+def get_data(data=None):
+	if data is None:
+		data = {}
+
+	data.setdefault("transactions", []).append(
+		{"label": _("Connector"), "items": ["India Banking Connector"]}
+	)
+	data.setdefault("non_standard_fieldnames", {})[
+		"India Banking Connector"
+	] = "bank_account"
+
+	return data
+
+
 def validate(doc, method=None):
 	"""Validate Bank Account document before saving"""
 	strip_whitespace(doc)

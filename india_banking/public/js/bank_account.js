@@ -88,8 +88,22 @@ frappe.ui.form.on("Bank Account", {
 	},
 	add_bank_custom_buttons(frm) {
 		if (!frm.doc.__islocal) {
-			frm.events.add_balance_fetch_button(frm);
-			frm.events.add_statements_fetch_button(frm);
+			let balance_service_subscribed = false;
+			frappe.db
+				.get_value("India Banking Connector", frm.doc.name, [
+					"fetch_bank_balance",
+					"fetch_bank_statement",
+				])
+				.then((r) => {
+					if (r.message) {
+						if (r.message.fetch_bank_balance) {
+							frm.events.add_balance_fetch_button(frm);
+							balance_service_subscribed = true;
+						}
+						if (r.message.fetch_bank_statement) frm.events.add_statements_fetch_button(frm);
+					}
+					if (!balance_service_subscribed) frm.set_df_property("bank_balance", "hidden", 1);
+				});
 		}
 	},
 	add_balance_fetch_button(frm) {

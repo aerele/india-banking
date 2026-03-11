@@ -41,6 +41,7 @@
    "description": "Defines the priority of this application when multiple custom apps override the same functionality.",
    "fieldname": "custom_app_priority",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Custom Application Priority (Beta)",
    "options": "India Banking"
   },
@@ -86,8 +87,8 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-05 13:03:48.885425",
- "modified_by": "bhavan@aerele.in",
+ "modified": "2026-03-11 11:15:19.790326",
+ "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",
  "owner": "Administrator",

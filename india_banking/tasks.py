@@ -41,7 +41,6 @@ def job_at_midnight():
 			frappe.db.get_value("India Banking Connector", connector, "status_check_at")
 			== "Every Day at Midnight"
 		):
-			frappe.log_error("Updating status")
 			update_payment_date_as_posting_date(connector=connector)
 			update_payment_status(connector=connector)
 

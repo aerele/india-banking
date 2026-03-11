@@ -13,8 +13,9 @@ from frappe.utils import comma_and, get_link_to_form
 
 
 class UnreconcileBankPayment(Document):
+	supported_types = ["Payment Order"]
+
 	def validate(self):
-		self.supported_types = ["Payment Order"]
 		if self.voucher_type not in self.supported_types:
 			frappe.throw(
 				_("Only {0} are supported").format(comma_and(self.supported_types))

@@ -268,7 +268,6 @@ def update_party_bank(self, method):
 						)
 					)
 
-	print(restrict_without_bank_account, parties_without_bank_account)
 	if restrict_without_bank_account and parties_without_bank_account:
 		frappe.throw(
 			_(

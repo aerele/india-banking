@@ -2,10 +2,11 @@ import time
 
 import frappe
 from frappe.query_builder import DocType
-from frappe.utils import cstr, get_datetime, time_diff_in_seconds
+from frappe.utils import cstr, get_datetime, time_diff_in_seconds, today
 
 from india_banking.india_banking.doctype.india_banking_connector.india_banking_connector import (
 	get_bank_connector,
+	get_bank_statement,
 	get_payment_status,
 )
 
@@ -13,6 +14,12 @@ from india_banking.india_banking.doctype.india_banking_connector.india_banking_c
 def daily():
 	for connector in frappe.get_all("India Banking Connector", pluck="name"):
 		update_payment_status(check_processed_payments=True, connector=connector)
+
+	for statement_connector in frappe.get_all(
+		"India Banking Connector", {"fetch_bank_statement": 1}, pluck="name"
+	):
+		date = today()
+		get_bank_statement(statement_connector, date, date)
 
 
 def job_twenty_minutes():

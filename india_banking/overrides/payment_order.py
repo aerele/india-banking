@@ -10,6 +10,9 @@ from frappe.utils import get_link_to_form, getdate
 
 from india_banking.default import PAYMENT_SUMMARY_FIELDS
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
+from india_banking.india_banking.doctype.india_banking_connector.india_banking_connector import (
+	get_bank_balance,
+)
 
 
 class CustomPaymentOrder(PaymentOrder):
@@ -27,6 +30,20 @@ class CustomPaymentOrder(PaymentOrder):
 						f"Future Payment Order Date is not allowed! <br> Please go to <b>{link}</b> and enable 'Allow Future Date Payment Order' to proceed."
 					),
 				)
+		if frappe.db.get_value(
+			"India Banking Connector",
+			self.company_bank_account,
+			"validate_bank_balance",
+		):
+			if bank_balance := get_bank_balance(self.company_bank_account):
+				if bank_balance < self.total:
+					frappe.throw(
+						title=_("Insufficient Balance"),
+						msg=_(
+							"Bank Account {0} has insufficient balance {1} to process the total amount {2}"
+						).format(self.company_bank_account, bank_balance, self.total),
+					)
+
 		self.validate_bank_payment_request()
 
 	def validate_bank_payment_request(self):

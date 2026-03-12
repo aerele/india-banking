@@ -174,7 +174,7 @@ frappe.ui.form.on("Bank Account", {
 					fields,
 					primary_action: () => {
 						frm.call({
-							method: "india_banking.india_banking.doctype.india_banking_connector.india_banking_connector.get_bank_statements",
+							method: "india_banking.india_banking.doctype.india_banking_connector.india_banking_connector.get_bank_statement",
 							args: {
 								bank_account_name: dialog.get_value("bank_account"),
 								from_date: dialog.get_value("from_date"),

@@ -4,11 +4,9 @@ import frappe
 from frappe.query_builder import DocType
 from frappe.utils import cstr, get_datetime, time_diff_in_seconds, today
 
-from india_banking.india_banking.doctype.bank_connector.bank_connector import (
-	get_bank_statement,
-)
 from india_banking.india_banking.doctype.india_banking_connector.india_banking_connector import (
 	get_bank_connector,
+	get_bank_statement,
 	get_payment_status,
 )
 from india_banking.utils import get_connected_bank_accounts

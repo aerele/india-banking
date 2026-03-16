@@ -836,7 +836,7 @@ def get_bank_balance(bank_account_name):
 
 
 @frappe.whitelist()
-def get_bank_statements(
+def get_bank_statement(
 	bank_account_name,
 	from_date=None,
 	to_date=None,

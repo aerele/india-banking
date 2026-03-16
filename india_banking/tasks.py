@@ -4,15 +4,18 @@ import frappe
 from frappe.query_builder import DocType
 from frappe.utils import cstr, get_datetime, time_diff_in_seconds, today
 
+from india_banking.india_banking.doctype.bank_connector.bank_connector import (
+	get_bank_statement,
+)
 from india_banking.india_banking.doctype.india_banking_connector.india_banking_connector import (
 	get_bank_connector,
-	get_bank_statement,
 	get_payment_status,
 )
+from india_banking.utils import get_connected_bank_accounts
 
 
 def daily():
-	for connector in frappe.get_all("India Banking Connector", pluck="name"):
+	for connector in get_connected_bank_accounts():
 		update_payment_status(check_processed_payments=True, connector=connector)
 
 	for statement_connector in frappe.get_all(
@@ -23,7 +26,7 @@ def daily():
 
 
 def job_twenty_minutes():
-	for connector in frappe.get_all("India Banking Connector", pluck="name"):
+	for connector in get_connected_bank_accounts():
 		if (
 			frappe.db.get_value("India Banking Connector", connector, "status_check_at")
 			== "Every 20 Minutes"
@@ -33,7 +36,7 @@ def job_twenty_minutes():
 
 
 def job_one_hour():
-	for connector in frappe.get_all("India Banking Connector", pluck="name"):
+	for connector in get_connected_bank_accounts():
 		if (
 			frappe.db.get_value("India Banking Connector", connector, "status_check_at")
 			== "Every Hour"
@@ -43,7 +46,7 @@ def job_one_hour():
 
 
 def job_at_midnight():
-	for connector in frappe.get_all("India Banking Connector", pluck="name"):
+	for connector in get_connected_bank_accounts():
 		if (
 			frappe.db.get_value("India Banking Connector", connector, "status_check_at")
 			== "Every Day at Midnight"

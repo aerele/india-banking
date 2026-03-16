@@ -248,3 +248,8 @@ def minutes_to_cron(minutes: int) -> str:
 		days = minutes / 1440
 		if days.is_integer():
 			return f"0 0 */{int(days)} * *"
+
+
+@frappe.whitelist()
+def get_connected_bank_accounts():
+	return frappe.get_all("India Banking Connector", pluck="name")

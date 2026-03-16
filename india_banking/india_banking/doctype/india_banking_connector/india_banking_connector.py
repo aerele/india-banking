@@ -731,7 +731,7 @@ class IndiaBankingConnector(Document):
 					bank_transaction_doc.deposit = statement.transaction_amount
 				bank_transaction_doc.save()
 
-	def get_bank_statements(
+	def get_bank_statement(
 		self,
 		bank_account,
 		from_date=None,
@@ -832,11 +832,13 @@ def get_payment_status(payment_order, check_processed_payments=False):
 def get_bank_balance(bank_account_name):
 	bank_doc = frappe.get_doc("Bank Account", bank_account_name)
 	bank_connector = get_bank_connector(bank_account_name, bank_doc.company)
-	return bank_connector.get_bank_balance(bank_doc)
+
+	if bank_connector.fetch_bank_balance:
+		return bank_connector.get_bank_balance(bank_doc)
 
 
 @frappe.whitelist()
-def get_bank_statements(
+def get_bank_statement(
 	bank_account_name,
 	from_date=None,
 	to_date=None,
@@ -845,10 +847,11 @@ def get_bank_statements(
 ):
 	bank_doc = frappe.get_doc("Bank Account", bank_account_name)
 	bank_connector = get_bank_connector(bank_account_name, bank_doc.company)
-	return bank_connector.get_bank_statements(
-		bank_doc,
-		from_date=from_date,
-		to_date=to_date,
-		is_paginated=is_paginated,
-		last_tran_id=last_tran_id,
-	)
+	if bank_connector.fetch_bank_balance:
+		return bank_connector.get_bank_statement(
+			bank_doc,
+			from_date=from_date,
+			to_date=to_date,
+			is_paginated=is_paginated,
+			last_tran_id=last_tran_id,
+		)

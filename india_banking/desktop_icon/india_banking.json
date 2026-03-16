@@ -1,0 +1,23 @@
+{
+ "app": "india_banking",
+ "bg_color": "gray",
+ "creation": "2026-03-11 18:23:47.310144",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon_type": "Link",
+ "idx": 1,
+ "label": "India Banking",
+ "link_to": "India Banking",
+ "link_type": "Workspace Sidebar",
+ "logo_url": "/assets/india_banking/images/india-banking-logo.svg",
+ "modified": "2026-03-11 18:37:37.038799",
+ "modified_by": "Administrator",
+ "name": "India Banking",
+ "owner": "Administrator",
+ "parent_icon": "",
+ "restrict_removal": 0,
+ "roles": [],
+ "sidebar": "India Banking",
+ "standard": 1
+}

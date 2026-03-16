@@ -28,6 +28,7 @@
   "settings",
   "auto_update_configurations_section",
   "payment_configuration_column",
+  "validate_bank_balance",
   "auto_post_payments",
   "retry_interval_minutes",
   "batch_size",
@@ -153,13 +154,6 @@
    "label": "Payment Configuration"
   },
   {
-   "default": "0",
-   "description": "If enabled, payments will be processed automatically in the background.",
-   "fieldname": "auto_post_payments",
-   "fieldtype": "Check",
-   "label": "Auto Post Payments"
-  },
-  {
    "default": "5",
    "depends_on": "auto_post_payments",
    "description": "Time (in minutes) between attempts to process queued payments.",
@@ -266,11 +260,25 @@
    "fieldname": "fetch_bank_statement",
    "fieldtype": "Check",
    "label": "Fetch Bank Statement"
+  },
+  {
+   "default": "0",
+   "description": "Upon submission of payment order validate bank balance against total.",
+   "fieldname": "validate_bank_balance",
+   "fieldtype": "Check",
+   "label": "Validate Bank Balance"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, payments will be processed automatically in the background.",
+   "fieldname": "auto_post_payments",
+   "fieldtype": "Check",
+   "label": "Auto Post Payments"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-11 12:33:36.394960",
+ "modified": "2026-03-12 18:44:08.658120",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Connector",

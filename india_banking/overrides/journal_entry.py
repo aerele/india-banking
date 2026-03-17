@@ -238,8 +238,12 @@ def update_party_bank(self, method):
 	parties_without_bank_account = []
 
 	for row in self.accounts:
-		if row.bank_account and frappe.db.get_value(
-			"Bank Account", row.bank_account, "is_company_account"
+		if (
+			row.bank_account
+			and not restrict_without_bank_account
+			and frappe.db.get_value(
+				"Bank Account", row.bank_account, "is_company_account"
+			)
 		):
 			restrict_without_bank_account = frappe.db.get_value(
 				"India Banking Connector",

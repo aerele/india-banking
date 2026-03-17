@@ -56,11 +56,19 @@ def unlink_payment_reference(summary):
 		)
 		summary_references = ast.literal_eval(po_references)
 		for reference in summary_references:
-			ref_type, ref_name = frappe.db.get_value(
+			ref_type, ref_name, journal_entry_account = frappe.db.get_value(
 				"Payment Order Reference",
 				reference,
-				["reference_doctype", "reference_name"],
+				["reference_doctype", "reference_name", "journal_entry_account"],
 			)
+			if ref_type == "Journal Entry" and journal_entry_account:
+				frappe.db.set_value(
+					"Journal Entry Account",
+					journal_entry_account,
+					{
+						"payment_status": "Failed"
+					}
+				)
 			frappe.db.set_value(
 				"Payment Order Reference",
 				reference,

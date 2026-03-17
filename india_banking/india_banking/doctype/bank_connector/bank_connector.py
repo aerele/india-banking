@@ -334,7 +334,6 @@ class BankConnector(Document):
 							"Payment Order Summary",
 							summary.name,
 							{
-								"payment_initiated": 1,
 								"message": status_details.message,
 							},
 						)

@@ -20,7 +20,6 @@ from frappe.utils import (
 	getdate,
 )
 
-
 class BankPaymentRequest(PaymentRequest):
 	def validate(self):
 		self.set_default_value()

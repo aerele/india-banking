@@ -235,7 +235,7 @@ class CustomPaymentOrder(PaymentOrder):
 				)
 				frappe.db.set_value(
 					doctype,
-					d.get(ref_doc_field),
+				d.get(ref_doc_field),
 					ref_field,
 					status,
 				)

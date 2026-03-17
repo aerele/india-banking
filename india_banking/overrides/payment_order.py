@@ -160,7 +160,11 @@ class CustomPaymentOrder(PaymentOrder):
 			"Payment Entry",
 			"Journal Entry",
 		]:
-			if self.payment_order_type == "Payment Request":
+			if self.payment_order_type == "Payment Request" and not frappe.db.get_value(
+				"India Banking Connector",
+				{"bank_account": self.company_bank_account},
+				"create_payment_after_success",
+			):
 				make_payment_entries(self.name)
 
 			self.update_payment_status()

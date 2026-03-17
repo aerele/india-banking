@@ -500,6 +500,25 @@ frappe.ui.form.on("Payment Order", {
 	},
 });
 
+frappe.ui.form.on("Payment Order Summary", {
+	create_payment_entry(frm, cdt, cdn) {
+		if (frm.doc.docstatus != 1) return;
+		const row = locals[cdt][cdn];
+		frm.call({
+			method: "india_banking.india_banking.doc_events.payment_order.make_payment_entries",
+			freeze: true,
+			freeze_message: __("Creating Payment Entry..."),
+			args: {
+				docname: frm.doc.name,
+				summary_name: row.name,
+			},
+			callback: function (r) {
+				frm.reload_doc();
+			},
+		});
+	},
+});
+
 const show_update_status_dialog = function (frm) {
 	frm.data = [];
 	const dialog = new frappe.ui.Dialog({

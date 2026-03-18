@@ -33,6 +33,7 @@
   "retry_interval_minutes",
   "batch_size",
   "last_execution",
+  "create_payment_after_success",
   "status_configuration_column",
   "auto_update_payment_status",
   "status_check_at",
@@ -282,6 +283,12 @@
    "fieldname": "auto_post_payments",
    "fieldtype": "Check",
    "label": "Auto Post Payments"
+  },
+  {
+   "description": "If checked: a Payment Entry will be created only after receiving a successful response from the connector.\n<br>If unchecked: a Payment Entry is created immediately upon submitting the payment order.",
+   "fieldname": "create_payment_after_success",
+   "fieldtype": "Check",
+   "label": "Create Payment After Successful Bank Transaction"
   }
  ],
  "index_web_pages_for_search": 1,

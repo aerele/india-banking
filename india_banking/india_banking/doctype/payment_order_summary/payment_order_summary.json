@@ -27,6 +27,7 @@
   "account",
   "tax_withholding_category",
   "payment_entry",
+  "create_payment_entry",
   "journal_entry_account",
   "reference_doctype",
   "reference_name",
@@ -132,6 +133,12 @@
    "fieldtype": "Data",
    "label": "Payment Entry",
    "read_only": 1
+  },
+  {
+   "depends_on": "eval: parent.payment_order_type == \"Payment Request\" && doc.docstatus == 1;",
+   "fieldname": "create_payment_entry",
+   "fieldtype": "Button",
+   "label": "Create Payment Entry"
   },
   {
    "fieldname": "reference_doctype",

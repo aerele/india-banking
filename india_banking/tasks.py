@@ -53,10 +53,14 @@ def job_at_midnight():
 
 
 def update_payment_status(check_processed_payments=False, connector=None):
-	if connector and not frappe.db.get_value(
-		"India Banking Connector", connector, "auto_update_payment_status"
-	):
-		return
+	if connector:
+		auto_update_payment_status, create_payment_after_success = frappe.db.get_value(
+			"India Banking Connector",
+			connector,
+			["auto_update_payment_status", "create_payment_after_success"],
+		)
+		if not auto_update_payment_status or create_payment_after_success:
+			return
 
 	PaymentOrder = DocType("Payment Order")
 	PaymentOrderSummary = DocType("Payment Order Summary")

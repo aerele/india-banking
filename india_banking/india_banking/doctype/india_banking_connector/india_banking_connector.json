@@ -39,6 +39,7 @@
   "retry_period",
   "reposting_configurations_section",
   "auto_update_posting_date_as_payment_date",
+  "restrict_journal_entry_without_bank_account",
   "doctype_configuration_section",
   "doctype_naming_series",
   "payment_notifications_section",
@@ -207,6 +208,13 @@
    "fieldname": "auto_update_posting_date_as_payment_date",
    "fieldtype": "Check",
    "label": "Auto Update Posting Date as Payment Date"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, Journal Entry creation will be restricted if the party does not have a linked Bank Account.",
+   "fieldname": "restrict_journal_entry_without_bank_account",
+   "fieldtype": "Check",
+   "label": "Restrict Journal Entry Without Party Bank Account"
   },
   {
    "fieldname": "doctype_configuration_section",

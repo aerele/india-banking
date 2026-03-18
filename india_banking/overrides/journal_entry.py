@@ -234,7 +234,24 @@ def update_party_bank(self, method):
 	if self.voucher_type != "Bank Entry":
 		return
 
+	restrict_without_bank_account = False
+	parties_without_bank_account = []
+
 	for row in self.accounts:
+		if (
+			row.bank_account
+			and not restrict_without_bank_account
+			and frappe.db.get_value(
+				"Bank Account", row.bank_account, "is_company_account"
+			)
+		):
+			restrict_without_bank_account = frappe.db.get_value(
+				"India Banking Connector",
+				{"bank_account": row.bank_account},
+				"restrict_journal_entry_without_bank_account",
+			)
+			continue
+
 		if row.party_type and row.party and not row.bank_account:
 			account_type = frappe.get_cached_value(
 				"Account", row.account, "account_type"
@@ -248,3 +265,20 @@ def update_party_bank(self, method):
 				)
 				if bank_account:
 					row.bank_account = bank_account
+				else:
+					parties_without_bank_account.append(
+						_("Row #{0}: {1} - {2}").format(
+							row.idx, row.party_type, row.party
+						)
+					)
+
+	if restrict_without_bank_account and parties_without_bank_account:
+		frappe.throw(
+			_(
+				"The following parties do not have a Bank Account."
+				" Please add a Bank Account before creating this Journal Entry."
+			)
+			+ "<br><br>"
+			+ "<br>".join(parties_without_bank_account),
+			title=_("Missing Party Bank Account"),
+		)

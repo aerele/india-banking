@@ -78,6 +78,9 @@ class CustomPaymentOrder(PaymentOrder):
 
 		summary_total = 0
 		for payment in self.summary:
+			if not payment.mode_of_transfer:
+				frappe.throw(_("Define a specific mode of transfer or a default one"))
+
 			mode_of_transfer = (
 				frappe.get_doc("Mode of Transfer", payment.mode_of_transfer)
 				if payment.mode_of_transfer
@@ -368,3 +371,34 @@ def get_mode_of_transfer(
 		)
 
 	return mode_of_transfer
+
+
+@frappe.whitelist()
+def create_payment_order(payment_entry, default_mode_of_transfer=None):
+	from india_banking.overrides.payment_entry import make_payment_order
+
+	po = make_payment_order(payment_entry)
+	po.posting_date = frappe.utils.nowdate()
+	po.default_mode_of_transfer = default_mode_of_transfer
+
+	references = [ref.as_dict() for ref in po.references]
+	summary_rows = get_party_summary(
+		json.dumps(references),
+		po.company_bank_account,
+		default_mode_of_transfer=default_mode_of_transfer,
+	)
+
+	if not summary_rows:
+		frappe.throw(
+			_("Could not generate payment summary for Payment Entry {0}").format(
+				payment_entry
+			)
+		)
+
+	for row in summary_rows:
+		po.append("summary", row)
+
+	po.insert(ignore_permissions=True)
+	po.submit()
+
+	return po.name

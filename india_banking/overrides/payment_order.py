@@ -6,17 +6,20 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 )
 from erpnext.accounts.doctype.payment_order.payment_order import PaymentOrder
 from frappe import _
-from frappe.utils import get_link_to_form, getdate
+from frappe.utils import flt, get_link_to_form, getdate
 
 from india_banking.default import PAYMENT_SUMMARY_FIELDS
 from india_banking.india_banking.doc_events.payment_order import make_payment_entries
+from india_banking.india_banking.doctype.bank_connector.bank_connector import (
+	get_bank_balance,
+)
 
 
 class CustomPaymentOrder(PaymentOrder):
 	def before_submit(self):
-		if not frappe.get_single(
-			"India Banking Settings"
-		).allow_future_date_payment_order:
+		settings = frappe.get_single("India Banking Settings")
+
+		if not settings.allow_future_date_payment_order:
 			if getdate(self.posting_date) > getdate():
 				link = get_link_to_form(
 					"India Banking Settings", "India Banking Settings"
@@ -24,10 +27,43 @@ class CustomPaymentOrder(PaymentOrder):
 				frappe.throw(
 					title=_("Future Date Not Allowed"),
 					msg=_(
-						f"Future Payment Order Date is not allowed! <br> Please go to <b>{link}</b> and enable 'Allow Future Date Payment Order' to proceed."
+						"Future-dated Payment Orders are currently disabled.<br>"
+						"Please enable 'Allow Future-Dated Payment Orders' in <b>{0}</b> to proceed.".format(
+							link
+						)
 					),
 				)
+		if settings.enable_bank_balance_validation:
+			self.validate_bank_balance()
 		self.validate_bank_payment_request()
+
+	def validate_bank_balance(self):
+		is_insufficient_fund = False
+		try:
+			balance = get_bank_balance(self.company_bank_account)
+
+			if flt(balance) < self.total:
+				is_insufficient_fund = True
+
+		except Exception:
+			frappe.log_error("balance", frappe.get_traceback(with_context=1))
+			frappe.throw(
+				_(
+					"Bank balance validation Failed. "
+					"Please check the Balance API logs for more details."
+				)
+			)
+		if is_insufficient_fund:
+			frappe.throw(
+				_(
+					"Insufficient funds in Bank Account {0}.<br>"
+					"Available Balance: {1}, Required Amount: {2}"
+				).format(
+					frappe.bold(self.company_bank_account),
+					frappe.bold(balance),
+					frappe.bold(flt(self.total, 2)),
+				)
+			)
 
 	def validate_bank_payment_request(self):
 		if self.references:

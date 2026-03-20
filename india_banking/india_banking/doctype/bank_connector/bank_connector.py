@@ -774,7 +774,22 @@ class BankConnector(Document):
 						self.update_bank_transactions(
 							bank_statements, bank_account=bank_account
 						)
-						frappe.msgprint(_("The transactions are being updated."))
+						if len(bank_statements) > 0:
+							frappe.msgprint(
+								_(
+									"{0} transactions were updated successfully.".format(
+										len(bank_statements)
+									)
+								)
+							)
+				else:
+					frappe.msgprint(
+						_(
+							"No transactions found for the date range {0} to {1}".format(
+								from_date, to_date
+							)
+						)
+					)
 		else:
 			frappe.msgprint(
 				title=_("API Failed"),

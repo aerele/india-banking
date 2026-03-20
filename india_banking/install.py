@@ -594,6 +594,13 @@ def create_bank_account_custom_fields():
 				"read_only": 1,
 			},
 			{
+				"label": "Last Sync",
+				"fieldname": "balance_last_sync",
+				"fieldtype": "Datetime",
+				"read_only": 1,
+				"insert_after": "bank_balance",
+			},
+			{
 				"label": "Currency",
 				"fieldname": "currency",
 				"fieldtype": "Link",

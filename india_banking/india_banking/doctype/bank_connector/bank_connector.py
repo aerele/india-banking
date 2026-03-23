@@ -13,6 +13,9 @@ from frappe.utils import add_days, cint, cstr, flt, get_datetime, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
 from india_banking.default import H2H_ENABLED_BANKS
+from india_banking.india_banking.doc_events.payment_order import (
+	unlink_payment_reference,
+)
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
 )
@@ -268,6 +271,7 @@ class BankConnector(Document):
 			"Pending": 0,
 			"Failed": 0,
 			"Rejected": 0,
+			"Initiated": 0,
 		}
 		payment_response = self.get_response_details(response)
 		if response.ok:
@@ -317,25 +321,11 @@ class BankConnector(Document):
 							self.notify_party(summary)
 							status_count_map[status_details.status] += 1
 
-					elif status_details.status == "Pending":
+					elif status_details.status in ["Pending", "Initiated"]:
 						frappe.db.set_value(
 							"Payment Order Summary",
 							summary.name,
 							{
-								"payment_initiated": 1,
-								"message": status_details.message,
-							},
-							update_modified=False,
-						)
-						status_count_map[status_details.status] += 1
-
-					elif status_details.status == "Failed":
-						frappe.db.set_value(
-							"Payment Order Summary",
-							summary.name,
-							{
-								"payment_status": "Failed",
-								"payment_initiated": 1,
 								"message": status_details.message,
 							},
 						)
@@ -360,7 +350,7 @@ class BankConnector(Document):
 							)
 						status_count_map[status_details.status] += 1
 
-					elif status_details.status == "Rejected":
+					elif status_details.status in ("Failed", "Rejected"):
 						frappe.db.set_value(
 							"Payment Order Summary",
 							summary.name,
@@ -406,8 +396,11 @@ class BankConnector(Document):
 			frappe.throw("Invalid Request")
 
 	def show_status_count(self, status_count_map):
+		frappe.log_error("status_count_map", str(status_count_map))
 		msg = ""
 		for status, count in status_count_map.items():
+			if status == "Initiated":
+				status = "Approval pending"
 			if count > 0:
 				msg += f"<b>{status}: {count}"
 		if msg:

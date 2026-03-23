@@ -14,7 +14,9 @@ frappe.ui.form.on("Bank Account", {
 						callback: (res) => {
 							frappe.msgprint({
 								title: "Bank balance updated successfully",
-								message: `Current Available Balance: <h3>${res.message}</h3>`,
+								message: `Current Available Balance: <h3>${fmt_money(
+									res.message
+								)}</h3>`,
 								indicator: "green",
 							});
 							cur_frm.reload_doc();

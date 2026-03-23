@@ -38,29 +38,23 @@ class CustomPaymentOrder(PaymentOrder):
 		self.validate_bank_payment_request()
 
 	def validate_bank_balance(self):
-		is_insufficient_fund = False
 		try:
 			balance = get_bank_balance(self.company_bank_account)
-
-			if flt(balance) < self.total:
-				is_insufficient_fund = True
-
 		except Exception:
-			frappe.log_error("balance", frappe.get_traceback(with_context=1))
-			frappe.throw(
-				_(
-					"Bank balance validation Failed. "
-					"Please check the Balance API logs for more details."
-				)
+			frappe.log_error(
+				"Bank Balance Validation Error", frappe.get_traceback(with_context=1)
 			)
-		if is_insufficient_fund:
+		balance = flt(balance)
+		if balance < flt(self.total):
 			frappe.throw(
 				_(
 					"Insufficient funds in Bank Account {0}.<br>"
 					"Available Balance: {1}, Required Amount: {2}"
 				).format(
 					frappe.bold(self.company_bank_account),
-					frappe.bold(balance),
+					frappe.bold(
+						frappe.format_value(balance, {"fieldtype": "Currency"})
+					),
 					frappe.bold(flt(self.total, 2)),
 				)
 			)

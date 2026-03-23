@@ -49,7 +49,7 @@ frappe.ui.form.on("Payment Order", {
 		frm.set_df_property(summary_field, "cannot_delete_rows", true);
 		frm.set_df_property(summary_field, "cannot_add_rows", true);
 
-		frm.events.show_balace(frm);
+		frm.events.show_balance(frm);
 	},
 
 	async update_bank_balance(frm, field) {
@@ -433,9 +433,9 @@ frappe.ui.form.on("Payment Order", {
 		}
 	},
 	company_bank_account(frm) {
-		frm.events.show_balace(frm);
+		frm.events.show_balance(frm);
 	},
-	show_balace(frm) {
+	show_balance(frm) {
 		frappe.db
 			.get_single_value("India Banking Settings", "show_bank_balance_in_payment_order")
 			.then((r) => {

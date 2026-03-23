@@ -262,10 +262,6 @@ class BankConnector(Document):
 			frappe.throw(_("Connection Failed"))
 
 	def verify_status_response(self, response, payment_order):
-		from india_banking.india_banking.doc_events.payment_order import (
-			unlink_payment_reference,
-		)
-
 		status_count_map = {
 			"Processed": 0,
 			"Pending": 0,
@@ -396,7 +392,6 @@ class BankConnector(Document):
 			frappe.throw("Invalid Request")
 
 	def show_status_count(self, status_count_map):
-		frappe.log_error("status_count_map", str(status_count_map))
 		msg = ""
 		for status, count in status_count_map.items():
 			if status == "Initiated":

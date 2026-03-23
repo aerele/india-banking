@@ -38,6 +38,7 @@ class CustomPaymentOrder(PaymentOrder):
 		self.validate_bank_payment_request()
 
 	def validate_bank_balance(self):
+		balance = None
 		try:
 			balance = get_bank_balance(self.company_bank_account)
 		except Exception:
@@ -45,6 +46,12 @@ class CustomPaymentOrder(PaymentOrder):
 				"Bank Balance Validation Error", frappe.get_traceback(with_context=1)
 			)
 		balance = flt(balance)
+		if balance is None:
+			frappe.throw(
+				_(
+					"Unable to validate the latest bank balance. Please retry or check the bank connector logs."
+				)
+			)
 		if balance < flt(self.total):
 			frappe.throw(
 				_(

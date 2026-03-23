@@ -16,7 +16,7 @@ frappe.query_reports["Bank GST Payables"] = {
 			label: __("Voucher Type"),
 			fieldtype: "Select",
 			options: "Purchase Invoice\nPurchase Order",
-			defaults: "Purchase Invoice",
+			default: "Purchase Invoice",
 			reqd: 1,
 		},
 		{

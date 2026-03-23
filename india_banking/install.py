@@ -591,6 +591,7 @@ def create_bank_account_custom_fields():
 				"fieldname": "bank_balance",
 				"fieldtype": "Currency",
 				"insert_after": "bank_account_no",
+				"depends_on": "eval: doc.is_company_account",
 				"read_only": 1,
 			},
 			{
@@ -598,7 +599,7 @@ def create_bank_account_custom_fields():
 				"fieldname": "balance_last_sync",
 				"fieldtype": "Datetime",
 				"read_only": 1,
-				"depends_on": "eval: !doc.is_company_account",
+				"depends_on": "eval: doc.is_company_account",
 				"insert_after": "bank_balance",
 			},
 			{

@@ -63,3 +63,7 @@ scheduler_events = {
 		"0 0 * * *": ["india_banking.tasks.job_at_midnight"],
 	},
 }
+
+default_log_clearing_doctypes = {
+	"India Banking Request Log": 60,
+}

@@ -125,6 +125,7 @@
 		"onScan": true,
 		"extend_cscript": true,
 		"localforage": true,
-		"Plaid": true
+		"Plaid": true,
+		"fmt_money": true
 	}
 }

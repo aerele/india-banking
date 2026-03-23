@@ -9,10 +9,13 @@ import frappe
 import requests as request
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days, cint, cstr, flt, getdate
+from frappe.utils import add_days, cint, cstr, flt, get_datetime, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
 from india_banking.default import H2H_ENABLED_BANKS
+from india_banking.india_banking.doc_events.payment_order import (
+	unlink_payment_reference,
+)
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
 )
@@ -20,6 +23,7 @@ from india_banking.utils import (
 	extract_error_message,
 	get_bank_address_details,
 	get_party_field_name,
+	is_bulk_transaction_only_bank,
 )
 
 OTP_ENABLED_BANK = [
@@ -62,6 +66,7 @@ class BankConnector(Document):
 
 	def validate(self):
 		self.validate_integration_mode()
+		self.bulk_transaction = is_bulk_transaction_only_bank(self.bank)
 		if self.same_site == "Yes":
 			self.validate_connector_app_installed()
 
@@ -259,15 +264,12 @@ class BankConnector(Document):
 			frappe.throw(_("Connection Failed"))
 
 	def verify_status_response(self, response, payment_order):
-		from india_banking.india_banking.doc_events.payment_order import (
-			unlink_payment_reference,
-		)
-
 		status_count_map = {
 			"Processed": 0,
 			"Pending": 0,
 			"Failed": 0,
 			"Rejected": 0,
+			"Initiated": 0,
 		}
 		payment_response = self.get_response_details(response)
 		if response.ok:
@@ -317,50 +319,17 @@ class BankConnector(Document):
 							self.notify_party(summary)
 							status_count_map[status_details.status] += 1
 
-					elif status_details.status == "Pending":
+					elif status_details.status in ["Pending", "Initiated"]:
 						frappe.db.set_value(
 							"Payment Order Summary",
 							summary.name,
 							{
-								"payment_initiated": 1,
-								"message": status_details.message,
-							},
-							update_modified=False,
-						)
-						status_count_map[status_details.status] += 1
-
-					elif status_details.status == "Failed":
-						frappe.db.set_value(
-							"Payment Order Summary",
-							summary.name,
-							{
-								"payment_status": "Failed",
-								"payment_initiated": 1,
 								"message": status_details.message,
 							},
 						)
-
-						if summary.payment_entry:
-							self.process_bank_payment_requests(payment_order, summary)
-							if payment_order.payment_order_type == "Payment Request":
-								payment_entry_doc = frappe.get_doc(
-									"Payment Entry", summary.payment_entry
-								)
-								if payment_entry_doc.docstatus == 1:
-									payment_entry_doc.cancel()
-							else:
-								unlink_payment_reference(summary_ref)
-
-						if summary.journal_entry_account:
-							frappe.db.set_value(
-								"Journal Entry Account",
-								summary.journal_entry_account,
-								"payment_status",
-								"Failed",
-							)
 						status_count_map[status_details.status] += 1
 
-					elif status_details.status == "Rejected":
+					elif status_details.status in ("Failed", "Rejected"):
 						frappe.db.set_value(
 							"Payment Order Summary",
 							summary.name,
@@ -408,6 +377,8 @@ class BankConnector(Document):
 	def show_status_count(self, status_count_map):
 		msg = ""
 		for status, count in status_count_map.items():
+			if status == "Initiated":
+				status = "Approval pending"
 			if count > 0:
 				msg += f"<b>{status}: {count}"
 		if msg:
@@ -662,8 +633,10 @@ class BankConnector(Document):
 					frappe.db.set_value(
 						"Bank Account",
 						bank_account.name,
-						"bank_balance",
-						response_details.balance,
+						{
+							"bank_balance": response_details.balance,
+							"balance_last_sync": get_datetime(),
+						},
 					)
 					return response_details.balance
 			else:
@@ -772,7 +745,22 @@ class BankConnector(Document):
 						self.update_bank_transactions(
 							bank_statements, bank_account=bank_account
 						)
-						frappe.msgprint(_("The transactions are being updated."))
+						if len(bank_statements) > 0:
+							frappe.msgprint(
+								_(
+									"{0} transactions were updated successfully.".format(
+										len(bank_statements)
+									)
+								)
+							)
+				else:
+					frappe.msgprint(
+						_(
+							"No transactions found for the date range {0} to {1}".format(
+								from_date, to_date
+							)
+						)
+					)
 		else:
 			frappe.msgprint(
 				title=_("API Failed"),
@@ -802,9 +790,9 @@ class BankConnector(Document):
 
 	@frappe.whitelist()
 	def get_bulk_transaction_banks(self):
-		from india_banking.default import BULK_TRANSACTION_ENABLED_BANK
+		from india_banking.default import BULK_TRANSACTION_ENABLED_BANKS
 
-		return BULK_TRANSACTION_ENABLED_BANK
+		return BULK_TRANSACTION_ENABLED_BANKS
 
 
 def get_bank_connector(bank_account, company):

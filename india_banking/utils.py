@@ -4,9 +4,10 @@ import re
 
 import frappe
 from frappe import _
+from frappe.utils import cint
 from frappe.utils.background_jobs import is_job_enqueued
 
-from india_banking.default import ALLOWED_PAYMENT_DOCTYPE
+from india_banking.default import ALLOWED_PAYMENT_DOCTYPE, ONLY_BULK_TRANSACTION_BANKS
 
 
 @frappe.whitelist()
@@ -63,6 +64,10 @@ def get_party_field_name(party_type):
 		"Customer": "customer_name",
 		"Employee": "employee_name",
 	}.get(party_type, "name")
+
+
+def is_bulk_transaction_only_bank(bank):
+	return cint(bank in ONLY_BULK_TRANSACTION_BANKS)
 
 
 def extract_error_message(response_json, show_message=False) -> str:

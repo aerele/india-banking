@@ -23,6 +23,7 @@ from india_banking.utils import (
 	extract_error_message,
 	get_bank_address_details,
 	get_party_field_name,
+	is_bulk_transaction_only_bank,
 )
 
 OTP_ENABLED_BANK = [
@@ -65,6 +66,7 @@ class BankConnector(Document):
 
 	def validate(self):
 		self.validate_integration_mode()
+		self.bulk_transaction = is_bulk_transaction_only_bank(self.bank)
 		if self.same_site == "Yes":
 			self.validate_connector_app_installed()
 
@@ -325,25 +327,6 @@ class BankConnector(Document):
 								"message": status_details.message,
 							},
 						)
-
-						if summary.payment_entry:
-							self.process_bank_payment_requests(payment_order, summary)
-							if payment_order.payment_order_type == "Payment Request":
-								payment_entry_doc = frappe.get_doc(
-									"Payment Entry", summary.payment_entry
-								)
-								if payment_entry_doc.docstatus == 1:
-									payment_entry_doc.cancel()
-							else:
-								unlink_payment_reference(summary_ref)
-
-						if summary.journal_entry_account:
-							frappe.db.set_value(
-								"Journal Entry Account",
-								summary.journal_entry_account,
-								"payment_status",
-								"Failed",
-							)
 						status_count_map[status_details.status] += 1
 
 					elif status_details.status in ("Failed", "Rejected"):
@@ -807,9 +790,9 @@ class BankConnector(Document):
 
 	@frappe.whitelist()
 	def get_bulk_transaction_banks(self):
-		from india_banking.default import BULK_TRANSACTION_ENABLED_BANK
+		from india_banking.default import BULK_TRANSACTION_ENABLED_BANKS
 
-		return BULK_TRANSACTION_ENABLED_BANK
+		return BULK_TRANSACTION_ENABLED_BANKS
 
 
 def get_bank_connector(bank_account, company):

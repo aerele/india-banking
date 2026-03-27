@@ -59,7 +59,7 @@ STD_BANK_LIST = [
 	"Kotak Mahindra Bank",
 	"Union Bank of India",
 	"Bank of Baroda",
-	"IDFC Bank",
+	"IDFC First Bank",
 	"CITI Bank",
 ]
 
@@ -129,3 +129,16 @@ DEFAULT_WORKFLOW_LIST = [
 ]
 
 ALLOWED_PAYMENT_DOCTYPE = ["Payment Request", "Payment Entry", "Bank Entry(JV)"]
+
+BULK_TRANSACTION_ENABLED_BANKS = [
+	"ICICI Bank",
+	"IDFC First Bank",
+	"Axis Bank",
+	"Canara Bank",
+]
+
+ONLY_BULK_TRANSACTION_BANKS = [
+	"Axis Bank",
+	"IDFC First Bank",
+	"Canara Bank",
+]

@@ -67,6 +67,19 @@ H2H_ENABLED_BANKS = [
 	"CITI Bank",
 ]
 
+BULK_TRANSACTION_ENABLED_BANKS = [
+	"ICICI Bank",
+	"IDFC First Bank",
+	"Axis Bank",
+	"Canara Bank",
+]
+
+ONLY_BULK_TRANSACTION_BANKS = [
+	"Axis Bank",
+	"IDFC First Bank",
+	"Canara Bank",
+]
+
 DEFAULT_ROLES = ["Payment Manager"]
 
 DEFAULT_WORKFLOW_STATE = [
@@ -129,16 +142,3 @@ DEFAULT_WORKFLOW_LIST = [
 ]
 
 ALLOWED_PAYMENT_DOCTYPE = ["Payment Request", "Payment Entry", "Bank Entry(JV)"]
-
-BULK_TRANSACTION_ENABLED_BANKS = [
-	"ICICI Bank",
-	"IDFC First Bank",
-	"Axis Bank",
-	"Canara Bank",
-]
-
-ONLY_BULK_TRANSACTION_BANKS = [
-	"Axis Bank",
-	"IDFC First Bank",
-	"Canara Bank",
-]

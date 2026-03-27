@@ -12,7 +12,11 @@ from frappe.model.document import Document
 from frappe.utils import add_days, cint, cstr, flt, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
-from india_banking.default import H2H_ENABLED_BANKS
+from india_banking.default import (
+	BULK_TRANSACTION_ENABLED_BANKS,
+	H2H_ENABLED_BANKS,
+	ONLY_BULK_TRANSACTION_BANKS,
+)
 from india_banking.india_banking.doctype.india_banking_request_log.india_banking_request_log import (
 	create_api_log,
 )
@@ -59,6 +63,16 @@ class BankConnector(Document):
 
 	def validate(self):
 		self.validate_integration_mode()
+		if self.integration_mode != "H2H":
+			self.validate_bulk_transaction()
+
+	def validate_bulk_transaction(self):
+		if self.bulk_transaction and self.bank not in BULK_TRANSACTION_ENABLED_BANKS:
+			self.bulk_transaction = 0
+			frappe.msgprint("Bulk Transaction cannot be enabled for this bank.")
+
+		if self.bank in ONLY_BULK_TRANSACTION_BANKS:
+			self.bulk_transaction = 1
 
 	def validate_integration_mode(self):
 		if self.integration_mode == "H2H":

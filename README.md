@@ -10,165 +10,89 @@
 
 ## Overview
 
-India Banking is a Frappe app that integrates ERPNext with Indian banks for seamless payment processing. It supports **vendor payouts**, **payroll disbursements**, **statement reconciliation**, and **virtual account receipts** — all from within ERPNext.
+India Banking is a Frappe app that integrates ERPNext with Indian banks for seamless payment processing directly from within ERPNext. It supports **vendor payouts**, **employee payroll disbursements**, **bank statement import**, and **payment notifications**.
 
 ### Supported Banks
 
-| Bank | Vendor Payout | Payroll | Statement | Virtual Account |
-|---|---|---|---|---|
-| HDFC Bank | ✅ | ✅ | ✅ | ✅ |
-| ICICI Bank | ✅ | ✅ | ✅ | ✅ |
-| Axis Bank | ✅ | ✅ | ✅ | — |
-| Kotak Mahindra | ✅ | ✅ | ✅ | — |
-| YES Bank | ✅ | ✅ | — | — |
-| Union Bank | ✅ | ✅ | — | — |
-| Bank of Baroda | ✅ | ✅ | — | — |
-| HSBC | ✅ | — | — | — |
-| Canara Bank | ✅ | — | — | — |
-| IDFC First | ✅ | — | — | — |
+| Bank |
+|---|
+| Axis Bank |
+| HDFC Bank |
+| ICICI Bank |
+| Kotak Mahindra Bank |
+| Union Bank of India |
+| Bank of Baroda |
+| IDFC First Bank |
+| HSBC Bank |
+| Citi Bank |
+| Yes Bank |
+
+### Supported Transfer Modes
+
+All banks support all the following transfer modes. The mode is auto-selected based on the payment amount and configured limits:
+
+| Mode | Default Limit | Priority |
+|---|---|---|
+| A2A / FT / Internal | ₹1 – ₹50,00,00,000 | 1 (highest) |
+| IMPS | ₹1 – ₹2,00,000 | 2 |
+| RTGS | ₹2,00,000 – ₹50,00,00,000 | 3 |
+| NEFT | ₹1 – ₹50,00,00,000 | 4 (fallback) |
+
+### Integration Types
+
+India Banking supports two types of bank integration:
+
+1. **API Integration** — Direct REST API connection to the bank's payment gateway. Real-time payment initiation and status tracking.
+2. **Host-to-Host (H2H)** — File-based integration for bulk payment processing. *(Available in v15, backport to v16 in progress.)*
 
 ---
 
-## Features
+## Payment Flows
 
-### 💸 Payment Processing
-- Initiate **vendor payouts** directly from Payment Orders in ERPNext
-- Supports **NEFT, RTGS, IMPS, FT** transfer modes
-- Bulk payment initiation with real-time status tracking
-- OTP-based authorization for ICICI Bank bulk transactions
-- Cancel pending/failed payments from ERPNext
+India Banking supports **4 payment flows**. All flows converge at the **Payment Order**, from where payments are initiated to the bank.
 
-### 📊 Statement Reconciliation
-- Auto-fetch bank statements via API
-- Match and reconcile transactions against ERPNext entries
-- Unreconcile payments when needed
-
-### 🔔 Payment Notifications
-- Real-time payment status updates via webhooks
-- Notify parties on payment success/failure
-- Configurable notification templates
-
-### 🏦 Bank Account Management
-- Approval workflow for new bank accounts
-- Validate beneficiary bank accounts before payment
-- Dashboard showing connected accounts with balance
-
-### 📋 Reporting
-- Bank GST Payables report
-- Bulk Payment Request creation
-- Bulk Payment Request status updates
-
----
-
-## Architecture
-
-```
-india_banking/
-├── api.py                          # Public whitelisted API endpoints
-├── hooks.py                        # Frappe hooks — doc events, overrides
-├── default.py                      # Bank color constants
-├── install.py                      # Post-install setup
-├── utils.py                        # Shared utilities
-│
-├── india_banking/
-│   ├── doc_events/                 # Event handlers for standard doctypes
-│   │   ├── bank/                   # Prevent deletion of standard banks
-│   │   ├── bank_account/           # Validate & dashboard for Bank Account
-│   │   ├── payment_entry.py        # On cancel handler
-│   │   ├── payment_order.py        # Cancel pending payments, bulk processing
-│   │   ├── payment_request/        # Autoname override
-│   │   └── unreconcile_payment.py  # Unreconcile on submit
-│   │
-│   ├── doctype/
-│   │   ├── india_banking_connector/    # Core connector — initiates bank API calls
-│   │   ├── india_banking_settings/     # Global app settings
-│   │   ├── india_banking_request_log/  # API request/response audit log
-│   │   ├── payment_order_summary/      # Per-payment status tracking
-│   │   ├── payment_notification/       # Webhook notification handler
-│   │   ├── bank_payment_allocation/    # Allocate payments to invoices
-│   │   ├── mode_of_transfer/           # NEFT/RTGS/IMPS/FT configuration
-│   │   ├── naming_series_map/          # Custom naming series per bank
-│   │   └── unreconcile_bank_payment/   # Unreconciliation records
-│   │
-│   └── report/
-│       ├── bank_gst_payables/          # GST payable report
-│       ├── bulk_create_payment_request/
-│       └── bulk_update_payment_request/
-│
-├── overrides/
-│   ├── payment_request.py          # Extended Payment Request doctype
-│   └── payment_order.py            # Extended Payment Order doctype
-│
-└── public/
-    ├── js/                         # Client-side scripts
-    └── assets/bank-logos/          # Bank logo images
-```
-
----
-
-## Key Doctypes
-
-### India Banking Connector
-The core doctype that manages the connection between ERPNext and a bank's API.
-
-**Fields:**
-- `bank_account` — the ERPNext Bank Account linked to this connector
-- `url` — the bank connector service URL
-- `api_key` / `api_secret` — authentication credentials (stored encrypted)
-- `bank` — the bank name (HDFC, ICICI, etc.)
-
-**Key Methods:**
-- `initiate_payment(payment_order)` — sends payment request to bank API
-- `get_bank_balance()` — fetches current balance
-- `get_bank_statement(from_date, to_date)` — fetches statement
-- `check_user_permission()` — enforces Payment Order write permission
-
-### India Banking Settings
-Global configuration for the app.
-
-**Key Settings:**
-- `enable_bank_account_workflow` — toggle approval workflow for bank accounts
-- `custom_app_priority` — specify a custom connector app (overrides default)
-- `notify_party` — enable payment notifications to vendors/employees
-- `payment_notification` — notification template configuration
-
-### India Banking Request Log
-Audit trail for every API call made to bank APIs.
-
-**Fields:**
-- `request_data` — JSON payload sent to bank
-- `response_data` — JSON response received
-- `status` — Success / Failed
-- `reference_doctype` / `reference_name` — linked ERPNext document
-
-### Payment Order Summary
-Tracks the status of each individual payment within a Payment Order.
-
-**Payment Statuses:**
-- `Initiated` — payment sent to bank
-- `Success` — bank confirmed payment
-- `Failed` — bank rejected payment
-- `Pending` — awaiting bank response
-
----
-
-## Payment Flow
-
+### Flow 1: Purchase Invoice → Payment
 ```
 Purchase Invoice
-    ↓
-Payment Request (auto-named per bank series)
-    ↓
-Payment Order (grouped by bank account)
-    ↓
-India Banking Connector → Bank API
-    ↓
-Payment Order Summary (per-row status)
-    ↓
-Payment Entry (on success)
-    ↓
-Bank Statement Reconciliation
+    → Payment Request
+    → Payment Order
+    → Payment Entry (created on success)
+    → Payment Initiated via India Banking Connector
 ```
+
+### Flow 2: Purchase Order → Payment
+```
+Purchase Order
+    → Payment Request
+    → Payment Order
+    → Payment Entry (created on success)
+    → Payment Initiated via India Banking Connector
+```
+
+### Flow 3: Journal Entry → Payment
+```
+Journal Entry
+    → Pull into Payment Order
+    → Payment Entry (created on success)
+    → Payment Initiated via India Banking Connector
+```
+
+### Flow 4: Payment Entry → Payment
+```
+Payment Entry
+    → Pull into Payment Order
+    → Payment Initiated via India Banking Connector
+```
+
+> **Note:** Configurable via **India Banking Settings → Allowed Payment Doctypes**. Supported types: `Payment Request`, `Payment Entry`, `Bank Entry (JV)`.
+
+---
+
+## Bank Statement Import
+
+Bank statements are fetched directly from the bank server via API and imported into ERPNext as **Bank Transactions** in **Draft** state. Users can then manually review and reconcile these against ledger entries using ERPNext's standard bank reconciliation tool.
+
+> ⚠️ **Auto bank reconciliation is not supported.** Statements are imported only — reconciliation must be done manually.
 
 ---
 
@@ -177,18 +101,13 @@ Bank Statement Reconciliation
 ### Prerequisites
 - ERPNext v16
 - Frappe v16
-- A bank connector app (e.g. `india_banking_connector` for your bank)
+- A bank-specific connector app (e.g. `india_banking_connector`)
 
 ### Install
 
 ```bash
-# Get the app
-bench get-app https://github.com/aerele/india-banking --branch version-16-dev
-
-# Install on your site
+bench get-app https://github.com/aerele/india-banking --branch dev16-refactor
 bench --site your-site.com install-app india_banking
-
-# Run migrations
 bench --site your-site.com migrate
 ```
 
@@ -196,25 +115,73 @@ bench --site your-site.com migrate
 
 ## Configuration
 
-### 1. India Banking Settings
-Go to **India Banking Settings** and configure:
-- Enable/disable bank account approval workflow
-- Set notification preferences
-- Configure custom app priority (if using a custom connector)
+### Step 1: India Banking Settings
 
-### 2. Add Bank Account
-- Create or open a **Bank Account** in ERPNext
-- The account will go through approval workflow (if enabled)
+Go to **India Banking Settings** to configure global behaviour:
 
-### 3. Create India Banking Connector
-- Go to **India Banking Connector** → New
-- Select the Bank Account
-- Enter the connector URL and API credentials
-- Test the connection
+| Field | Description |
+|---|---|
+| **Enable Bank Account Approval Workflow** | When enabled, new Bank Accounts require approval by an Accounts Manager before use |
+| **Enforce Unique Bank Account Numbers** | Prevents duplicate account numbers in the system |
+| **Summarize Payments By** | `Party` — group payments by vendor/employee; `Voucher` — group by source document |
+| **Use Payment Order Date for Payment Entry** | Uses the Payment Order date as the Payment Entry date instead of today |
+| **Allow Future Date Payment Order** | Allows creating Payment Orders with a future transaction date |
+| **Allowed Payment Doctypes** | Which doctypes can be pulled into a Payment Order (`Payment Request`, `Payment Entry`, `Bank Entry(JV)`) |
+| **Custom Application Priority** *(Beta)* | Set a custom connector app to override the default India Banking connector |
 
-### 4. Mode of Transfer
-- Configure transfer modes (NEFT, RTGS, IMPS, FT) per bank
-- Set minimum/maximum limits per mode
+---
+
+### Step 2: Set Up Bank Account
+
+1. Go to **Bank Account** → Create or open an existing account
+2. If the Bank Account Approval Workflow is enabled, the account must be **Approved** by an Accounts Manager before it can be used
+
+---
+
+### Step 3: Create India Banking Connector
+
+Go to **India Banking Connector** → New. This is the core link between your Bank Account and the bank's API.
+
+| Field | Description |
+|---|---|
+| **Company** | The ERPNext company |
+| **Bank Account** | The Bank Account to connect |
+| **Bank** | Auto-filled from the Bank Account |
+| **URL** | The bank connector service URL |
+| **API Key** | Authentication key for the connector |
+| **API Secret** | Authentication secret (stored encrypted) |
+| **Enable Bulk Transaction** | Enable bulk payment mode (supported: ICICI Bank, IDFC First Bank) |
+| **Enqueue Large Payments in Background** | Queue payments exceeding the threshold for background processing |
+| **Enqueue Payments Threshold** | Number of payments above which background processing is triggered |
+| **Enable Payment Delay** | Add a minimum delay between consecutive payment API calls |
+| **Payment Call Interval (Seconds)** | Minimum seconds between payment calls (e.g. `10`) |
+| **Auto Post Payments** | Automatically process queued payments in the background |
+| **Retry Interval (minutes)** | Time between retry attempts for queued payments |
+| **Batch Size** | Maximum payments per batch in background processing |
+| **Auto Update Payment Status** | If unchecked, payment status must be fetched manually |
+| **Status Check At** | When to automatically check payment status |
+| **Retry Period (Days)** | How many days after initiation to keep checking payment status |
+| **Auto Update Posting Date as Payment Date** | If bank approval happens on a later date, update the ledger's posting date to match the actual payment date |
+| **Notify Party** | Send payment notifications to vendors/employees |
+| **Payment Notification** | Notification template configuration |
+
+---
+
+### Step 4: Configure Mode of Transfer
+
+Go to **Mode of Transfer** to set transfer rules per mode. Each mode can be configured with:
+
+| Field | Description |
+|---|---|
+| **Mode** | Transfer type: NEFT, RTGS, IMPS, A2A/FT/Internal |
+| **Minimum Limit** | Minimum payment amount for this mode |
+| **Maximum Limit** | Maximum payment amount for this mode |
+| **Start Time / End Time** | Operating hours for this mode |
+| **Priority** | Selection priority (lower = preferred) |
+| **Is Bank Specific** | Restrict this mode to a specific bank/account |
+| **Disabled** | Disable this mode |
+
+The system auto-selects the transfer mode based on amount and priority.
 
 ---
 
@@ -222,83 +189,98 @@ Go to **India Banking Settings** and configure:
 
 ### Initiating Payments
 
-1. Create **Payment Requests** for vendor invoices
-2. Group them into a **Payment Order**
-3. Submit the Payment Order
-4. Click **Initiate Payment** — the connector calls the bank API
-5. Monitor status in **Payment Order Summary**
-6. On success, **Payment Entries** are created automatically
+1. Create source documents (Purchase Invoice, Purchase Order, Journal Entry, or Payment Entry)
+2. Create **Payment Requests** (for invoice-based flows)
+3. Open or create a **Payment Order** and pull in the references
+4. Submit the Payment Order
+5. Click **Initiate Payment** — the India Banking Connector calls the bank API
+6. Monitor individual payment status in **Payment Order Summary**
+7. On success, **Payment Entries** are created automatically
 
-### Bulk Operations
+### Checking Payment Status
 
-Use the reports for bulk workflows:
-- **Bulk Create Payment Request** — create PRs for multiple invoices at once
-- **Bulk Update Payment Request** — update status for multiple PRs
+- If **Auto Update Payment Status** is enabled in the connector, status updates automatically
+- Otherwise, manually click **Fetch Payment Status** on the Payment Order
 
-### Reconciliation
+### Importing Bank Statement
 
-1. Fetch bank statement via the Bank Account dashboard
-2. Use ERPNext's standard reconciliation tool
-3. Unreconcile via **Unreconcile Bank Payment** if needed
+1. Open the **Bank Account** dashboard
+2. Click **Get Bank Statement**
+3. Transactions are imported as **Bank Transactions** in Draft state
+4. Manually review and reconcile against ledger entries using ERPNext's bank reconciliation tool
 
----
+### Payment Notifications
 
-## API Reference
-
-### `india_banking.api.get_standard_bank`
-Returns list of supported standard banks with logos.
-
-```python
-# Response
-[{"name": "HDFC Bank", "logo": "/assets/india_banking/assets/bank-logos/HDFC_Bank.png"}]
-```
-
-### `india_banking.api.get_connected_bank_accounts`
-Returns all bank accounts linked to active connectors.
-
-```python
-# Response
-[{
-    "name": "HDFC - Company",
-    "account_name": "Current Account",
-    "account_number": "XXXX1234",
-    "bank_name": "HDFC Bank",
-    "primary_color": "#004C8F",
-    "secondary_color": "#0070CC"
-}]
-```
+Enable **Notify Party** in the India Banking Connector to send automatic notifications to vendors/employees when payments are processed.
 
 ---
 
-## Hooks Reference
+## Key Doctypes
 
-| Hook | Handler |
+| Doctype | Purpose |
 |---|---|
-| `after_install` | `india_banking.install.after_install` |
-| `before_uninstall` | `india_banking.uninstall.before_uninstall` |
-| Bank → `on_trash` | Prevent standard bank deletion |
-| Bank Account → `validate` | Validate account details |
-| Payment Request → `autoname` | Custom naming per bank |
-| Payment Order → `autoname` | Custom naming series |
-| Payment Entry → `on_cancel` | Handle payment cancellation |
-| Unreconcile Payment → `on_submit` | Process unreconciliation |
+| **India Banking Connector** | Core config — links a Bank Account to the bank's API |
+| **India Banking Settings** | Global app settings |
+| **India Banking Request Log** | Audit trail of every API call (request + response) |
+| **Payment Order Summary** | Per-payment status row within a Payment Order |
+| **Mode of Transfer** | NEFT/RTGS/IMPS/FT configuration rules |
+| **Payment Notification** | Notification templates for payment events |
+| **Bank Payment Allocation** | Allocate bank payments to invoices |
+| **Naming Series Map** | Custom naming series per bank/doctype |
+| **Unreconcile Bank Payment** | Records for unreconciling bank payments |
 
 ---
 
-## Development
+## Roles
 
-### Running Tests
+| Role | Purpose |
+|---|---|
+| **Payment Manager** | Can initiate and manage payments via India Banking |
+| **Accounts Manager** | Can approve Bank Accounts in the approval workflow |
 
-```bash
-bench --site your-site.com run-tests --app india_banking
+---
+
+## Architecture
+
 ```
-
-### Adding a New Bank
-
-1. Create a new connector app or extend via `custom_app_priority`
-2. Implement the standard connector interface
-3. Add bank logo to `public/assets/bank-logos/`
-4. Add bank colors to `india_banking/default.py`
+india_banking/
+├── api.py                          # Whitelisted API endpoints
+├── hooks.py                        # Doc events, overrides, JS injections
+├── default.py                      # Bank list, colors, default modes
+├── install.py / uninstall.py       # Setup and teardown
+├── utils.py                        # Shared helpers
+│
+├── india_banking/
+│   ├── doc_events/                 # Handlers for standard ERPNext doctypes
+│   │   ├── bank/                   # Prevent deletion of standard banks
+│   │   ├── bank_account/           # Validate + dashboard data
+│   │   ├── payment_entry.py        # Cancel handler
+│   │   ├── payment_order.py        # Cancel pending payments, bulk ops
+│   │   ├── payment_request/        # Autoname override
+│   │   └── unreconcile_payment.py  # Unreconcile on submit
+│   │
+│   ├── doctype/                    # Custom Frappe doctypes
+│   │   ├── india_banking_connector/
+│   │   ├── india_banking_settings/
+│   │   ├── india_banking_request_log/
+│   │   ├── payment_order_summary/
+│   │   ├── payment_notification/
+│   │   ├── bank_payment_allocation/
+│   │   ├── mode_of_transfer/
+│   │   ├── naming_series_map/
+│   │   └── unreconcile_bank_payment/
+│   │
+│   └── report/
+│       ├── bank_gst_payables/
+│       ├── bulk_create_payment_request/
+│       └── bulk_update_payment_request/
+│
+├── overrides/
+│   ├── payment_request.py          # Extended Payment Request
+│   └── payment_order.py            # Extended Payment Order
+│
+└── public/js/                      # Client-side scripts for standard doctypes
+```
 
 ---
 

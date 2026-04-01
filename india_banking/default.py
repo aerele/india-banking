@@ -59,13 +59,26 @@ STD_BANK_LIST = [
 	"Kotak Mahindra Bank",
 	"Union Bank of India",
 	"Bank of Baroda",
-	"IDFC Bank",
+	"IDFC First Bank",
 	"CITI Bank",
 	"Canara Bank",
 ]
 
 H2H_ENABLED_BANKS = [
 	"CITI Bank",
+]
+
+BULK_TRANSACTION_ENABLED_BANKS = [
+	"ICICI Bank",
+	"IDFC First Bank",
+	"Axis Bank",
+	"Canara Bank",
+]
+
+ONLY_BULK_TRANSACTION_BANKS = [
+	"Axis Bank",
+	"IDFC First Bank",
+	"Canara Bank",
 ]
 
 DEFAULT_ROLES = ["Payment Manager"]

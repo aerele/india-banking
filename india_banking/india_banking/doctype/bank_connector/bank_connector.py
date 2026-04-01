@@ -12,7 +12,11 @@ from frappe.model.document import Document
 from frappe.utils import add_days, cint, cstr, flt, get_datetime, getdate
 from frappe.utils.background_jobs import is_job_enqueued
 
-from india_banking.default import H2H_ENABLED_BANKS
+from india_banking.default import (
+	BULK_TRANSACTION_ENABLED_BANKS,
+	H2H_ENABLED_BANKS,
+	ONLY_BULK_TRANSACTION_BANKS,
+)
 from india_banking.india_banking.doc_events.payment_order import (
 	unlink_payment_reference,
 )
@@ -23,7 +27,6 @@ from india_banking.utils import (
 	extract_error_message,
 	get_bank_address_details,
 	get_party_field_name,
-	is_bulk_transaction_only_bank,
 )
 
 OTP_ENABLED_BANK = [
@@ -66,9 +69,16 @@ class BankConnector(Document):
 
 	def validate(self):
 		self.validate_integration_mode()
-		self.bulk_transaction = is_bulk_transaction_only_bank(self.bank)
-		if self.same_site == "Yes":
-			self.validate_connector_app_installed()
+		if self.integration_mode != "H2H":
+			self.validate_bulk_transaction()
+
+	def validate_bulk_transaction(self):
+		if self.bulk_transaction and self.bank not in BULK_TRANSACTION_ENABLED_BANKS:
+			self.bulk_transaction = 0
+			frappe.msgprint("Bulk Transaction cannot be enabled for this bank.")
+
+		if self.bank in ONLY_BULK_TRANSACTION_BANKS:
+			self.bulk_transaction = 1
 
 	def validate_integration_mode(self):
 		if self.integration_mode == "H2H":
@@ -287,6 +297,11 @@ class BankConnector(Document):
 							"Rejected",
 							"Failed",
 						]:
+							# Update Payment Processed Date
+							processed_date = status_details.get("processed_date", None)
+							if processed_date:
+								processed_date = getdate(processed_date)
+
 							frappe.db.set_value(
 								"Payment Order Summary",
 								summary.name,
@@ -295,15 +310,20 @@ class BankConnector(Document):
 									"payment_status": status_details.status,
 									"message": status_details.message,
 									"payment_initiated": 1,
+									"processed_date": processed_date,
 								},
 							)
+							reference_date = summary.payment_date
+							if processed_date:
+								reference_date = processed_date
+
 							if summary.payment_entry:
 								frappe.db.set_value(
 									"Payment Entry",
 									summary.payment_entry,
 									{
 										"reference_no": status_details.utr_number,
-										"reference_date": summary.payment_date,
+										"reference_date": reference_date,
 									},
 								)
 							if summary.journal_entry_account:

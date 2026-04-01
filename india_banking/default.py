@@ -61,6 +61,7 @@ STD_BANK_LIST = [
 	"Bank of Baroda",
 	"IDFC First Bank",
 	"CITI Bank",
+	"Canara Bank",
 ]
 
 H2H_ENABLED_BANKS = [
@@ -142,3 +143,16 @@ DEFAULT_WORKFLOW_LIST = [
 ]
 
 ALLOWED_PAYMENT_DOCTYPE = ["Payment Request", "Payment Entry", "Bank Entry(JV)"]
+
+BULK_TRANSACTION_ENABLED_BANKS = [
+	"ICICI Bank",
+	"IDFC Bank",
+	"Axis Bank",
+	"Canara Bank",
+]
+
+ONLY_BULK_TRANSACTION_BANKS = [
+	"Axis Bank",
+	"IDFC Bank",
+	"Canara Bank",
+]

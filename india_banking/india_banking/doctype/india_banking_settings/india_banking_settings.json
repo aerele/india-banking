@@ -20,6 +20,7 @@
   "column_break_laug",
   "update_posting_date_as_payment_date",
   "show_bank_balance_in_payment_order",
+  "enable_bank_balance_validation",
   "doctype_customization_tab",
   "activate_workflow_on_bank_account",
   "doctype_naming_series",
@@ -42,7 +43,7 @@
   },
   {
    "default": "0",
-   "description": "if enabled, when the payment status becomes \u201cProcessed\u201d, a notification will be sent to the party email configured in the bank account.",
+   "description": "If enabled, a notification will be sent to the party\u2019s email when the payment status becomes \"Processed\".",
    "fieldname": "notify_party",
    "fieldtype": "Check",
    "label": "Notify Party"
@@ -56,17 +57,17 @@
   },
   {
    "default": "1",
-   "description": "If enabled, payments will always be processed in the background to avoid bank request timeouts. When disabled, only batches of more than 10 payments are moved to background processing automatically",
+   "description": "If enabled, payments will always be processed in the background to avoid bank request timeouts. <br>If disabled, only batches with more than 10 payments will be processed in the background.",
    "fieldname": "enable_payment_in_the_background",
    "fieldtype": "Check",
-   "label": "Enqueue large payments in the background"
+   "label": "Process Payments in Background"
   },
   {
    "default": "0",
-   "description": "A Payment Entry is created before initiating the payment. If the bank requires post-authorization and the approver approves the payment on a later date, the payment date in the bank statement may differ from the ledger's posting date. Enabling this setting ensures the ledger is updated accordingly.",
+   "description": "If enabled, the posting date of the Payment Entry will be updated to match the actual payment date from the bank.",
    "fieldname": "update_posting_date_as_payment_date",
    "fieldtype": "Check",
-   "label": "Auto Update Posting Date as Payment Date"
+   "label": "Update Posting Date to Match Payment Date"
   },
   {
    "default": "0",
@@ -95,9 +96,10 @@
   {
    "default": "Every Day at Midnight",
    "depends_on": "update_payment_status",
+   "description": "Defines how frequently the system checks and updates the payment status.",
    "fieldname": "status_check",
    "fieldtype": "Select",
-   "label": "Status check at",
+   "label": "Status Check Frequency",
    "mandatory_depends_on": "update_payment_status",
    "options": "Every 20 Minutes\nEvery Hour\nEvery Day at Midnight"
   },
@@ -115,10 +117,10 @@
   },
   {
    "default": "3",
-   "description": "Fetches the status of \u201cProcessed\u201d payments starting from the initiation date up to the retry period.",
+   "description": "Number of days to retry fetching the status of processed payments from the initiation date.",
    "fieldname": "retry_period",
    "fieldtype": "Int",
-   "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
+   "label": "Retry Period (in Days)"
   },
   {
    "default": "0",
@@ -132,9 +134,10 @@
    "description": "If enabled, Payment Orders can be created with future dates.",
    "fieldname": "allow_future_date_payment_order",
    "fieldtype": "Check",
-   "label": "Allow future Date Payment Order"
+   "label": "Allow Future-Dated Payment Orders"
   },
   {
+   "description": "Configure naming series for supported doctypes in the India Banking",
    "fieldname": "doctype_naming_series",
    "fieldtype": "Table",
    "label": "Doctype Naming Series",
@@ -153,7 +156,7 @@
   {
    "fieldname": "payment_notifications_tab",
    "fieldtype": "Tab Break",
-   "label": "Payment Notifications "
+   "label": "Payment Notifications"
   },
   {
    "fieldname": "basic_configuration_tab",
@@ -166,12 +169,19 @@
    "fieldname": "show_bank_balance_in_payment_order",
    "fieldtype": "Check",
    "label": "Show Bank Balance in Payment Order"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, the system validates the bank balance for the selected bank account before processing payments.",
+   "fieldname": "enable_bank_balance_validation",
+   "fieldtype": "Check",
+   "label": "Enable Bank Balance Validation"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-29 01:31:11.273048",
+ "modified": "2026-03-20 15:31:42.524001",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Settings",

@@ -7,10 +7,18 @@ frappe.ui.form.on("Bank Account", {
 					frappe.call({
 						method: "india_banking.india_banking.doctype.bank_connector.bank_connector.get_bank_balance",
 						freeze: true,
+						freeze_message: "Fetching bank balance...",
 						args: {
 							bank_account_name: frm.doc.name,
 						},
 						callback: (res) => {
+							frappe.msgprint({
+								title: "Bank balance updated successfully",
+								message: `Current Available Balance: <h3>${fmt_money(
+									res.message
+								)}</h3>`,
+								indicator: "green",
+							});
 							cur_frm.reload_doc();
 						},
 					});

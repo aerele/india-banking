@@ -58,7 +58,9 @@
   "column_break_uumn",
   "payment_gateway",
   "payment_channel",
-  "payment_term"
+  "payment_term",
+  "payment_reference_section",
+  "payment_reference"
  ],
  "fields": [
   {
@@ -420,12 +422,23 @@
    "label": "Party Account Currency",
    "options": "Currency",
    "read_only": 1
+  },
+  {
+   "fieldname": "payment_reference_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Reference"
+  },
+  {
+   "fieldname": "payment_reference",
+   "fieldtype": "Table",
+   "label": "Payment Reference",
+   "options": "Payment Reference"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-11-25 13:10:22.989664",
+ "modified": "2026-05-09 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "Bank Payment Request",

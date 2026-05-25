@@ -35,7 +35,7 @@ class CustomPaymentOrder(PaymentOrder):
 				)
 		if settings.enable_bank_balance_validation:
 			self.validate_bank_balance()
-		self.validate_bank_payment_request()
+		self.validate_payment_request_amount()
 
 	def validate_bank_balance(self):
 		balance = None
@@ -66,7 +66,7 @@ class CustomPaymentOrder(PaymentOrder):
 				)
 			)
 
-	def validate_bank_payment_request(self):
+	def validate_payment_request_amount(self):
 		if self.references:
 			for ref in self.references:
 				if ref.payment_request:

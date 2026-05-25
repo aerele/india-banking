@@ -6,12 +6,10 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 	PaymentRequest,
 	get_existing_payment_request_amount,
 )
-from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
-	get_party_tax_withholding_details,
-)
 from erpnext.accounts.party import get_party_account as _get_party_account
 from erpnext.accounts.party import get_party_bank_account
 from frappe import _, bold
+from frappe.query_builder.functions import Sum
 from frappe.utils import (
 	flt,
 	get_link_to_form,
@@ -27,16 +25,7 @@ class BankPaymentRequest(PaymentRequest):
 		if not self.net_total:
 			self.net_total = self.grand_total
 
-		if (
-			self.apply_tax_withholding_amount
-			and self.tax_withholding_category
-			and self.payment_request_type == "Outward"
-		):
-			tds_amount = self.calculate_pr_tds(self.net_total)
-			self.taxes_deducted = tds_amount
-			self.grand_total = self.net_total - self.taxes_deducted
-		else:
-			self.grand_total = self.net_total or self.grand_total
+		self.grand_total = self.net_total or self.grand_total
 
 		if not self.is_adhoc:
 			super().validate()
@@ -144,14 +133,16 @@ class BankPaymentRequest(PaymentRequest):
 			and self.reference_doctype in ["Purchase Invoice", "Purchase Order"]
 			and self.reference_name
 		):
-			gst_payable_totals = frappe.db.get_all(
-				f"{self.reference_doctype} Item",
-				filters={"parent": self.reference_name},
-				fields=[
-					"SUM(igst_amount) as total_igst",
-					"SUM(cgst_amount) as total_cgst",
-					"SUM(sgst_amount) as total_sgst",
-				],
+			Item = frappe.qb.DocType(f"{self.reference_doctype} Item")
+			gst_payable_totals = (
+				frappe.qb.from_(Item)
+				.select(
+					Sum(Item.igst_amount).as_("total_igst"),
+					Sum(Item.cgst_amount).as_("total_cgst"),
+					Sum(Item.sgst_amount).as_("total_sgst"),
+				)
+				.where(Item.parent == self.reference_name)
+				.run(as_dict=True)
 			)
 
 			total_igst, total_cgst, total_sgst = 0, 0, 0
@@ -317,19 +308,6 @@ class BankPaymentRequest(PaymentRequest):
 
 		return payment_entry
 
-	def calculate_pr_tds(self, amount):
-		doc = self
-		doc.supplier = self.party
-		doc.company = self.company
-		doc.base_tax_withholding_net_total = amount
-		doc.tax_withholding_net_total = amount
-		doc.taxes = []
-		taxes = get_party_tax_withholding_details(doc, self.tax_withholding_category)
-		if taxes:
-			return taxes["tax_amount"]
-		else:
-			return 0
-
 
 @frappe.whitelist()
 def make_payment_order(source_name, target_doc=None):
@@ -408,4 +386,3 @@ def get_party_account(source):
 			)
 
 	return account
-

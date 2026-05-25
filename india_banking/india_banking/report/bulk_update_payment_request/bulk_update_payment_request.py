@@ -62,7 +62,6 @@ def get_fields(filters=None):
 		"reference_doctype as reference_doctype",
 		"reference_name as reference_name",
 		"net_total as net_total",
-		"taxes_deducted as taxes_deducted",
 		"grand_total as amount",
 	]
 	return fields

@@ -162,26 +162,11 @@ def create_payment_request_custom_fields():
 			"insert_after": "transaction_details",
 		},
 		{
-			"label": "Taxes Deducted",
-			"fieldname": "taxes_deducted",
-			"fieldtype": "Currency",
-			"depends_on": "eval:doc.tax_withholding_category",
-			"insert_after": "net_total",
-			"read_only": 1,
-		},
-		{
-			"label": "Apply Tax Withholding Amount",
-			"fieldname": "apply_tax_withholding_amount",
-			"fieldtype": "Check",
-			"depends_on": "eval:doc.is_adhoc",
-			"insert_after": "currency",
-		},
-		{
 			"label": "Tax Withholding Category",
 			"fieldname": "tax_withholding_category",
 			"fieldtype": "Link",
 			"options": "Tax Withholding Category",
-			"depends_on": "eval:doc.apply_tax_withholding_amount",
+			"depends_on": "eval:doc.party_type == 'Supplier' && doc.payment_request_type == 'Outward'",
 			"insert_after": "payment_term",
 		},
 		{

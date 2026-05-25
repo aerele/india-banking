@@ -7,9 +7,8 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_split_invoice_rows
 from erpnext.accounts.party import get_party_account_currency
 from frappe import _, parse_json
-from frappe.query_builder import DocType
+from frappe.query_builder.functions import Sum
 from frappe.utils import flt, get_link_to_form, nowdate
-from pypika import functions as fn
 
 
 @frappe.whitelist()
@@ -201,33 +200,24 @@ def create_outward_payment_entry(
 							for term_row in splited_invoice_rows:
 								if reference_amount <= 0:
 									break
-								PaymentEntryReference = DocType(
-									"Payment Entry Reference"
-								)
-								result = (
-									frappe.qb.from_(PaymentEntryReference)
-									.select(
-										fn.Sum(
-											PaymentEntryReference.allocated_amount
-										).as_("allocated_amount")
-									)
+								PER = frappe.qb.DocType("Payment Entry Reference")
+								term_paid = (
+									frappe.qb.from_(PER)
+									.select(Sum(PER.allocated_amount))
 									.where(
-										PaymentEntryReference.reference_doctype
+										PER.reference_doctype
 										== reference.reference_doctype
 									)
 									.where(
-										PaymentEntryReference.reference_name
-										== reference.reference_name
+										PER.reference_name == reference.reference_name
 									)
 									.where(
-										PaymentEntryReference.payment_term
-										== term_row.get("payment_term")
+										PER.payment_term == term_row.get("payment_term")
 									)
-									.where(PaymentEntryReference.docstatus == 1)
-								).run(as_dict=True)
-
-								allocated_amount = result[0].allocated_amount or 0
-								term_paid = allocated_amount or 0
+									.where(PER.docstatus == 1)
+									.run()[0][0]
+									or 0
+								)
 
 								per = (
 									frappe.db.get_value(

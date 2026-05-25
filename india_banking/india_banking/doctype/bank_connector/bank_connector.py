@@ -361,7 +361,7 @@ class BankConnector(Document):
 						)
 
 						if summary.payment_entry:
-							self.process_bank_payment_requests(payment_order, summary)
+							self.process_payment_requests(payment_order, summary)
 
 							payment_entry_doc = frappe.get_doc(
 								"Payment Entry", summary.payment_entry
@@ -389,7 +389,7 @@ class BankConnector(Document):
 						)
 
 						if summary.payment_entry:
-							self.process_bank_payment_requests(payment_order, summary)
+							self.process_payment_requests(payment_order, summary)
 
 							payment_entry_doc = frappe.get_doc(
 								"Payment Entry", summary.payment_entry
@@ -670,7 +670,7 @@ class BankConnector(Document):
 					indicator="red",
 				)
 
-	def process_bank_payment_requests(self, payment_order, summary):
+	def process_payment_requests(self, payment_order, summary):
 		payment_order.reload()
 		summary_references = ast.literal_eval(summary.get("summary_references"))
 		for reference in summary_references:

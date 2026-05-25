@@ -20,11 +20,11 @@ const create_bulk_request = function (listview, doctype) {
 		}
 	});
 	let count_of_rows = checked_items.length;
-	frappe.confirm(__("Create {0} {1} ?", [count_of_rows, __("Bank Payment Request")]), () => {
+	frappe.confirm(__("Create {0} {1} ?", [count_of_rows, __("Payment Request")]), () => {
 		if (doc_name.length == 0) {
 			frappe
 				.call({
-					method: "india_banking.india_banking.doc_events.payment_request.make_bulk_bank_payment_request",
+					method: "india_banking.india_banking.doc_events.payment_request.make_bulk_payment_request",
 					args: { invoices: checked_items, doctype: doctype },
 				})
 				.then((r) => {

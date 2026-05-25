@@ -28,7 +28,7 @@ class CustomPaymentOrder(PaymentOrder):
 						f"Future Payment Order Date is not allowed! <br> Please go to <b>{link}</b> and enable 'Allow Future Date Payment Order' to proceed."
 					),
 				)
-		self.validate_bank_payment_request()
+		self.validate_payment_request_amount()
 		self.validate_company_account_currency()
 
 	def validate_company_account_currency(self):
@@ -40,7 +40,7 @@ class CustomPaymentOrder(PaymentOrder):
 				f"Company account <b>{self.account}</b> currency must be <b>INR</b>"
 			)
 
-	def validate_bank_payment_request(self):
+	def validate_payment_request_amount(self):
 		if self.references:
 			for ref in self.references:
 				if ref.payment_request:

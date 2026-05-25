@@ -6,9 +6,6 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 from erpnext.accounts.doctype.payment_request.payment_request import (
 	PaymentRequest,
 )
-from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category import (
-	get_party_tax_withholding_details,
-)
 from erpnext.accounts.party import (
 	get_party_account,
 	get_party_account_currency,
@@ -37,16 +34,7 @@ class BankPaymentRequest(PaymentRequest):
 
 		self.set_default_value()
 
-		if (
-			self.apply_tax_withholding_amount
-			and self.tax_withholding_category
-			and self.is_adhoc
-		):
-			tds_amount = self.calculate_pr_tds(self.net_total)
-			self.taxes_deducted = tds_amount
-			self.grand_total = self.net_total - self.taxes_deducted
-		else:
-			self.grand_total = self.net_total or 0
+		self.grand_total = self.net_total or 0
 
 		if not self.is_adhoc:
 			super().validate()
@@ -197,19 +185,6 @@ class BankPaymentRequest(PaymentRequest):
 						)
 					)
 				)
-
-	def calculate_pr_tds(self, amount):
-		doc = self
-		doc.supplier = self.party
-		doc.company = self.company
-		doc.base_tax_withholding_net_total = amount
-		doc.tax_withholding_net_total = amount
-		doc.taxes = []
-		taxes = get_party_tax_withholding_details(doc, self.tax_withholding_category)
-		if taxes:
-			return taxes["tax_amount"]
-		else:
-			return 0
 
 
 @frappe.whitelist()

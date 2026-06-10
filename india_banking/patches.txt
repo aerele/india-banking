@@ -6,3 +6,4 @@ india_banking.patches.v15_0.remove_payroll_entry_custom_fields #31032025
 
 india_banking.patches.v15_0.update_default_bank # 20260320
 india_banking.patches.v15_0.update_custom_field # 20260320
+execute:frappe.db.set_value("DocType", "Payment Request", {"in_create": 1, "track_changes": 1})

@@ -5,14 +5,12 @@ from frappe.custom.doctype.property_setter.property_setter import delete_propert
 from india_banking.default import DEFAULT_WORKFLOW_LIST
 from india_banking.install import (
 	properties,
-	toggle_payment_request_creation,
 	toggle_reqd_for_reference_in_payment_order,
 )
 
 
 def before_uninstall():
 	delete_custom_fields()
-	toggle_payment_request_creation(False)
 	delete_propert_setters()
 	toggle_reqd_for_reference_in_payment_order(True)
 	delete_default_workflow()

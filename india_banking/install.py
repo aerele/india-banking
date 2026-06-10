@@ -16,7 +16,6 @@ from india_banking.default import (
 
 def after_install():
 	click.secho("* Updating India Banking Customisations")
-	toggle_payment_request_creation(True)
 	make_custom_fields()
 	create_property_setter()
 	toggle_reqd_for_reference_in_payment_order(False)
@@ -43,17 +42,6 @@ def update_allowed_payment_doctypes():
 		"India Banking Settings",
 		"allowed_payment_doctypes",
 		"\n".join(ALLOWED_PAYMENT_DOCTYPE),
-	)
-
-
-def toggle_payment_request_creation(allow=True):
-	click.secho(
-		" -> {} Payment Request Creation...".format(
-			"Enabling" if allow else "Disabling"
-		)
-	)
-	frappe.db.set_value(
-		"DocType", "Payment Request", {"in_create": not allow, "track_changes": allow}
 	)
 
 

@@ -1,7 +1,7 @@
 import click
 import frappe
 
-from india_banking.install import make_custom_fields, toggle_payment_request_creation
+from india_banking.install import make_custom_fields
 
 
 def execute():
@@ -17,5 +17,4 @@ def execute():
 
 		frappe.clear_cache(doctype=doctype)
 
-	toggle_payment_request_creation()
 	make_custom_fields()

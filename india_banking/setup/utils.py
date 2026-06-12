@@ -3,9 +3,12 @@ from frappe.utils import get_abbr
 
 
 def before_tests():
-	from erpnext.setup.utils import before_tests as erpnext_before_tests
-
-	erpnext_before_tests()
+	try:
+		from erpnext.setup.utils import before_tests as erpnext_before_tests
+	except ImportError:
+		return
+	else:
+		erpnext_before_tests()
 
 
 def create_company(company_name, **kwargs):

@@ -54,6 +54,7 @@ class IndiaBankingConnector(Document):
 		)
 
 	def validate(self):
+		self.validate_credentials()
 		self.validate_document_series()
 
 		if (
@@ -67,6 +68,40 @@ class IndiaBankingConnector(Document):
 
 		if not self.notify_party:
 			self.payment_notification = []
+
+	def on_update(self):
+		self._check_connection()
+
+	def _check_connection(self):
+		status = "Failed"
+		try:
+			response = request.get(
+				f"{self.url}/api/method/frappe.auth.get_logged_user",
+				headers=self.headers,
+				timeout=10,
+			)
+			if response.ok:
+				status = "Connected"
+			else:
+				frappe.msgprint(
+					msg=_("Connection Failed: {0} — {1}").format(
+						response.status_code, response.reason
+					),
+					title=_("Connection Error"),
+					indicator="red",
+				)
+		except Exception as e:
+			frappe.log_error(
+				title="Connector Check Failed", message=frappe.get_traceback()
+			)
+			frappe.msgprint(
+				msg=_("Connection Failed: {0}").format(str(e)),
+				title=_("Connection Error"),
+				indicator="red",
+			)
+		frappe.db.set_value(
+			"India Banking Connector", self.name, "connection_status", status
+		)
 
 	def enable_payment_entry_reposting(self):
 		if self.auto_update_posting_date_as_payment_date:
@@ -87,6 +122,17 @@ class IndiaBankingConnector(Document):
 					},
 				)
 				doc.save()
+
+	def validate_credentials(self):
+		for field in ["url", "api_key"]:
+			if not self.get(field):
+				frappe.throw(
+					_("{0} is required").format(
+						frappe.get_meta(self.doctype).get_label(field)
+					)
+				)
+		if not self.get_password("api_secret", raise_exception=False):
+			frappe.throw(_("API Secret is required"))
 
 	def validate_document_series(self):
 		if self.doctype_naming_series:
@@ -835,6 +881,16 @@ def get_bank_balance(bank_account_name):
 
 	if bank_connector.fetch_bank_balance:
 		return bank_connector.get_bank_balance(bank_doc)
+
+
+@frappe.whitelist()
+def check_connection(connector_name):
+	connector = frappe.get_doc("India Banking Connector", connector_name)
+	connector.check_user_permission()
+	connector._check_connection()
+	return frappe.db.get_value(
+		"India Banking Connector", connector_name, "connection_status"
+	)
 
 
 @frappe.whitelist()

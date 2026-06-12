@@ -15,6 +15,7 @@
   "url",
   "api_key",
   "api_secret",
+  "connection_status",
   "bulk_transaction",
   "service_subscriptions_section",
   "fetch_bank_balance",
@@ -99,6 +100,15 @@
    "fieldname": "api_secret",
    "fieldtype": "Password",
    "label": "API Secret"
+  },
+  {
+   "default": "Not Connected",
+   "fieldname": "connection_status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Connection Status",
+   "options": "Not Connected\nConnected\nFailed",
+   "read_only": 1
   },
   {
    "default": "0",

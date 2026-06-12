@@ -1,78 +1,73 @@
+from unittest import TestCase
+from unittest.mock import patch
+
 import frappe
-from frappe.tests.utils import FrappeTestCase
 
-from india_banking.setup.utils import create_company, create_supplier
+from india_banking.india_banking.doc_events.payment_request.payment_request import (
+	autoname,
+	is_valid_invoice,
+)
 
 
-class TestPaymentRequest(FrappeTestCase):
-	def setUp(self):
-		from frappe import make_property_setter
-
-		self.company = create_company("IB Company")
-		self.supplier = create_supplier("IB Supplier")
-
-		make_property_setter(
+class TestPaymentRequest(TestCase):
+	def get_payment_request(self, **kwargs):
+		doc = frappe._dict(
 			{
-				"doctype_or_field": "DocField",
 				"doctype": "Payment Request",
-				"fieldname": "naming_series",
-				"property": "options",
-				"property_type": "Select",
-				"value": "ACC-PRQ-.YYYY.-\nTEST-",
+				"company": "Test Company",
+				"payment_request_type": "Outward",
+				"naming_series": "ACC-PRQ-.YYYY.-",
 			}
 		)
-
-		super().setUp()
-
-	def tearDown(self):
-		super().tearDown()
-		frappe.db.rollback()
+		doc.update(kwargs)
+		return doc
 
 	def test_payment_request_without_naming_series_map(self):
-		# Crate Payment Request without naming series map settings
-		payment_request = frappe.get_doc(
-			{
-				"is_adhoc": 1,
-				"doctype": "Payment Request",
-				"naming_series": "ACC-PRQ-.YYYY.",
-				"company": self.company.name,
-				"party_type": "Supplier",
-				"party": self.supplier.name,
-				"payment_request_type": "Outward",
-				"net_total": 1000,
-				"amount": 1000,
-			}
-		)
-		payment_request.save()
-		self.assertIn("ACC-PRQ", payment_request.name)
+		payment_request = self.get_payment_request()
+
+		with patch(
+			"india_banking.utils.get_bank_payment_naming_series", return_value=None
+		):
+			autoname(payment_request)
+
+		self.assertEqual(payment_request.naming_series, "ACC-PRQ-.YYYY.-")
 
 	def test_payment_request_with_naming_series_map(self):
-		# Update naming series Map
-		frappe.get_doc(
-			{
-				"doctype": "Naming Series Map",
-				"parenttype": "India Banking Settings",
-				"parent": "India Banking Settings",
-				"parentfield": "doctype_naming_series",
-				"company": self.company,
-				"doctype_name": "Payment Request",
-				"series": "TEST-",
-			}
-		).insert(ignore_permissions=True)
+		payment_request = self.get_payment_request()
 
-		# Create Payment Request with naming series map settings
-		payment_request = frappe.get_doc(
-			{
-				"is_adhoc": 1,
-				"doctype": "Payment Request",
-				"naming_series": "ACC-PRQ-.YYYY.",
-				"company": self.company.name,
-				"party_type": "Supplier",
-				"party": self.supplier.name,
-				"payment_request_type": "Outward",
-				"net_total": 1000,
-				"amount": 1000,
-			}
-		)
-		payment_request.save()
-		self.assertIn("TEST-", payment_request.name)
+		with patch(
+			"india_banking.utils.get_bank_payment_naming_series",
+			return_value="TEST-",
+		):
+			autoname(payment_request)
+
+		self.assertEqual(payment_request.naming_series, "TEST-")
+
+	def test_payment_request_inward_does_not_use_naming_series_map(self):
+		payment_request = self.get_payment_request(payment_request_type="Inward")
+
+		with patch("india_banking.utils.get_bank_payment_naming_series") as get_series:
+			autoname(payment_request)
+
+		get_series.assert_not_called()
+		self.assertEqual(payment_request.naming_series, "ACC-PRQ-.YYYY.-")
+
+	def test_is_valid_invoice_uses_v16_payment_request_amount_api(self):
+		invoice = frappe._dict({"outstanding_amount": 1000})
+
+		with patch(
+			"india_banking.india_banking.doc_events.payment_request.payment_request.get_existing_payment_request_amount",
+			return_value=400,
+		) as get_existing_payment_request_amount:
+			self.assertTrue(is_valid_invoice(invoice))
+
+		get_existing_payment_request_amount.assert_called_once_with(invoice)
+
+	def test_is_valid_invoice_rejects_fully_requested_invoice(self):
+		invoice = frappe._dict({"outstanding_amount": 1000})
+
+		with patch(
+			"india_banking.india_banking.doc_events.payment_request.payment_request.get_existing_payment_request_amount",
+			return_value=1000,
+		):
+			self.assertFalse(is_valid_invoice(invoice))

@@ -10,6 +10,24 @@ from india_banking.india_banking.doctype.india_banking_connector.india_banking_c
 	IndiaBankingConnector,
 )
 
+IGNORE_TEST_RECORD_DEPENDENCIES = [
+	"Account",
+	"Bank Account",
+	"Company",
+	"Cost Center",
+	"DocType",
+	"Letter Head",
+	"Mode of Transfer",
+	"Naming Series Map",
+	"Payment Gateway",
+	"Payment Gateway Account",
+	"Payment Notification",
+	"Payment Request",
+	"Print Format",
+	"Project",
+	"Tax Withholding Category",
+]
+
 
 class TestIndiaBankingConnector(TestCase):
 	def get_connector(self):

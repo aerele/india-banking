@@ -144,6 +144,24 @@ Triggered in three places: `onload`, `refresh` (via async settings check), and `
 
 ---
 
+## Next Step — Create India Banking Connector
+
+After the Bank Account is saved (and approved if workflow is enabled), create an **India Banking Connector** to enable live bank communication — payment initiation, balance fetch, and statement pull.
+
+The connector is named after the Bank Account (strictly 1-to-1). Navigate to:
+**Banking → Setup → India Banking Connector → New**
+
+1. Select the Bank Account
+2. Enter the bank's API URL, API Key, and API Secret
+3. Enable the service subscriptions you need (balance fetch, statement fetch, etc.)
+4. Save — the connector name will auto-set to the Bank Account name
+
+The linked connector will appear in the **Connector** section of the Bank Account dashboard.
+
+See the [India Banking Connector guide](india-banking-connector.md) for full field reference and setup details.
+
+---
+
 ## Key Files
 
 | File | Purpose |

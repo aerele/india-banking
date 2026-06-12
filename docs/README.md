@@ -8,6 +8,7 @@ This folder contains technical documentation, developer guides, and migration no
 |---|---|
 | [migration/v15-to-v16.md](migration/v15-to-v16.md) | v15 → v16 migration checklist and impact analysis |
 | [guides/doctypes/bank-account.md](guides/doctypes/bank-account.md) | Bank Account — what we add, why, and how |
+| [guides/doctypes/india-banking-connector.md](guides/doctypes/india-banking-connector.md) | India Banking Connector — setup, fields, scheduler |
 | [guides/doctypes/payment-request.md](guides/doctypes/payment-request.md) | Payment Request override guide |
 | [guides/doctypes/payment-order.md](guides/doctypes/payment-order.md) | Payment Order override guide |
 | [guides/doctypes/payment-entry.md](guides/doctypes/payment-entry.md) | Payment Entry override guide |

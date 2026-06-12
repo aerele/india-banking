@@ -5,9 +5,13 @@ frappe.ui.form.on("Payment Request", {
 			["Initiated", "Partially Paid"].includes(frm.doc.status)
 		) {
 			frm.remove_custom_button(__("Create Payment Entry"));
-			cur_frm.add_custom_button("Goto Payment Order", function () {
-				frappe.set_route("List", "Payment Order");
-			});
+			cur_frm.add_custom_button(
+				"Payment Order",
+				function () {
+					frappe.set_route("List", "Payment Order");
+				},
+				"List View"
+			);
 		}
 
 		set_bank_account_query(frm);

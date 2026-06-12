@@ -847,7 +847,7 @@ def get_bank_statement(
 ):
 	bank_doc = frappe.get_doc("Bank Account", bank_account_name)
 	bank_connector = get_bank_connector(bank_account_name, bank_doc.company)
-	if bank_connector.fetch_bank_balance:
+	if bank_connector.fetch_bank_statement:
 		return bank_connector.get_bank_statement(
 			bank_doc,
 			from_date=from_date,

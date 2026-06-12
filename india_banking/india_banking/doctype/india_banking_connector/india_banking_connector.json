@@ -11,21 +11,22 @@
   "company",
   "bank_account",
   "bank",
-  "url",
   "column_break_mdgf",
+  "url",
   "api_key",
   "api_secret",
   "bulk_transaction",
   "service_subscriptions_section",
   "fetch_bank_balance",
+  "column_break_gvgj",
   "fetch_bank_statement",
-  "payment_configuration_tab",
+  "settings",
+  "payment_configuration_section",
   "enqueue_large_payments_in_the_background",
   "enqueue_payments_threshold",
-  "column_break_rnqz",
+  "column_break_ozlg",
   "enable_payment_delay",
   "payment_call_interval",
-  "settings",
   "auto_update_configurations_section",
   "payment_configuration_column",
   "validate_bank_balance",
@@ -40,6 +41,7 @@
   "retry_period",
   "reposting_configurations_section",
   "auto_update_posting_date_as_payment_date",
+  "column_break_wkfp",
   "restrict_journal_entry_without_bank_account",
   "doctype_configuration_section",
   "doctype_naming_series",
@@ -84,7 +86,8 @@
   },
   {
    "fieldname": "column_break_mdgf",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": "Connector App Credentials"
   },
   {
    "fieldname": "api_key",
@@ -105,11 +108,6 @@
    "label": "Enable Bulk Transaction"
   },
   {
-   "fieldname": "payment_configuration_tab",
-   "fieldtype": "Tab Break",
-   "label": "Payment Configuration"
-  },
-  {
    "default": "0",
    "fieldname": "enqueue_large_payments_in_the_background",
    "fieldtype": "Check",
@@ -121,10 +119,6 @@
    "fieldname": "enqueue_payments_threshold",
    "fieldtype": "Int",
    "label": "Enqueue Payments Threshold"
-  },
-  {
-   "fieldname": "column_break_rnqz",
-   "fieldtype": "Column Break"
   },
   {
    "default": "0",
@@ -146,6 +140,7 @@
    "label": "Settings"
   },
   {
+   "collapsible": 1,
    "fieldname": "auto_update_configurations_section",
    "fieldtype": "Section Break",
    "label": "Auto Update Configurations"
@@ -199,6 +194,7 @@
    "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
   },
   {
+   "collapsible": 1,
    "fieldname": "reposting_configurations_section",
    "fieldtype": "Section Break",
    "label": "Reposting configurations"
@@ -218,6 +214,7 @@
    "label": "Restrict Journal Entry Without Party Bank Account"
   },
   {
+   "collapsible": 1,
    "fieldname": "doctype_configuration_section",
    "fieldtype": "Section Break",
    "label": "DocType Configuration",
@@ -230,6 +227,7 @@
    "options": "Naming Series Map"
   },
   {
+   "collapsible": 1,
    "fieldname": "payment_notifications_section",
    "fieldtype": "Section Break",
    "label": "Payment Notifications"
@@ -254,18 +252,21 @@
    "read_only": 1
   },
   {
+   "collapsible": 1,
    "fieldname": "service_subscriptions_section",
    "fieldtype": "Section Break",
    "label": "Service Subscriptions"
   },
   {
    "default": "0",
+   "description": "If enabled, allows fetching live account balance from the bank via the Bank Account form.",
    "fieldname": "fetch_bank_balance",
    "fieldtype": "Check",
    "label": "Fetch Bank Balance"
   },
   {
    "default": "0",
+   "description": "If enabled, allows fetching bank transactions for a date range via the Bank Account form.",
    "fieldname": "fetch_bank_statement",
    "fieldtype": "Check",
    "label": "Fetch Bank Statement"
@@ -285,15 +286,34 @@
    "label": "Auto Post Payments"
   },
   {
+   "default": "0",
    "description": "If checked: a Payment Entry will be created only after receiving a successful response from the connector.\n<br>If unchecked: a Payment Entry is created immediately upon submitting the payment order.",
    "fieldname": "create_payment_after_success",
    "fieldtype": "Check",
    "label": "Create Payment After Successful Bank Transaction"
+  },
+  {
+   "fieldname": "column_break_gvgj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_wkfp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "payment_configuration_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Configuration"
+  },
+  {
+   "fieldname": "column_break_ozlg",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-12 18:44:08.658120",
+ "modified": "2026-06-12 07:14:41.225796",
  "modified_by": "Administrator",
  "module": "India Banking",
  "name": "India Banking Connector",

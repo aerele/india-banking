@@ -31,10 +31,8 @@ def validate(doc, method=None):
 	validate_unique_acc_no(doc)
 	update_party_transaction_currency(doc)
 
-	if (
-		(not doc.get_doc_before_save())
-		or doc.has_value_changed("branch_code")
-		and doc.branch_code
+	if doc.branch_code and (
+		not doc.get_doc_before_save() or doc.has_value_changed("branch_code")
 	):
 		doc.bank_details_json = get_bank_details_from_branch_code(doc.branch_code)
 
@@ -113,5 +111,7 @@ def get_bank_details_from_branch_code(branch_code):
 		return bank_details_json
 
 	except Exception:
-		frappe.log_error("IFSC Bank Details Fetch Error", frappe.get_traceback())
+		frappe.log_error(
+			title="IFSC Bank Details Fetch Error", message=frappe.get_traceback()
+		)
 		return {}

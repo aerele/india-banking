@@ -174,6 +174,7 @@ def make_payment_entries(docname):
 							"allocate_payment_based_on_payment_terms",
 						)
 						if splited_invoice_rows and is_term_applied:
+							per_qb = DocType("Payment Entry Reference")
 							for term_row in splited_invoice_rows:
 								if reference_amount <= 0:
 									break
@@ -183,7 +184,6 @@ def make_payment_entries(docname):
 									term_row.get("payment_term"),
 								)
 
-								per_qb = DocType("Payment Entry Reference")
 								db_term_paid = flt(
 									(
 										frappe.qb.from_(per_qb)
@@ -219,10 +219,12 @@ def make_payment_entries(docname):
 									)
 									/ 100
 								)
-								invoice_amount = frappe.db.get_value(
-									reference.reference_doctype,
-									reference.reference_name,
-									"grand_total",
+								invoice_amount = flt(
+									frappe.db.get_value(
+										reference.reference_doctype,
+										reference.reference_name,
+										"grand_total",
+									)
 								)
 								to_be_pay = per * invoice_amount
 								paid_amount = min(

@@ -104,46 +104,61 @@ def make_payment_order(source_name, target_doc=None):
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
 def get_payment_entry(doctype, txt, searchfield, start, page_len, filters):
-	payment_order = DocType("Payment Order")
-	payment_order_reference = DocType("Payment Order Reference")
+	po = DocType("Payment Order")
+	por = DocType("Payment Order Reference")
 
-	payment_entries = (
-		frappe.qb.from_(payment_order)
-		.left_join(payment_order_reference)
-		.on(payment_order.name == payment_order_reference.parent)
-		.select(
-			payment_order_reference.payment_entry,
-			frappe.qb.terms.Case()
-			.when(
-				payment_order_reference.reference_doctype.eq("Payment Entry"),
-				payment_order_reference.reference_name,
-			)
-			.else_(0)
-			.as_("payment_entry_reference"),
+	rows = (
+		frappe.qb.from_(po)
+		.inner_join(por)
+		.on(po.name == por.parent)
+		.select(por.payment_entry, por.reference_doctype, por.reference_name)
+		.where((po.payment_order_type == "Payment Entry") & (po.docstatus != 2))
+	).run(as_dict=True)
+
+	already_ordered = {
+		(
+			row.reference_name
+			if row.reference_doctype == "Payment Entry"
+			else row.payment_entry
 		)
-		.where(
-			payment_order.payment_order_type.eq("Payment Entry")
-			& payment_order.docstatus
-			!= 2
+		for row in rows
+	} - {None, ""}
+
+	existing = set(filters.pop("existing_payment_entries", None) or []) - {None, ""}
+	excluded = already_ordered | existing
+
+	# Pop source_doctype so we can apply a NULL-safe condition manually.
+	# frappe.get_all with "!=" silently drops rows where the column IS NULL
+	# because SQL evaluates NULL != 'x' as NULL (not TRUE).
+	source_doctype_filter = filters.pop("source_doctype", None)
+
+	pe = DocType("Payment Entry")
+	query = frappe.qb.from_(pe).select(pe.name, pe.party, pe.paid_amount)
+
+	simple_op = {"=": lambda f, v: f == v, "!=": lambda f, v: f != v}
+	for field, condition in filters.items():
+		col = pe[field]
+		if isinstance(condition, list):
+			op, val = condition
+			if op in ("in", "not in"):
+				query = query.where(col.isin(val) if op == "in" else col.notin(val))
+			elif op in simple_op:
+				query = query.where(simple_op[op](col, val))
+		else:
+			query = query.where(col == condition)
+
+	if excluded:
+		query = query.where(pe.name.notin(list(excluded)))
+
+	# Include entries where source_doctype is NULL or doesn't match the excluded value.
+	if (
+		source_doctype_filter
+		and isinstance(source_doctype_filter, list)
+		and source_doctype_filter[0] == "!="
+	):
+		excluded_source = source_doctype_filter[1]
+		query = query.where(
+			(pe.source_doctype != excluded_source) | pe.source_doctype.isnull()
 		)
-	).run(as_dict=1)
 
-	order_entry = [
-		pe.payment_entry_reference or pe.payment_entry for pe in payment_entries
-	]
-
-	existing_payment_entries = filters["existing_payment_entries"] or []
-	order_entry += existing_payment_entries
-	if order_entry:
-		filters["name"] = ["not in", order_entry]
-	if "existing_payment_entries" in filters:
-		del filters["existing_payment_entries"]
-
-	payment_entry = (
-		frappe.get_all(
-			"Payment Entry", filters=filters, fields=["name", "party", "paid_amount"]
-		)
-		or []
-	)
-
-	return payment_entry
+	return query.run(as_dict=True) or []

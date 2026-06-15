@@ -40,11 +40,12 @@ def get_connected_bank_accounts():
 	).run(as_dict=True)
 
 	for row in connected_banks:
+		colors = BANK_CARD_COLORS.get(row.bank_name, ["#1a1a2e", "#ffffff"])
 		row.update(
 			{
 				"logo": f"/assets/india_banking/assets/bank-logos/{row.get('bank_name').replace(' ', '_')}.png",
-				"primary_color": BANK_CARD_COLORS[row.bank_name][0],
-				"secondary_color": BANK_CARD_COLORS[row.bank_name][1],
+				"primary_color": colors[0],
+				"secondary_color": colors[1],
 			}
 		)
 		connected_bank_details.append(row)

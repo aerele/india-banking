@@ -27,8 +27,10 @@ BANK_CARD_COLORS = {
 	"IDFC First Bank": ["#9d1d27", "#fefefe"],
 	"HSBC Bank": ["#db0011", "#000000"],
 	"Citi Bank": ["#255be3", "#ff3c28"],
+	"CITI Bank": ["#255be3", "#ff3c28"],
 	"Yes Bank": ["#002eda", "#eb1f48"],
 	"State Bank of India": ["#2d5fa0", "#ffffff"],
+	"Canara Bank": ["#0070b8", "#f5a800"],
 }
 
 DEFAULT_MODE_OF_TRANSFERS = [
@@ -80,6 +82,8 @@ STD_BANK_LIST = [
 	"Bank of Baroda",
 	"IDFC First Bank",
 	"State Bank of India",
+	"Canara Bank",
+	"CITI Bank",
 ]
 
 DEFAULT_ROLES = ["Payment Manager"]

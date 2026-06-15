@@ -10,3 +10,4 @@ india_banking.patches.v16_0.update_deprecated_fields
 execute:frappe.db.set_value("DocType", "Payment Request", {"in_create": 1})
 execute:frappe.delete_doc_if_exists("Custom Field", "Payment Request-payment_type")
 india_banking.patches.v16_0.fetch_bank_details_branch_code
+execute:frappe.db.set_value("Custom Field", "Payment Request-net_total", "hidden", 0, update_modified=False) #15062026

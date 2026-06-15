@@ -39,9 +39,37 @@ Filters that a Payment Entry must satisfy to appear in the picker:
 | `name` | Not already referenced in any active Payment Order |
 | `name` | Not already present in the Payment Order's references table |
 
-### Journal Entry
+### Journal Entry (Bank Entry)
 
-> Testing in progress — documentation will be added after verification.
+Filters that a Journal Entry must satisfy to appear in the picker:
+
+| Filter | Required Value |
+|---|---|
+| `docstatus` | `1` (Submitted) |
+| `voucher_type` | `Bank Entry` |
+| `jea.payment_status` | Not `Paid`, `Ordered`, or `Payment Ordered` (NULL/empty also eligible) |
+| `jea.against_account` | Matches the Payment Order's `account` field (company GL account) — applied only when the field is set |
+| `company` | Matches the company selected in the picker dialog (when set) |
+| `name` | Not already present in the Payment Order's references table |
+
+**Journal Entry Account line requirements** — for a line to be mapped into the Payment Order reference, it must additionally satisfy:
+
+| Condition | Required Value |
+|---|---|
+| `debit` | `> 0` (the party/creditor line must be on the debit side) |
+| `party_type` | Set (e.g. Supplier, Employee) |
+| `party` | Set |
+| `bank_account` | Set (party's bank account for payment) |
+| `payment_status` | Not `Paid`, `Ordered`, or `Payment Ordered` |
+
+**Correct Bank Entry structure for outgoing payment:**
+
+| Line | Account | Debit | Credit | Party | Bank Account |
+|---|---|---|---|---|---|
+| 1 | Creditors / Party account | > 0 | 0 | required | required |
+| 2 | Company bank GL account | 0 | > 0 | — | — |
+
+If the party line has `debit = 0` (reversed structure — a receipt entry), the JE will appear in the picker but no references will be created when mapped.
 
 ---
 

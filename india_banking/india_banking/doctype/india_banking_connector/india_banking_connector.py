@@ -31,6 +31,13 @@ class IndiaBankingConnector(Document):
 	def __init__(self, *args, **kwargs):
 		self.success_count = 0
 		self.failed_count = 0
+		self.status_count_map = {
+			"Processed": 0,
+			"Pending": 0,
+			"Failed": 0,
+			"Rejected": 0,
+			"Initiated": 0,
+		}
 		super().__init__(*args, **kwargs)
 
 	def check_user_permission(self):
@@ -254,6 +261,8 @@ class IndiaBankingConnector(Document):
 			if not self.bulk_transaction:
 				msg = _("{0} Payment(s) Initiated".format(self.success_count))
 			frappe.msgprint(msg)
+		elif self.action == "get_payment_status":
+			self.show_status_count(self.status_count_map)
 
 	def verify_response(self, response, payment_order):
 		if self.action == "initiate_payment":
@@ -411,6 +420,7 @@ class IndiaBankingConnector(Document):
 								)
 
 							self._notify_party(summary)
+							self.status_count_map["Processed"] += 1
 
 					elif status_details.status == "Pending":
 						frappe.db.set_value(
@@ -421,6 +431,7 @@ class IndiaBankingConnector(Document):
 								"message": status_details.message,
 							},
 						)
+						self.status_count_map["Pending"] += 1
 
 					elif status_details.status == "Failed":
 						frappe.db.set_value(
@@ -449,6 +460,7 @@ class IndiaBankingConnector(Document):
 								"payment_status",
 								"Failed",
 							)
+						self.status_count_map["Failed"] += 1
 
 					elif status_details.status == "Rejected":
 						frappe.db.set_value(
@@ -477,6 +489,7 @@ class IndiaBankingConnector(Document):
 								"payment_status",
 								"Failed",
 							)
+						self.status_count_map["Rejected"] += 1
 
 			elif payment_status == "FAILED":
 				frappe.msgprint(
@@ -490,6 +503,15 @@ class IndiaBankingConnector(Document):
 
 		else:
 			frappe.throw("Invalid Request")
+
+	def show_status_count(self, status_count_map):
+		msg = ""
+		for status, count in status_count_map.items():
+			if count > 0:
+				label = "Approval Pending" if status == "Initiated" else status
+				msg += f"<b>{label}:</b> {count}<br>"
+		if msg:
+			frappe.msgprint(title=_("Payment Status"), msg=msg)
 
 	def check_payment_delay(self, last_call=None):
 		payment_call_interval = (

@@ -5,6 +5,7 @@ import ast
 import json
 import math
 import time
+from collections import Counter
 
 import frappe
 import requests as request
@@ -54,6 +55,7 @@ class IndiaBankingConnector(Document):
 		)
 
 	def validate(self):
+		self.validate_credentials()
 		self.validate_document_series()
 
 		if (
@@ -67,6 +69,40 @@ class IndiaBankingConnector(Document):
 
 		if not self.notify_party:
 			self.payment_notification = []
+
+	def on_update(self):
+		self._check_connection()
+
+	def _check_connection(self):
+		status = "Failed"
+		try:
+			response = request.get(
+				f"{self.url}/api/method/frappe.auth.get_logged_user",
+				headers=self.headers,
+				timeout=10,
+			)
+			if response.ok:
+				status = "Connected"
+			else:
+				frappe.msgprint(
+					msg=_("Connection Failed: {0} — {1}").format(
+						response.status_code, response.reason
+					),
+					title=_("Connection Error"),
+					indicator="red",
+				)
+		except Exception as e:
+			frappe.log_error(
+				title="Connector Check Failed", message=frappe.get_traceback()
+			)
+			frappe.msgprint(
+				msg=_("Connection Failed: {0}").format(str(e)),
+				title=_("Connection Error"),
+				indicator="red",
+			)
+		frappe.db.set_value(
+			"India Banking Connector", self.name, "connection_status", status
+		)
 
 	def enable_payment_entry_reposting(self):
 		if self.auto_update_posting_date_as_payment_date:
@@ -87,6 +123,17 @@ class IndiaBankingConnector(Document):
 					},
 				)
 				doc.save()
+
+	def validate_credentials(self):
+		for field in ["url", "api_key"]:
+			if not self.get(field):
+				frappe.throw(
+					_("{0} is required").format(
+						frappe.get_meta(self.doctype).get_label(field)
+					)
+				)
+		if not self.get_password("api_secret", raise_exception=False):
+			frappe.throw(_("API Secret is required"))
 
 	def validate_document_series(self):
 		if self.doctype_naming_series:
@@ -159,7 +206,9 @@ class IndiaBankingConnector(Document):
 
 			payload = self.get_payload(payment_order, otp=otp)
 
-			response = request.post(url, headers=headers, data=json.dumps(payload))
+			response = request.post(
+				url, headers=headers, data=json.dumps(payload), timeout=100
+			)
 
 			# create api request log
 			create_api_log(
@@ -192,7 +241,9 @@ class IndiaBankingConnector(Document):
 								"retry_period",
 							)
 						)
-						if summary.payment_date >= add_days(getdate(), -(retry_period)):
+						if summary.payment_date and summary.payment_date >= add_days(
+							getdate(), -(retry_period)
+						):
 							statuses.append("Processed")
 					if summary.payment_status not in statuses:
 						continue
@@ -478,7 +529,9 @@ class IndiaBankingConnector(Document):
 		)
 		payload.address = json.dumps(get_bank_address_details(summary.bank_account))
 
-		response = request.post(url, headers=headers, data=json.dumps(payload))
+		response = request.post(
+			url, headers=headers, data=json.dumps(payload), timeout=100
+		)
 
 		# create api request log
 		create_api_log(response, self.action, payment_order.doctype, payment_order.name)
@@ -507,7 +560,7 @@ class IndiaBankingConnector(Document):
 				frappe.throw("Execution Failed", error)
 			else:
 				frappe.msgprint(
-					_(f"{len(pending_payments)} payments added in background")
+					_("{0} payments added in background").format(len(pending_payments))
 				)
 			return True
 		else:
@@ -521,6 +574,7 @@ class IndiaBankingConnector(Document):
 			self.connector_url,
 			headers=self.headers,
 			data=json.dumps(self.get_payload(payment_order, "generate_otp")),
+			timeout=100,
 		)
 
 		# create api response log
@@ -550,22 +604,13 @@ class IndiaBankingConnector(Document):
 		payment_order.reload()
 
 		try:
-			success_count = 0
-			faild_count = 0
-			rejected_count = 0
-			initiated_count = 0
-			for summary in payment_order.summary:
-				status = frappe.db.get_value(
-					"Payment Order Summary", summary.name, "payment_status"
-				)
-				if status == "Processed":
-					success_count += 1
-				if status == "Failed":
-					faild_count += 1
-				if status == "Rejected":
-					rejected_count += 1
-				if status == "Initiated":
-					initiated_count += 1
+			status_counts = Counter(
+				summary.payment_status for summary in payment_order.summary
+			)
+			success_count = status_counts["Processed"]
+			faild_count = status_counts["Failed"]
+			rejected_count = status_counts["Rejected"]
+			initiated_count = status_counts["Initiated"]
 
 			if initiated_count == len(payment_order.summary):
 				frappe.db.set_value(
@@ -585,7 +630,7 @@ class IndiaBankingConnector(Document):
 					"Payment Order", payment_order.name, "status", "Rejected"
 				)
 			elif (
-				success_count > 1
+				success_count > 0
 				and success_count + faild_count + rejected_count
 				== len(payment_order.summary)
 			):
@@ -648,7 +693,8 @@ class IndiaBankingConnector(Document):
 					)
 				except Exception:
 					frappe.log_error(
-						"Payment Email Notification Failed", frappe.get_traceback()
+						title="Payment Email Notification Failed",
+						message=frappe.get_traceback(),
 					)
 
 	def get_bank_balance(self, bank_account):
@@ -662,7 +708,10 @@ class IndiaBankingConnector(Document):
 		payload.bulk_transaction = self.bulk_transaction
 
 		response = request.post(
-			self.connector_url, headers=self.headers, data=json.dumps(payload)
+			self.connector_url,
+			headers=self.headers,
+			data=json.dumps(payload),
+			timeout=100,
 		)
 		# create api request log
 		create_api_log(
@@ -753,7 +802,10 @@ class IndiaBankingConnector(Document):
 		payload.bulk_transaction = self.bulk_transaction
 
 		response = request.post(
-			self.connector_url, headers=self.headers, data=json.dumps(payload)
+			self.connector_url,
+			headers=self.headers,
+			data=json.dumps(payload),
+			timeout=100,
 		)
 		# create api request log
 		create_api_log(
@@ -838,6 +890,16 @@ def get_bank_balance(bank_account_name):
 
 
 @frappe.whitelist()
+def check_connection(connector_name):
+	connector = frappe.get_doc("India Banking Connector", connector_name)
+	connector.check_user_permission()
+	connector._check_connection()
+	return frappe.db.get_value(
+		"India Banking Connector", connector_name, "connection_status"
+	)
+
+
+@frappe.whitelist()
 def get_bank_statement(
 	bank_account_name,
 	from_date=None,
@@ -847,7 +909,7 @@ def get_bank_statement(
 ):
 	bank_doc = frappe.get_doc("Bank Account", bank_account_name)
 	bank_connector = get_bank_connector(bank_account_name, bank_doc.company)
-	if bank_connector.fetch_bank_balance:
+	if bank_connector.fetch_bank_statement:
 		return bank_connector.get_bank_statement(
 			bank_doc,
 			from_date=from_date,

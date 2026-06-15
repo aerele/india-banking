@@ -7,7 +7,7 @@ frappe.ui.form.on("Bank Account", {
 	refresh(frm) {
 		let data = JSON.parse(frm.doc.bank_details_json || "{}");
 
-		if (!cur_frm.is_new()) {
+		if (!frm.is_new()) {
 			if (data && Object.keys(data).length > 0) {
 				let services_html = build_services_badges(data);
 
@@ -117,7 +117,7 @@ frappe.ui.form.on("Bank Account", {
 						bank_account_name: frm.doc.name,
 					},
 					callback: () => {
-						cur_frm.reload_doc();
+						frm.reload_doc();
 					},
 				});
 			},
@@ -198,7 +198,7 @@ frappe.ui.form.on("Bank Account", {
 		if (frm.doc.workflow_state == "Approved") {
 			frm.set_read_only();
 		} else {
-			cur_frm.reload_doc();
+			frm.reload_doc();
 		}
 	},
 });

@@ -11,8 +11,6 @@ class IndiaBankingSettings(Document):
 	def validate(self):
 		self.enable_or_disable_workflow_to_bank_account()
 		self.validate_custom_app_priority()
-		if not self.notify_party:
-			self.payment_notification = []
 
 	def validate_custom_app_priority(self):
 		self.custom_app_priority = cstr(self.custom_app_priority).strip()

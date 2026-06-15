@@ -1,20 +1,27 @@
 # Copyright (c) 2026, Aerele Technologies Private Limited and Contributors
 # See license.txt
 
-# import frappe
-from frappe.tests import IntegrationTestCase
+from unittest import TestCase
 
-# On IntegrationTestCase, the doctype test records and all
-# link-field test record dependencies are recursively loaded
-# Use these module variables to add/remove to/from that list
-EXTRA_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
-IGNORE_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
+IGNORE_TEST_RECORD_DEPENDENCIES = [
+	"Account",
+	"Bank",
+	"Bank Account",
+	"Bank Payment Allocation",
+	"Company",
+	"Cost Center",
+	"DocType",
+	"Letter Head",
+	"Mode of Transfer",
+	"Payment Gateway",
+	"Payment Gateway Account",
+	"Payment Request",
+	"Print Format",
+	"Project",
+	"Tax Withholding Category",
+	"Unreconcile Bank Payment",
+]
 
 
-class IntegrationTestUnreconcileBankPayment(IntegrationTestCase):
-	"""
-	Integration tests for UnreconcileBankPayment.
-	Use this class for testing interactions between multiple components.
-	"""
-
+class TestUnreconcileBankPayment(TestCase):
 	pass

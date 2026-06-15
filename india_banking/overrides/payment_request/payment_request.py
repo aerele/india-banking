@@ -232,9 +232,7 @@ class BankPaymentRequest(PaymentRequest):
 
 		if bank_account.currency != self.currency:
 			frappe.throw(
-				title=_(
-					f"The party bank account currency should be in {self.currency}."
-				),
+				title=f"The party bank account currency should be in {self.currency}.",
 				msg=_(
 					"{}-{}- Bank Account <a href='{}'>{}</a>".format(
 						self.party_type,

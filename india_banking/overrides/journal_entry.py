@@ -202,9 +202,9 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 				JournalEntryAccount.payment_status.notin(
 					["Paid", "Ordered", "Payment Ordered"]
 				)
+				| JournalEntryAccount.payment_status.isnull()
 			)
 			& (JournalEntry.voucher_type == "Bank Entry")
-			& (JournalEntryAccount.against_account == filters.company_account)
 		)
 		.groupby(JournalEntry.name, JournalEntry.company, JournalEntry.voucher_type)
 		.select(
@@ -215,10 +215,16 @@ def get_bank_entry(doctype, txt, searchfield, start, page_len, filters, as_dict)
 		)
 	)
 
+	if filters.company_account:
+		query = query.where(
+			JournalEntryAccount.against_account == filters.company_account
+		)
+
 	if filters:
 		if filters.docs:
-			existing_entries = tuple(filters.docs or [])
-			query = query.where(JournalEntry.name.notin(existing_entries))
+			existing_entries = tuple(e for e in filters.docs if e)
+			if existing_entries:
+				query = query.where(JournalEntry.name.notin(existing_entries))
 		if filters.company:
 			query = query.where(JournalEntry.company == filters.company)
 

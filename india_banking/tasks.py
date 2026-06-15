@@ -17,10 +17,10 @@ def daily():
 		update_payment_status(check_processed_payments=True, connector=connector)
 
 	for statement_connector in frappe.get_all(
-		"India Banking Connector", {"fetch_bank_statement": 1}, pluck="name"
+		"India Banking Connector", {"fetch_bank_statement": 1}, ["bank_account"]
 	):
 		date = today()
-		get_bank_statement(statement_connector, date, date)
+		get_bank_statement(statement_connector.bank_account, date, date)
 
 
 def job_twenty_minutes():

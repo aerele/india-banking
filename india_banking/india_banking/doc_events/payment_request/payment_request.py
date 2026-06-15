@@ -47,9 +47,7 @@ def make_bulk_bank_payment_request(invoices, doctype):
 
 
 def is_valid_invoice(invoice):
-	existing_payment_request_amount = (
-		get_existing_payment_request_amount(invoice.doctype, invoice.name) or 0
-	)
+	existing_payment_request_amount = get_existing_payment_request_amount(invoice) or 0
 	if invoice.outstanding_amount - existing_payment_request_amount > 0:
 		return True
 

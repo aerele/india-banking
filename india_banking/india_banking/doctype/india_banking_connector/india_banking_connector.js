@@ -13,6 +13,30 @@ frappe.ui.form.on("India Banking Connector", {
 			};
 		});
 		frm.trigger("toggle_bulk_transaction");
+		frm.trigger("show_connection_status");
+
+		if (!frm.is_new()) {
+			frm.add_custom_button(__("Check Connection"), () => {
+				frappe.call({
+					method: "india_banking.india_banking.doctype.india_banking_connector.india_banking_connector.check_connection",
+					args: { connector_name: frm.doc.name },
+					freeze: true,
+					freeze_message: __("Testing connection..."),
+					callback(r) {
+						frm.reload_doc();
+					},
+				});
+			});
+		}
+	},
+	show_connection_status(frm) {
+		const color_map = {
+			Connected: "green",
+			Failed: "red",
+			"Not Connected": "orange",
+		};
+		const status = frm.doc.connection_status || "Not Connected";
+		frm.page.set_indicator(__(status), color_map[status] || "gray");
 	},
 	toggle_bulk_transaction(frm) {
 		frm.call({
@@ -26,6 +50,9 @@ frappe.ui.form.on("India Banking Connector", {
 				frm.set_df_property("bulk_transaction", "hidden", !show);
 			},
 		});
+	},
+	after_save(frm) {
+		frm.reload_doc();
 	},
 	bank_account(frm) {
 		frm.trigger("toggle_bulk_transaction");

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase, change_settings
 
@@ -10,6 +12,11 @@ from india_banking.setup.utils import (
 
 class TestBankAccount(FrappeTestCase):
 	def setUp(self):
+		self.global_search_patcher = patch(
+			"frappe.utils.global_search.sync_value_in_queue"
+		)
+		self.global_search_patcher.start()
+		self.addCleanup(self.global_search_patcher.stop)
 		super().setUp()
 		self.company = create_company("IB Company")
 

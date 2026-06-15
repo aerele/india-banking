@@ -28,6 +28,7 @@ BANK_CARD_COLORS = {
 	"HSBC Bank": ["#db0011", "#000000"],
 	"Citi Bank": ["#255be3", "#ff3c28"],
 	"Yes Bank": ["#002eda", "#eb1f48"],
+	"State Bank of India": ["#2d5fa0", "#ffffff"],
 }
 
 DEFAULT_MODE_OF_TRANSFERS = [
@@ -78,6 +79,7 @@ STD_BANK_LIST = [
 	"Union Bank of India",
 	"Bank of Baroda",
 	"IDFC First Bank",
+	"State Bank of India",
 ]
 
 DEFAULT_ROLES = ["Payment Manager"]

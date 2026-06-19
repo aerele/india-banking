@@ -161,17 +161,7 @@ def get_payment_order_summary(payment_entry):
 
 @frappe.whitelist()
 def get_party_bank_account(party_type, party):
-	workflow = ""
-	if frappe.db.get_single_value(
-		"India Banking Settings", "activate_workflow_on_bank_account"
-	):
-		workflow = "Approved"
-
 	filters = {"party_type": party_type, "party": party, "is_default": 1}
-
-	if workflow:
-		filters.update({"workflow_state": workflow})
-
 	return frappe.db.get_value("Bank Account", filters)
 
 

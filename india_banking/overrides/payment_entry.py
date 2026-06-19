@@ -2,7 +2,8 @@ import frappe
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
-from erpnext.accounts.party import get_party_bank_account
+from india_banking.utils import get_party_bank_account
+
 from frappe import _
 from frappe.model.mapper import get_mapped_doc
 from frappe.query_builder import DocType

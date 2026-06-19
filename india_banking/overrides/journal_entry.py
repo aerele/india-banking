@@ -19,14 +19,18 @@ def make_payment_order(source_name, target_doc=None, args=None):
 		JournalEntryAccount = DocType("Journal Entry Account")
 		BankAccount = DocType("Bank Account")
 
-		bank_account_query = (
+		invalid_parties = (
 			frappe.qb.from_(JournalEntryAccount)
 			.left_join(BankAccount)
-			.on(JournalEntryAccount.party == BankAccount.party)
+			.on(
+				(JournalEntryAccount.party == BankAccount.party)
+				& (JournalEntryAccount.party_type == BankAccount.party_type)
+				& (BankAccount.disabled == 0)
+				& (BankAccount.is_default == 1)
+			)
 			.select(
 				JournalEntryAccount.party_type,
 				JournalEntryAccount.party,
-				BankAccount.name.as_("bank_account"),
 			)
 			.where(
 				(JournalEntryAccount.parent == bank_entry)
@@ -35,32 +39,37 @@ def make_payment_order(source_name, target_doc=None, args=None):
 						["Paid", "Ordered", "Payment Ordered"]
 					)
 				)
-				& (
-					(BankAccount.name.isnull())
-					| (BankAccount.disabled == 1)
-					| (BankAccount.is_default == 0)
-				)
+				& BankAccount.name.isnull()
 			)
-			.groupby(JournalEntryAccount.party)
-		)
+			.groupby(JournalEntryAccount.party_type, JournalEntryAccount.party)
+		).run(as_dict=1)
 
-		non_bank_account_party = bank_account_query.run(as_dict=1)
+		if not invalid_parties:
+			return
+
+		# Determine which of those parties have any bank account
+		party_names = [p.party for p in invalid_parties]
+		parties_with_some_account = {
+			(r.party_type, r.party)
+			for r in (
+				frappe.qb.from_(BankAccount)
+				.select(BankAccount.party_type, BankAccount.party)
+				.where(BankAccount.party.isin(party_names))
+				.groupby(BankAccount.party_type, BankAccount.party)
+			).run(as_dict=1)
+		}
 
 		msg = ""
-		for party_details in non_bank_account_party:
-			if (
-				party_details
-				and (party_type := party_details.get("party_type"))
-				and (party := party_details.get("party"))
-			):
-				if not party_details.get("bank_account"):
-					msg += (
-						f"<b>{party_type}-{party}</b> does not have a bank account.<br>"
-					)
-				else:
-					msg += (
-						f"<b>{party_type}-{party}</b> has no default bank account.<br>"
-					)
+		for p in invalid_parties:
+			party_type = p.get("party_type")
+			party = p.get("party")
+			if not party_type or not party:
+				continue
+			if (party_type, party) in parties_with_some_account:
+				msg += f"<b>{party_type}-{party}</b> has no default bank account.<br>"
+			else:
+				msg += f"<b>{party_type}-{party}</b> does not have a bank account.<br>"
+
 		if msg:
 			frappe.msgprint(
 				_(
@@ -122,7 +131,7 @@ def make_payment_order(source_name, target_doc=None, args=None):
 		journal_accounts = query.run(as_dict=True)
 
 		target.payment_order_type = "Journal Entry"
-		target.docstaus = 0
+		target.docstatus = 0
 		target.status = "Pending"
 
 		def _update_dimensions(source):

@@ -10,7 +10,8 @@ from erpnext.accounts.doctype.tax_withholding_category.tax_withholding_category 
 	get_party_tax_withholding_details,
 )
 from erpnext.accounts.party import get_party_account as _get_party_account
-from erpnext.accounts.party import get_party_bank_account
+from india_banking.utils import add_background_job, get_party_bank_account
+
 from frappe import _, bold
 from frappe.utils import (
 	flt,

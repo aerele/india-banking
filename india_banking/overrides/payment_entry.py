@@ -2,11 +2,12 @@ import frappe
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
-from india_banking.utils import get_party_bank_account
 from frappe import _
 from frappe.model.mapper import get_mapped_doc
 from frappe.query_builder import DocType
 from frappe.utils import get_url_to_form
+
+from india_banking.utils import get_party_bank_account
 
 
 @frappe.whitelist()

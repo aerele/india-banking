@@ -7,7 +7,6 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 	get_existing_payment_request_amount,
 )
 from erpnext.accounts.party import get_party_account as _get_party_account
-from erpnext.accounts.party import get_party_bank_account
 from frappe import _, bold
 from frappe.utils import (
 	flt,
@@ -16,6 +15,8 @@ from frappe.utils import (
 	get_url_to_form,
 	getdate,
 )
+
+from india_banking.utils import get_party_bank_account
 
 
 class BankPaymentRequest(PaymentRequest):

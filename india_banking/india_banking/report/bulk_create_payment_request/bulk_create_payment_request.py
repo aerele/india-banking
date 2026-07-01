@@ -12,7 +12,7 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 	get_dummy_message,
 	get_gateway_details,
 )
-from erpnext.accounts.party import get_party_account, get_party_bank_account
+from erpnext.accounts.party import get_party_account
 from erpnext.accounts.report.accounts_receivable.accounts_receivable import (
 	ReceivablePayableReport,
 )
@@ -22,7 +22,7 @@ from frappe.model.document import Document
 from frappe.query_builder.functions import Abs, Sum
 from frappe.utils import cstr, flt, today
 
-from india_banking.utils import add_background_job
+from india_banking.utils import add_background_job, get_party_bank_account
 
 ENQUEUE_LIMIT = 50
 

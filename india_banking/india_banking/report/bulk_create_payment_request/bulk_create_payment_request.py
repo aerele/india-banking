@@ -12,7 +12,8 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 	get_dummy_message,
 	get_gateway_details,
 )
-from erpnext.accounts.party import get_party_account, get_party_bank_account
+from erpnext.accounts.party import get_party_account
+from india_banking.utils import get_party_bank_account
 from erpnext.accounts.report.accounts_receivable.accounts_receivable import (
 	ReceivablePayableReport,
 )

@@ -3,6 +3,18 @@
 
 frappe.ui.form.on("India Banking Settings", {
 	refresh(frm) {
+		if (frappe.user.has_role("System Manager")) {
+			frm.add_custom_button(__("Create Custom Fields"), () => {
+				frappe.confirm(__("Create any missing India Banking custom fields now?"), () => {
+					frm.call({
+						method: "create_custom_fields",
+						doc: frm.doc,
+						freeze: true,
+						freeze_message: __("Creating custom fields..."),
+					});
+				});
+			});
+		}
 		frm.set_query("email_format", "payment_notification", function () {
 			return {
 				filters: {
@@ -21,12 +33,12 @@ frappe.ui.form.on("India Banking Settings", {
 			};
 		});
 	},
-	auto_post_payments(frm){
-		if(frm.doc.retry_interval_minutes == 0){
-			frm.set_value("retry_interval_minutes", 5)
+	auto_post_payments(frm) {
+		if (frm.doc.retry_interval_minutes == 0) {
+			frm.set_value("retry_interval_minutes", 5);
 		}
-		if(frm.doc.batch_size == 0){
-			frm.set_value("batch_size", 20)
+		if (frm.doc.batch_size == 0) {
+			frm.set_value("batch_size", 20);
 		}
 	},
 });

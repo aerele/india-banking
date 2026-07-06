@@ -40,3 +40,16 @@ class IndiaBankingSettings(Document):
 				"is_active",
 				self.enable_bank_account_workflow,
 			)
+
+	@frappe.whitelist()
+	def create_custom_fields(self):
+		"""Create any missing India Banking custom fields on demand."""
+		from india_banking.install import make_custom_fields
+
+		make_custom_fields()
+		frappe.clear_cache()
+		frappe.msgprint(
+			_("India Banking custom fields created/updated successfully."),
+			alert=True,
+			indicator="green",
+		)

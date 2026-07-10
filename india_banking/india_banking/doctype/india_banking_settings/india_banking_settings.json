@@ -10,8 +10,10 @@
   "column_break_wjye",
   "default_email_format",
   "notify_party",
-  "allow_unreconcile",
   "enable_bank_account_workflow",
+  "unreconcile_settings_section",
+  "allow_unreconcile",
+  "unlink_allowed_roles",
   "bulk_creation_configurations_section",
   "submit_bank_payment_request",
   "column_break_xfzu",
@@ -81,10 +83,22 @@
    "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
   },
   {
+   "fieldname": "unreconcile_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Unreconcile Settings"
+  },
+  {
    "default": "0",
    "fieldname": "allow_unreconcile",
    "fieldtype": "Check",
    "label": "Allow Unreconcile"
+  },
+  {
+   "description": "Roles allowed to unlink a Bank Payment Request from its invoice on unreconcile.",
+   "fieldname": "unlink_allowed_roles",
+   "fieldtype": "Table MultiSelect",
+   "label": "Allowed Roles to Unlink",
+   "options": "Bank Payment Request Unlink Role"
   },
   {
    "default": "0",

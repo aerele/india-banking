@@ -19,7 +19,10 @@ frappe.ui.form.on("India Banking Settings", {
     frm.set_df_property(
       "unlink_allowed_roles",
       "read_only",
-      !frappe.user.has_role("Administrator")
+      !(
+        frappe.user.has_role("Administrator") ||
+        frappe.user.has_role("Local Admin")
+      )
     );
   },
 });

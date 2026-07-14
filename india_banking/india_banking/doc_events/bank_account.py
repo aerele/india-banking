@@ -8,17 +8,22 @@ def validate_ifsc_code(self, method):
 
 
 def validate_duplicate_receivers(self, method):
-	first_row_idx = {}
 	for row in (self.get("beneficiaries") or []):
 		if not row.company or not row.receiver_id:
 			continue
-		key = (row.company, row.receiver_id)
-		if key in first_row_idx:
-			receiver = row.beneficiary_name or row.beneficiary or row.receiver_id
+
+		if frappe.db.exists(
+			"Beneficiaries",
+			{
+				"company": row.company,
+				"receiver_id": row.receiver_id,
+				"parent": self.name,
+				"name": ["!=", row.name],
+			},
+		):
 			frappe.throw(
-				_("Row #{0}: Receiver {1} is already added for Company {2} (row #{3}).").format(
-					row.idx, frappe.bold(receiver), frappe.bold(row.company), first_row_idx[key]
+				_("Row #{0}: Receiver {1} is already added for Company {2}.").format(
+					row.idx, frappe.bold(row.receiver_id), frappe.bold(row.company)
 				),
 				title=_("Duplicate Receiver"),
 			)
-		first_row_idx[key] = row.idx

@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 
 def on_submit(doc, method=None):
 	if not doc.voucher_type == "Payment Entry":
@@ -6,8 +7,11 @@ def on_submit(doc, method=None):
 
 	if frappe.db.get_value("Payment Entry", doc.voucher_no, "source_doctype") != "Bank Payment Request":
 		return
-	if not frappe.get_single("India Banking Settings").allow_unreconcile:
+	if not frappe.db.get_single_value("India Banking Settings", "allow_unreconcile"):
 		return
+
+	if not has_unlink_permission():
+		frappe.throw(_("You are not permitted to unlink Bank Payment Request from the invoice."), frappe.PermissionError)
 
 	payment_order_summary = get_payment_order_summary(doc.voucher_no)
 
@@ -32,6 +36,24 @@ def on_submit(doc, method=None):
 		if values_match:
 			frappe.db.set_value("Bank Payment Request", reference.bank_payment_request, {"reference_doctype": "", "reference_name": ""})
 			frappe.db.set_value("Payment Order Reference", reference.name, {"reference_doctype": "", "reference_name": ""})
+
+UNLINK_ADMIN_ROLES = {"Administrator", "Local Admin"}
+
+
+def has_unlink_permission():
+	user_roles = set(frappe.get_roles())
+	if UNLINK_ADMIN_ROLES & user_roles:
+		return True
+
+	allowed_roles = set(
+		frappe.get_all(
+			"Bank Payment Request Unlink Role",
+			filters={"parent": "India Banking Settings"},
+			pluck="role",
+		)
+	)
+	return bool(allowed_roles & user_roles)
+
 
 def get_payment_order_summary(payment_entry):
 	is_ammended = frappe.db.get_value("Payment Entry", payment_entry, "amended_from")

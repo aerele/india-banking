@@ -156,7 +156,10 @@ override_doctype_class = {
 
 doc_events = {
 	"Bank Account": {
-		"validate": "india_banking.india_banking.doc_events.bank_account.validate_ifsc_code",
+		"validate": [
+			"india_banking.india_banking.doc_events.bank_account.validate_ifsc_code",
+			"india_banking.india_banking.doc_events.bank_account.validate_duplicate_receivers",
+		],
 	},
 	"Unreconcile Payment": {
 		"on_submit": "india_banking.india_banking.doc_events.unreconcile_payment.on_submit",

@@ -16,5 +16,13 @@ frappe.ui.form.on("India Banking Settings", {
         query: "india_banking.utils.get_allowed_doctypes",
       };
     });
+    frm.set_df_property(
+      "unlink_allowed_roles",
+      "read_only",
+      !(
+        frappe.user.has_role("Administrator") ||
+        frappe.user.has_role("Local Admin")
+      )
+    );
   },
 });

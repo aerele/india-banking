@@ -100,6 +100,9 @@ class CustomPaymentOrder(PaymentOrder):
 							f"LEI Number required for payment > 50 Cr. For {payment.party_type} - {payment.party} - {payment.amount}"
 						)
 					)
+				payment.lei_number = lei_number or ""
+			else:
+				payment.lei_number = ""
 
 			if "A2A" in mode_of_transfer.mode and payment.bank != self.company_bank:
 				frappe.throw(

@@ -550,6 +550,7 @@ class IndiaBankingConnector(Document):
 			summary.party_type, summary.party, get_party_field_name(summary.party_type)
 		)
 		payload.address = json.dumps(get_bank_address_details(summary.bank_account))
+		payload.lei = summary.get("lei_number") or ""
 
 		response = request.post(
 			url, headers=headers, data=json.dumps(payload), timeout=100

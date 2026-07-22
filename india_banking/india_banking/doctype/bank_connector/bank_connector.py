@@ -700,7 +700,7 @@ class BankConnector(Document):
 				bank_transaction_doc.company = bank_account.company
 				bank_transaction_doc.bank_account = bank_account.name
 				bank_transaction_doc.status = "Pending"
-				bank_transaction_doc.date = getdate(statement.transaction_date)
+				bank_transaction_doc.date = getdate(statement.transaction_date, parse_day_first=True)
 				bank_transaction_doc.reference_number = statement.reference_number
 				bank_transaction_doc.description = statement.transaction_description
 				if flt(statement.transaction_amount) < 0:

@@ -49,6 +49,8 @@ frappe.ui.form.on("Payment Order", {
 		const summary_field = "summary";
 		frm.set_df_property(summary_field, "cannot_delete_rows", true);
 		frm.set_df_property(summary_field, "cannot_add_rows", true);
+
+		frm.events.show_balance(frm);
 	},
 
 	refresh(frm) {
@@ -497,6 +499,49 @@ frappe.ui.form.on("Payment Order", {
 					frm.set_value("company_bank_account", r.message.name);
 				});
 		}
+	},
+	company_bank_account(frm) {
+		frm.events.show_balance(frm);
+	},
+	show_balance(frm) {
+		frappe.db
+			.get_single_value("India Banking Settings", "show_bank_balance_in_payment_order")
+			.then((r) => {
+				if (r) {
+					frm.events.update_bank_balance(frm, frm.get_field("company_bank_account"));
+				}
+			});
+	},
+	async update_bank_balance(frm, field) {
+		const bank_account = field.value;
+		field.set_description("");
+		if (!bank_account) return;
+
+		let { message: balance_amount } = await frappe.call({
+			method: "india_banking.india_banking.doctype.india_banking_connector.india_banking_connector.get_bank_balance",
+			args: { bank_account_name: bank_account },
+		});
+		const has_valid_balance = balance_amount !== null && balance_amount !== undefined;
+		const indicator_color = has_valid_balance ? "green" : "orange";
+		const balance_display = has_valid_balance ? format_currency(balance_amount) : __("Unavailable");
+		const balance_html = `<div class="d-flex indicator ${indicator_color}">
+			Balance:&nbsp;<strong>${balance_display}</strong>
+			</div>
+			<div>
+				<span class="text-right ml-auto">
+					<span style="font-size: 12px; color: gray; padding-right: 15px;">
+						Last Updated: ${frappe.datetime.now_datetime()}
+					</span>
+					<svg class="icon icon-sm reload-balance" style="cursor: pointer;">
+						<use href="#icon-refresh"></use>
+					</svg>
+				</span>
+			</div>`;
+		field.set_new_description(balance_html);
+		field.$wrapper.find(".reload-balance").css("cursor", "pointer");
+		field.$wrapper.off("click", ".reload-balance").on("click", ".reload-balance", async function () {
+			await frm.events.update_bank_balance(frm, field);
+		});
 	},
 });
 

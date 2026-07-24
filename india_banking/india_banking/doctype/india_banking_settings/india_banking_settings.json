@@ -11,6 +11,7 @@
   "allow_future_date_payment_order",
   "column_break_sstt",
   "allowed_payment_doctypes",
+  "show_bank_balance_in_payment_order",
   "bank_account_section",
   "enable_bank_account_workflow",
   "enable_unique_account_no",
@@ -82,6 +83,13 @@
    "label": "Allowed Payment Doctypes",
    "options": "Payment Request\nPayment Entry\nBank Entry",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "If enabled, the bank balance will be displayed in the Payment Order.",
+   "fieldname": "show_bank_balance_in_payment_order",
+   "fieldtype": "Check",
+   "label": "Show Bank Balance in Payment Order"
   }
  ],
  "index_web_pages_for_search": 1,

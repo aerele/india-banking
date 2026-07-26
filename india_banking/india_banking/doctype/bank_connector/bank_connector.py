@@ -685,7 +685,8 @@ class BankConnector(Document):
 			transaction_filter = {
 				"bank_account": bank_account.name,
 				"reference_number": statement.reference_number,
-				"date": getdate(statement.transaction_date),
+				"date": getdate(statement.transaction_date, parse_day_first=True),
+				"description": statement.transaction_description,
 			}
 			if flt(statement.transaction_amount) < 0:
 				transaction_filter["withdrawal"] = abs(
@@ -694,13 +695,15 @@ class BankConnector(Document):
 			else:
 				transaction_filter["deposit"] = abs(flt(statement.transaction_amount))
 
-			# check if bank transaction already exists with same reference number, date and amount
+			# check if bank transaction already exists with same reference number, date, amount and description
 			if not frappe.db.exists("Bank Transaction", transaction_filter):
 				bank_transaction_doc = frappe.new_doc("Bank Transaction")
 				bank_transaction_doc.company = bank_account.company
 				bank_transaction_doc.bank_account = bank_account.name
 				bank_transaction_doc.status = "Pending"
-				bank_transaction_doc.date = getdate(statement.transaction_date, parse_day_first=True)
+				bank_transaction_doc.date = getdate(
+					statement.transaction_date, parse_day_first=True
+				)
 				bank_transaction_doc.reference_number = statement.reference_number
 				bank_transaction_doc.description = statement.transaction_description
 				if flt(statement.transaction_amount) < 0:

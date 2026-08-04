@@ -70,25 +70,30 @@ frappe.ui.form.on("Beneficiary", {
 		});
 	},
 	add_beneficiary_actions(frm){
-		if (frm.doc.beneficiary_status == "Draft") {
-			frm.add_custom_button("Add Beneficiary", ()=>frm.events.submit_beneficiary(frm), "Beneficiary Action")
+		// Role-based access control for beneficiary action buttons
+		const has_beneficiary_action_access = frappe.user.has_role(['System Manager', 'Local Admin']);
+
+		if (has_beneficiary_action_access) {
+			if (frm.doc.beneficiary_status == "Draft") {
+				frm.add_custom_button("Add Beneficiary", ()=>frm.events.submit_beneficiary(frm), "Beneficiary Action")
+			}
+			else if(frm.doc.beneficiary_status == 'Modified') {
+				frm.add_custom_button("Update Beneficiary", ()=>update_beneficiary_dialog(frm), "Beneficiary Action")
+			}
+			else if(frm.doc.beneficiary_status == 'Submitted') {
+				frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
+				frm.add_custom_button("Reject Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Reject"), "Beneficiary Action")
+			}
+			else if(['Approved', 'Rejected'].includes(frm.doc.beneficiary_status)) {
+				frm.add_custom_button("Update Beneficiary", ()=>update_beneficiary_dialog(frm), "Beneficiary Action")
+				if(frm.doc.beneficiary_status == 'Approved') {
+					frm.add_custom_button("Suspend Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Suspend"), "Beneficiary Action")
+				}
+			}
+			else if(frm.doc.beneficiary_status == 'Suspended') {
+				frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
+			}
 		}
-		else if(frm.doc.beneficiary_status == 'Modified') {
-			frm.add_custom_button("Update Beneficiary", ()=>update_beneficiary_dialog(frm), "Beneficiary Action")
-		}
-		//else if(frm.doc.beneficiary_status == 'Submitted') {
-		//	frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
-		//	frm.add_custom_button("Reject Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Reject"), "Beneficiary Action")
-		//}
-		else if(['Approved', 'Rejected'].includes(frm.doc.beneficiary_status)) {
-			frm.add_custom_button("Update Beneficiary", ()=>update_beneficiary_dialog(frm), "Beneficiary Action")
-			//if(frm.doc.beneficiary_status == 'Approved') {
-			//	frm.add_custom_button("Suspend Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Suspend"), "Beneficiary Action")
-			//}
-		}
-		//else if(frm.doc.beneficiary_status == 'Suspended') {
-		//	frm.add_custom_button("Approve Beneficiary", ()=>frm.events.update_beneficiary_details(frm, "Approve"), "Beneficiary Action")
-		//}
 	},
 	submit_beneficiary(frm){
 		frm.call({
@@ -117,7 +122,7 @@ frappe.ui.form.on("Beneficiary", {
 				action: action,
 			},
 			freeze: 1,
-			freeze_message: `${action_map[action]}...`,
+			freeze_message: (action_map[action] || "Updating") + " Beneficiary...",
 			callback: function (r) {
 				frm.reload_doc();
 			}

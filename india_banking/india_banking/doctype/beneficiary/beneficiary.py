@@ -4,6 +4,16 @@
 import frappe
 from frappe.model.document import Document
 from frappe.utils import cstr
+from functools import wraps
+
+def require_beneficiary_action_access(func):
+	"""Decorator to check if user has required roles for beneficiary actions"""
+	@wraps(func)
+	def wrapper(*args, **kwargs):
+		if not frappe.user.has_role(['System Manager', 'Local Admin']):
+			frappe.throw("You do not have permission to perform beneficiary actions. Required roles: System Manager or Local Admin")
+		return func(*args, **kwargs)
+	return wrapper
 
 class Beneficiary(Document):
 	@frappe.whitelist()
@@ -36,6 +46,7 @@ class Beneficiary(Document):
 			)
 
 	@frappe.whitelist()
+	@require_beneficiary_action_access
 	def submit_beneficiary(self):
 		"""Submit the beneficiary details to the bank connector"""
 		if not self.bank_connector:
@@ -45,6 +56,7 @@ class Beneficiary(Document):
 		bank_connector.post_request(beneficiary_id=self.name)
 
 	@frappe.whitelist()
+	@require_beneficiary_action_access
 	def update_beneficiary(self, action=None):
 		"""Update/delete the beneficiary details to the bank connector"""
 		if not self.bank_connector:
@@ -54,6 +66,7 @@ class Beneficiary(Document):
 		bank_connector.post_request(beneficiary_id=self.name, action=action)
 
 	@frappe.whitelist()
+	@require_beneficiary_action_access
 	def discard_beneficiary(self):
 		self.update_beneficiary(action="Discard")
 
@@ -96,6 +109,7 @@ def add_beneficiary(**kwargs):
 
 
 @frappe.whitelist()
+@require_beneficiary_action_access
 def submit_beneficiary(beneficiary_id):
 	"""Submit the beneficiary details to the bank connector"""
 	beneficiary_doc = frappe.get_doc("Beneficiary", beneficiary_id)
@@ -103,6 +117,7 @@ def submit_beneficiary(beneficiary_id):
 
 
 @frappe.whitelist()
+@require_beneficiary_action_access
 def update_beneficiary(beneficiary_id, action=None):
 	"""Update the beneficiary details to the bank connector"""
 	if not action:
@@ -113,6 +128,7 @@ def update_beneficiary(beneficiary_id, action=None):
 
 
 @frappe.whitelist()
+@require_beneficiary_action_access
 def update_beneficiary_details(**beneficiary_details):
 	"""Update the beneficiary details to the bank connector"""
 	if not beneficiary_details.get("action"):

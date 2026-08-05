@@ -1,4 +1,3 @@
-import ast
 import json
 import re
 
@@ -111,40 +110,8 @@ def extract_error_message(response_json, show_message=False) -> str:
 
 
 def unlink_bank_payment(payment_order_summary=None):
-	"""
-	Unlinks bank payment references from the given payment order summary.
-
-	This function takes a payment order summary and removes the references to
-	payment requests and payment order references associated with it. It updates
-	the database to clear the reference doctype and reference name fields.
-	"""
-	if not payment_order_summary:
-		return
-
-	summary_references = ast.literal_eval(
-		payment_order_summary.get("summary_references")
-	)
-	for reference in summary_references:
-		payment_request = frappe.get_doc(
-			"Payment Order Reference", reference, "payment_request"
-		)
-		if payment_request:
-			frappe.db.set_value(
-				"Payment Request",
-				payment_request,
-				{"reference_doctype": "", "reference_name": ""},
-			)
-		frappe.db.set_value(
-			"Payment Order Reference",
-			reference,
-			{"reference_doctype": "", "reference_name": ""},
-		)
-
-		frappe.db.set_value(
-			"Payment Order Summary",
-			payment_order_summary.name,
-			{"reference_doctype": "", "reference_name": ""},
-		)
+	# Disabled until the reference-clearing logic is redesigned
+	return
 
 
 def get_payment_order_summary(payment_entry):

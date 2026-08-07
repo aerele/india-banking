@@ -10,7 +10,8 @@ def require_beneficiary_action_access(func):
 	"""Decorator to check if user has required roles for beneficiary actions"""
 	@wraps(func)
 	def wrapper(*args, **kwargs):
-		if not frappe.user.has_role(['System Manager', 'Local Admin']):
+		user_roles = frappe.get_roles()
+		if not any(role in ['System Manager', 'Local Admin'] for role in user_roles):
 			frappe.throw("You do not have permission to perform beneficiary actions. Required roles: System Manager or Local Admin")
 		return func(*args, **kwargs)
 	return wrapper

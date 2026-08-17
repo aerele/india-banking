@@ -105,11 +105,11 @@ const goToBank = () => {
 
 .bank-status {
 	font-size: 12px;
-	color: #6b7280;
+	color: #2563eb;
 }
 
 .bank-status.connected {
-	color: #2563eb;
+	color: #16a34a;
 	font-weight: 600;
 }
 </style>

@@ -11,9 +11,11 @@ ICON_DIR = frappe.get_app_path(
 
 
 def get_bank_icon(bank_name):
-	filename = f"{bank_name.replace(' ', '_')}.svg"
-	if os.path.exists(os.path.join(ICON_DIR, filename)):
-		return f"/assets/india_banking/assets/bank-logos/icons/{filename}"
+	basename = bank_name.replace(" ", "_")
+	for ext in ("svg", "png"):
+		filename = f"{basename}.{ext}"
+		if os.path.exists(os.path.join(ICON_DIR, filename)):
+			return f"/assets/india_banking/assets/bank-logos/icons/{filename}"
 	return None
 
 

@@ -1,5 +1,5 @@
 <template>
-	<div class="p-4">
+	<div class="available-banks-container p-4">
 		<h3 class="mb-3 section-title">Available Banks</h3>
 
 		<div class="bank-grid">
@@ -21,9 +21,15 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.available-banks-container {
+	border-radius: 16px;
+	background: linear-gradient(135deg, #f0f6ff 0%, #f7fbff 55%, #ffffff 100%);
+}
+
 .section-title {
 	font-size: 22px;
 	font-weight: 700;
+	color: #111827;
 }
 
 .bank-grid {

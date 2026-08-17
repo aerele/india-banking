@@ -5,29 +5,42 @@
 		</button>
 
 		<div class="sidebar-nav">
-			<div
-				class="nav-item"
-				:title="'Mode of Transfer'"
-				@click="go(['List', 'Mode of Transfer'])"
-			>
-				<span class="nav-icon" v-html="icon('refresh')"></span>
-				<span v-if="!collapsed">Mode of Transfer</span>
-			</div>
-			<div
-				class="nav-item"
-				:title="'India Banking Request Log'"
-				@click="go(['List', 'India Banking Request Log'])"
-			>
-				<span class="nav-icon" v-html="icon('list-alt')"></span>
-				<span v-if="!collapsed">India Banking Request Log</span>
-			</div>
-			<div
-				class="nav-item"
-				:title="'India Banking Settings'"
-				@click="go(['Form', 'India Banking Settings'])"
-			>
-				<span class="nav-icon" v-html="icon('setting-gear')"></span>
-				<span v-if="!collapsed">India Banking Settings</span>
+			<div v-if="!collapsed" class="nav-group">
+				<div class="nav-group-title" @click="quickLinksOpen = !quickLinksOpen">
+					<span>Quick Links</span>
+					<span class="chevron" :class="{ open: quickLinksOpen }">›</span>
+				</div>
+
+				<div v-show="quickLinksOpen" class="nav-group-items">
+					<div class="nav-item" @click="go(['List', 'Bank Account'])">
+						<span class="nav-icon" v-html="icon('accounting')"></span>
+						<span>Bank Account</span>
+					</div>
+					<div class="nav-item" @click="go(['List', 'Bank Connector'])">
+						<span class="nav-icon" v-html="icon('link-url')"></span>
+						<span>India Banking Connector</span>
+					</div>
+					<div class="nav-item" @click="go(['Form', 'India Banking Settings'])">
+						<span class="nav-icon" v-html="icon('setting-gear')"></span>
+						<span>India Banking Settings</span>
+					</div>
+					<div class="nav-item" @click="go(['List', 'Mode of Transfer'])">
+						<span class="nav-icon" v-html="icon('refresh')"></span>
+						<span>Mode of Transfer</span>
+					</div>
+					<div class="nav-item" @click="go(['List', 'India Banking Request Log'])">
+						<span class="nav-icon" v-html="icon('list-alt')"></span>
+						<span>India Banking Request Log</span>
+					</div>
+					<div class="nav-item" @click="go(['List', 'Payment Order'])">
+						<span class="nav-icon" v-html="icon('clipboard')"></span>
+						<span>Payment Order</span>
+					</div>
+					<div class="nav-item" @click="go(['List', 'Payment Entry'])">
+						<span class="nav-icon" v-html="icon('money-coins-1')"></span>
+						<span>Payment Entry</span>
+					</div>
+				</div>
 			</div>
 
 			<div v-if="!collapsed" class="nav-group">
@@ -72,6 +85,7 @@
 import { ref } from "vue";
 
 const collapsed = ref(false);
+const quickLinksOpen = ref(true);
 const reportsOpen = ref(true);
 
 const userInfo = frappe.user_info();

@@ -14,8 +14,6 @@ class IndiaBanking {
 	}
 
 	init() {
-		this.page.set_title(__("India Banking"));
-
 		this.setup_app();
 	}
 

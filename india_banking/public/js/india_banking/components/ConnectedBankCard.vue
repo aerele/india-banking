@@ -6,10 +6,10 @@
 		@click="selectCard"
 	>
 		<!-- top-right logo -->
-		<img :src="bank.logo" class="bank-logo-top" alt="" />
-
-		<!-- watermark logo -->
-		<img :src="bank.logo" class="bank-watermark" aria-hidden="true" />
+		<div class="bank-logo-top">
+			<img v-if="bank.logo" :src="bank.logo" alt="" class="bank-logo-img" />
+			<span v-else class="bank-logo-initials">{{ initials }}</span>
+		</div>
 
 		<!-- header -->
 		<div class="card-header">
@@ -60,6 +60,15 @@ const selectCard = () => {
 
 const maskedAccountNumber = computed(() => props.bank.account_number.replace(/\d(?=\d{4})/g, "•"));
 
+const initials = computed(() =>
+	(props.bank.bank_name || "")
+		.split(" ")
+		.map((word) => word[0])
+		.join("")
+		.slice(0, 2)
+		.toUpperCase()
+);
+
 const cardGradient = computed(() => {
 	const c1 = props.bank.primary_color || "#1e3a8a";
 	const c2 = props.bank.secondary_color || "#2563eb";
@@ -94,24 +103,28 @@ const cardGradient = computed(() => {
 /* top-right logo */
 .bank-logo-top {
 	position: absolute;
-	top: 5px;
-	right: 14px;
-	width: 90px;
-	height: 50px;
-	object-fit: contain;
-	border-radius: 8px;
-	padding: 4px;
+	top: 16px;
+	right: 16px;
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.15);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
 }
 
-/* watermark */
-.bank-watermark {
-	position: absolute;
-	inset: 0;
-	margin: auto;
-	width: 160px;
-	opacity: 0.08;
-	filter: grayscale(100%);
-	pointer-events: none;
+.bank-logo-img {
+	width: 26px;
+	height: 26px;
+	object-fit: contain;
+}
+
+.bank-logo-initials {
+	font-size: 13px;
+	font-weight: 700;
+	color: #ffffff;
 }
 
 /* content */

@@ -8,7 +8,7 @@
 					route: ['List', 'Bank Account'],
 				},
 				{
-					label: 'Bank Connector',
+					label: 'India Banking Connector',
 					icon: '🔗',
 					route: ['List', 'Bank Connector'],
 				},

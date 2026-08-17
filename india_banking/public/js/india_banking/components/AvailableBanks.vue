@@ -1,6 +1,6 @@
 <template>
 	<div class="p-4">
-		<h3 class="mb-3 text-lg font-semibold">Available Banks</h3>
+		<h3 class="mb-3 section-title">Available Banks</h3>
 
 		<div class="bank-grid">
 			<BankLogoCard v-for="bank in banks" :key="bank.name" :bank="bank" />
@@ -21,9 +21,26 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.section-title {
+	font-size: 22px;
+	font-weight: 700;
+}
+
 .bank-grid {
-	display: flex;
-	gap: 24px;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: 16px;
+}
+
+@media (max-width: 1200px) {
+	.bank-grid {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 768px) {
+	.bank-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 }
 </style>

@@ -12,6 +12,22 @@ PAYMENT_SUMMARY_FIELDS = [
 	"journal_entry_account",
 ]
 
+BANK_CARD_COLORS = {
+	"Axis Bank": ["#ae285d", "#ffffff"],
+	"HDFC Bank": ["#004c8f", "#ed232a"],
+	"ICICI Bank": ["#ae282e", "#f06321"],
+	"Kotak Mahindra Bank": ["#ed1c24", "#003874"],
+	"Union Bank of India": ["#da251c", "#03599d"],
+	"Bank of Baroda": ["#f15a29", "#ffffff"],
+	"IDFC First Bank": ["#9d1d27", "#fefefe"],
+	"HSBC Bank": ["#db0011", "#000000"],
+	"Citi Bank": ["#255be3", "#ff3c28"],
+	"CITI Bank": ["#255be3", "#ff3c28"],
+	"Yes Bank": ["#002eda", "#eb1f48"],
+	"State Bank of India": ["#2d5fa0", "#ffffff"],
+	"Canara Bank": ["#0070b8", "#f5a800"],
+}
+
 DEFAULT_MODE_OF_TRANSFERS = [
 	{
 		"mode": "A2A/FT/Internal",
@@ -60,8 +76,9 @@ STD_BANK_LIST = [
 	"Union Bank of India",
 	"Bank of Baroda",
 	"IDFC First Bank",
-	"CITI Bank",
+	"State Bank of India",
 	"Canara Bank",
+	"CITI Bank",
 ]
 
 H2H_ENABLED_BANKS = [

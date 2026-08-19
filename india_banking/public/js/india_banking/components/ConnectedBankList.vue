@@ -1,6 +1,6 @@
 <template>
 	<div class="connected-banks">
-		<h3 class="mb-3">Connected Banks</h3>
+		<h3 class="mb-3 section-title">Connected Banks</h3>
 
 		<!-- Skeletons while loading -->
 		<div v-if="loading" class="bank-scroll">
@@ -35,6 +35,11 @@ onMounted(async () => {
 <style scoped>
 .connected-banks {
 	padding: 16px;
+}
+
+.section-title {
+	font-size: 22px;
+	font-weight: 700;
 }
 
 .bank-scroll {

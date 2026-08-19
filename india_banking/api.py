@@ -1,18 +1,41 @@
+import os
+
 import frappe
 from frappe.query_builder import DocType
 
 from india_banking.default import BANK_CARD_COLORS
+
+ICON_DIR = frappe.get_app_path(
+	"india_banking", "public", "assets", "bank-logos", "icons"
+)
+
+
+def get_bank_icon(bank_name):
+	basename = bank_name.replace(" ", "_")
+	for ext in ("svg", "png"):
+		filename = f"{basename}.{ext}"
+		if os.path.exists(os.path.join(ICON_DIR, filename)):
+			return f"/assets/india_banking/assets/bank-logos/icons/{filename}"
+	return None
 
 
 @frappe.whitelist()
 def get_standard_bank():
 	bank_details = []
 	available_banks = frappe.db.get_list("Bank", {"is_standard": 1}, pluck="name")
+	connected_banks = set(
+		frappe.db.get_list(
+			"Bank Account",
+			{"is_company_account": 1, "disabled": 0},
+			pluck="bank",
+		)
+	)
 	for bank in available_banks:
 		bank_details.append(
 			{
 				"name": bank,
-				"logo": f"/assets/india_banking/assets/bank-logos/{bank.replace(' ', '_')}.png",
+				"logo": get_bank_icon(bank),
+				"status": "Connected" if bank in connected_banks else "Available",
 			}
 		)
 

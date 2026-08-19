@@ -20,6 +20,8 @@ class IndiaBanking {
 	}
 
 	setup_app() {
+		frappe.app?.sidebar?.setup("India Banking");
+
 		// create a pinia instance
 		let pinia = createPinia();
 

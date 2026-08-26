@@ -319,22 +319,7 @@ class IndiaBankingConnector(Document):
 							},
 						)
 						summary = frappe.get_doc("Payment Order Summary", _name)
-						if summary.payment_entry:
-							self.process_bank_payment_requests(payment_order, summary)
-
-							payment_entry_doc = frappe.get_doc(
-								"Payment Entry", summary.payment_entry
-							)
-							if payment_entry_doc.docstatus == 1:
-								payment_entry_doc.cancel()
-
-						if summary.journal_entry_account:
-							frappe.db.set_value(
-								"Journal Entry Account",
-								summary.journal_entry_account,
-								"payment_status",
-								"Failed",
-							)
+						self.handle_failed_summary(payment_order, summary)
 						self.failed_count += 1
 
 					elif details.get("payment_status", "") == "Request Failure":
@@ -444,22 +429,7 @@ class IndiaBankingConnector(Document):
 							},
 						)
 
-						if summary.payment_entry:
-							self.process_bank_payment_requests(payment_order, summary)
-
-							payment_entry_doc = frappe.get_doc(
-								"Payment Entry", summary.payment_entry
-							)
-							if payment_entry_doc.docstatus == 1:
-								payment_entry_doc.cancel()
-
-						if summary.journal_entry_account:
-							frappe.db.set_value(
-								"Journal Entry Account",
-								summary.journal_entry_account,
-								"payment_status",
-								"Failed",
-							)
+						self.handle_failed_summary(payment_order, summary)
 						self.status_count_map["Failed"] += 1
 
 					elif status_details.status == "Rejected":
@@ -473,22 +443,7 @@ class IndiaBankingConnector(Document):
 							},
 						)
 
-						if summary.payment_entry:
-							self.process_bank_payment_requests(payment_order, summary)
-
-							payment_entry_doc = frappe.get_doc(
-								"Payment Entry", summary.payment_entry
-							)
-							if payment_entry_doc.docstatus == 1:
-								payment_entry_doc.cancel()
-
-						if summary.journal_entry_account:
-							frappe.db.set_value(
-								"Journal Entry Account",
-								summary.journal_entry_account,
-								"payment_status",
-								"Failed",
-							)
+						self.handle_failed_summary(payment_order, summary)
 						self.status_count_map["Rejected"] += 1
 
 			elif payment_status == "FAILED":
@@ -503,6 +458,39 @@ class IndiaBankingConnector(Document):
 
 		else:
 			frappe.throw("Invalid Request")
+
+	def handle_failed_summary(self, payment_order, summary):
+		if summary.payment_entry:
+			self.process_bank_payment_requests(payment_order, summary)
+
+			payment_entry_doc = frappe.get_doc("Payment Entry", summary.payment_entry)
+			if payment_entry_doc.docstatus == 1:
+				payment_entry_doc.flags.from_bank_failure = True
+				try:
+					payment_entry_doc.cancel()
+				except Exception:
+					frappe.log_error(
+						title="Failed Payment Entry Cancellation",
+						message=(
+							"Could not cancel Payment Entry {0} for Payment Order {1}, "
+							"summary {2}.\n\n{3}"
+						).format(
+							payment_entry_doc.name,
+							payment_order.name,
+							summary.name,
+							frappe.get_traceback(),
+						),
+					)
+
+				finally:
+					payment_entry_doc.flags.pop("from_bank_failure", None)
+		if summary.journal_entry_account:
+			frappe.db.set_value(
+				"Journal Entry Account",
+				summary.journal_entry_account,
+				"payment_status",
+				"Failed",
+			)
 
 	def show_status_count(self, status_count_map):
 		msg = ""

@@ -6,6 +6,9 @@ from unittest.mock import MagicMock, PropertyMock, patch
 
 import frappe
 
+from india_banking.india_banking.doc_events.payment_entry import (
+	on_cancel as on_payment_entry_cancel,
+)
 from india_banking.india_banking.doctype.india_banking_connector.india_banking_connector import (
 	IndiaBankingConnector,
 )
@@ -149,7 +152,20 @@ class TestIndiaBankingConnector(TestCase):
 			}
 		)
 		payment_entry = MagicMock(docstatus=1, name="PE-FAILED")
-		payment_entry.get.return_value = []
+		payment_entry.flags = frappe._dict()
+
+		def get_value(fieldname):
+			if fieldname == "ignore_linked_doctypes":
+				return getattr(payment_entry, "ignore_linked_doctypes", None)
+			return None
+
+		def cancel():
+			self.assertTrue(payment_entry.flags.from_bank_failure)
+			payment_entry.ignore_linked_doctypes = ["GL Entry"]
+			on_payment_entry_cancel(payment_entry)
+
+		payment_entry.get.side_effect = get_value
+		payment_entry.cancel.side_effect = cancel
 
 		with (
 			patch.object(
@@ -160,7 +176,10 @@ class TestIndiaBankingConnector(TestCase):
 			connector.handle_failed_summary(payment_order, summary)
 
 		process_requests.assert_called_once_with(payment_order, summary)
-		self.assertEqual(payment_entry.ignore_linked_doctypes, ["Payment Order"])
+		self.assertEqual(
+			payment_entry.ignore_linked_doctypes, ["GL Entry", "Payment Order"]
+		)
+		self.assertNotIn("from_bank_failure", payment_entry.flags)
 		payment_entry.cancel.assert_called_once()
 
 	def test_get_bank_statement_uses_request_timeout(self):

@@ -465,13 +465,7 @@ class IndiaBankingConnector(Document):
 
 			payment_entry_doc = frappe.get_doc("Payment Entry", summary.payment_entry)
 			if payment_entry_doc.docstatus == 1:
-				ignored_doctypes = list(
-					payment_entry_doc.get("ignore_linked_doctypes") or []
-				)
-				if "Payment Order" not in ignored_doctypes:
-					ignored_doctypes.append("Payment Order")
-				payment_entry_doc.ignore_linked_doctypes = ignored_doctypes
-
+				payment_entry_doc.flags.from_bank_failure = True
 				try:
 					payment_entry_doc.cancel()
 				except Exception:
@@ -488,6 +482,8 @@ class IndiaBankingConnector(Document):
 						),
 					)
 
+				finally:
+					payment_entry_doc.flags.pop("from_bank_failure", None)
 		if summary.journal_entry_account:
 			frappe.db.set_value(
 				"Journal Entry Account",

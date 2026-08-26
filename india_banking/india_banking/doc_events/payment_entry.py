@@ -1,9 +1,8 @@
-from india_banking.utils import get_payment_order_summary, unlink_bank_payment
-
-
 def on_cancel(doc, method=None):
-	return
-	if doc.source_doctype == "Payment Request":
-		payment_order_summary = get_payment_order_summary(doc.name)
+	if not doc.flags.from_bank_failure:
+		return
 
-		unlink_bank_payment(payment_order_summary)
+	ignored_doctypes = list(doc.get("ignore_linked_doctypes") or [])
+	if "Payment Order" not in ignored_doctypes:
+		ignored_doctypes.append("Payment Order")
+	doc.ignore_linked_doctypes = ignored_doctypes

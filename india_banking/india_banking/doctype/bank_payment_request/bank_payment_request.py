@@ -327,10 +327,9 @@ def make_bank_payment_request(**args):
 	elif ref_doc.status in ["Partly Paid", "Overdue"]:
 		allow = True
 
-	if ref_doc.on_hold:
+	if ref_doc.get("on_hold"):
 		allow = False
-		# return hold invoice
-		if getdate(ref_doc.release_date) <= getdate():
+		if getdate(ref_doc.get("release_date")) <= getdate():
 			allow = True
 
 	if not allow:

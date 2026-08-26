@@ -2,7 +2,7 @@
 # See license.txt
 
 from unittest import TestCase
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import frappe
 
@@ -101,6 +101,67 @@ class TestIndiaBankingConnector(TestCase):
 			"status",
 			"Partially Approved",
 		)
+
+	def test_status_response_handles_mixed_processed_and_failed_summaries(self):
+		connector = self.get_connector()
+		payment_order = self.get_payment_order(
+			[
+				{"name": "processed-row", "payment_entry": None},
+				{"name": "failed-row", "payment_entry": "PE-FAILED"},
+			]
+		)
+		response = frappe._dict({"ok": True})
+		response_details = {
+			"payment_status": "PROCESSED",
+			"summary_details": {
+				"processed-row": {
+					"status": "Processed",
+					"utr_number": "UTR-001",
+					"message": "Payment completed",
+				},
+				"failed-row": {"status": "Failed", "message": "Insufficient funds"},
+			},
+		}
+
+		with (
+			patch.object(
+				connector, "get_response_details", return_value=response_details
+			),
+			patch.object(connector, "handle_failed_summary") as handle_failed_summary,
+			patch("frappe.db.set_value"),
+		):
+			connector.verify_status_response(response, payment_order)
+
+		handle_failed_summary.assert_called_once_with(
+			payment_order, payment_order.summary[1]
+		)
+		self.assertEqual(connector.status_count_map["Processed"], 1)
+		self.assertEqual(connector.status_count_map["Failed"], 1)
+
+	def test_failed_payment_entry_cancellation_ignores_payment_order_link_only(self):
+		payment_order = self.get_payment_order([])
+		connector = self.get_connector()
+		summary = frappe._dict(
+			{
+				"name": "summary-row",
+				"payment_entry": "PE-FAILED",
+				"journal_entry_account": None,
+			}
+		)
+		payment_entry = MagicMock(docstatus=1, name="PE-FAILED")
+		payment_entry.get.return_value = []
+
+		with (
+			patch.object(
+				connector, "process_bank_payment_requests"
+			) as process_requests,
+			patch("frappe.get_doc", return_value=payment_entry),
+		):
+			connector.handle_failed_summary(payment_order, summary)
+
+		process_requests.assert_called_once_with(payment_order, summary)
+		self.assertEqual(payment_entry.ignore_linked_doctypes, ["Payment Order"])
+		payment_entry.cancel.assert_called_once()
 
 	def test_get_bank_statement_uses_request_timeout(self):
 		connector = self.get_connector()

@@ -9,6 +9,7 @@
   "summarise_payment_based_on",
   "use_payment_order_date_as_payment_entry_date",
   "allow_future_date_payment_order",
+  "allow_direct_payment_entry_from_payment_request",
   "column_break_sstt",
   "allowed_payment_doctypes",
   "show_bank_balance_in_payment_order",
@@ -71,6 +72,13 @@
    "fieldname": "allow_future_date_payment_order",
    "fieldtype": "Check",
    "label": "Allow future Date Payment Order"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, users can create a Payment Entry directly from an outward Payment Request.",
+   "fieldname": "allow_direct_payment_entry_from_payment_request",
+   "fieldtype": "Check",
+   "label": "Allow Direct Payment Entry from Payment Request"
   },
   {
    "fieldname": "column_break_sstt",

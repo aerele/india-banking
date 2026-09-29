@@ -4,7 +4,6 @@ frappe.ui.form.on("Payment Request", {
 			frm.doc.payment_request_type == "Outward" &&
 			["Initiated", "Partially Paid"].includes(frm.doc.status)
 		) {
-			frm.remove_custom_button(__("Create Payment Entry"));
 			cur_frm.add_custom_button(
 				"Payment Order",
 				function () {

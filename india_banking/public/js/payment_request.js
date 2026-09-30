@@ -1,10 +1,17 @@
 frappe.ui.form.on("Payment Request", {
 	refresh(frm) {
+		frappe.db
+			.get_single_value("India Banking Settings", "allow_direct_payment_entry_from_payment_request")
+			.then((enabled) => {
+				if (!enabled) {
+					frm.remove_custom_button(__("Create Payment Entry"));
+				}
+			});
+
 		if (
 			frm.doc.payment_request_type == "Outward" &&
 			["Initiated", "Partially Paid"].includes(frm.doc.status)
 		) {
-			frm.remove_custom_button(__("Create Payment Entry"));
 			cur_frm.add_custom_button(
 				"Payment Order",
 				function () {

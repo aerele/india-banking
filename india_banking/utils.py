@@ -32,11 +32,7 @@ def get_bank_address_details(bank_account):
 		return {"AddressLine": [bank_account_address]} if bank_account_address else {}
 
 	party_address_ = frappe.get_doc("Address", address)
-	address_line = (
-		[bank_account_address]
-		if bank_account_address
-		else party_address_.get("address_line1", "").split(",")
-	)
+	address_line = party_address_.get("address_line1", "").split(",")
 	street_name = party_address_.get("city", "")
 	building_number = address_line[0] if address_line else ""
 

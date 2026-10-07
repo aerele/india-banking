@@ -102,6 +102,38 @@ class TestIndiaBankingConnector(TestCase):
 			"Partially Approved",
 		)
 
+	def test_get_beneficiary_address_uses_bank_account_custom_field(self):
+		connector = self.get_connector()
+		bank_account_meta = frappe._dict(
+			has_field=lambda fieldname: fieldname == "beneficiary_address"
+		)
+
+		with (
+			patch("frappe.get_meta", return_value=bank_account_meta),
+			patch(
+				"frappe.db.get_value", return_value="12 Industrial Estate"
+			) as get_value,
+		):
+			address = connector.get_beneficiary_address("Beneficiary Bank Account")
+
+		self.assertEqual(address, "12 Industrial Estate")
+		get_value.assert_called_once_with(
+			"Bank Account", "Beneficiary Bank Account", "beneficiary_address"
+		)
+
+	def test_get_beneficiary_address_is_empty_without_custom_field(self):
+		connector = self.get_connector()
+		bank_account_meta = frappe._dict(has_field=lambda fieldname: False)
+
+		with (
+			patch("frappe.get_meta", return_value=bank_account_meta),
+			patch("frappe.db.get_value") as get_value,
+		):
+			address = connector.get_beneficiary_address("Beneficiary Bank Account")
+
+		self.assertEqual(address, "")
+		get_value.assert_not_called()
+
 	def test_get_bank_statement_uses_request_timeout(self):
 		connector = self.get_connector()
 		bank_account = frappe._dict(

@@ -549,6 +549,7 @@ class IndiaBankingConnector(Document):
 		payload.party_name = frappe.db.get_value(
 			summary.party_type, summary.party, get_party_field_name(summary.party_type)
 		)
+		payload.beneficiary_address = self.get_beneficiary_address(summary.bank_account)
 		payload.address = json.dumps(get_bank_address_details(summary.bank_account))
 		payload.lei = summary.get("lei_number") or ""
 
@@ -560,6 +561,16 @@ class IndiaBankingConnector(Document):
 		create_api_log(response, self.action, payment_order.doctype, payment_order.name)
 
 		self.verify_response(response, payment_order)
+
+	def get_beneficiary_address(self, bank_account):
+		"""Return the dedicated beneficiary address, if the custom field is available."""
+		if not frappe.get_meta("Bank Account").has_field("beneficiary_address"):
+			return ""
+
+		return (
+			frappe.db.get_value("Bank Account", bank_account, "beneficiary_address")
+			or ""
+		)
 
 	def add_payment_in_the_background(self, payment_order):
 		"""Process payments in the background."""

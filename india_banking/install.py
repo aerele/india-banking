@@ -540,6 +540,14 @@ def create_bank_account_custom_fields():
 				"reqd": 1,
 			},
 			{
+				"label": "Beneficiary Address",
+				"fieldname": "beneficiary_address",
+				"fieldtype": "Data",
+				"depends_on": "eval:!doc.is_company_account",
+				"description": "Address sent to the bank when this account is used as a payment beneficiary.",
+				"insert_after": "email",
+			},
+			{
 				"label": "Bank Balance",
 				"fieldname": "bank_balance",
 				"fieldtype": "Currency",

@@ -48,6 +48,7 @@ def delete_custom_fields():
 		"Bank Account": [
 			"mobile_number",
 			"email",
+			"bank_account_address",
 			"bank_balance",
 			"currency",
 		],

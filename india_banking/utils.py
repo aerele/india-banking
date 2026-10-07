@@ -20,13 +20,16 @@ def get_bulk_transaction_banks():
 
 
 def get_bank_address_details(bank_account):
+	bank_account_address = frappe.db.get_value(
+		"Bank Account", bank_account, "bank_account_address"
+	)
 	address = frappe.db.get_value(
 		"Dynamic Link",
 		{"link_doctype": "Bank Account", "link_name": bank_account},
 		"parent",
 	)
 	if not address:
-		return {}
+		return {"AddressLine": [bank_account_address]} if bank_account_address else {}
 
 	party_address_ = frappe.get_doc("Address", address)
 	address_line = party_address_.get("address_line1", "").split(",")

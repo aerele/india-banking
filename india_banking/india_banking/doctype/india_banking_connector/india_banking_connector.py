@@ -199,6 +199,7 @@ class IndiaBankingConnector(Document):
 		self.check_user_permission()
 
 		if action == "initiate_payment":
+			self.validate_account_names(payment_order)
 			if self.check_otp_enabled(otp):
 				return self.generate_otp(payment_order)
 
@@ -263,6 +264,19 @@ class IndiaBankingConnector(Document):
 			frappe.msgprint(msg)
 		elif self.action == "get_payment_status":
 			self.show_status_count(self.status_count_map)
+
+	def validate_account_names(self, payment_order):
+		"""Reject periods in account names unless this connector explicitly allows them."""
+		if self.allow_special_characters_in_account_names:
+			return
+
+		if any("." in cstr(summary.account_name) for summary in payment_order.summary):
+			frappe.throw(
+				_(
+					"Account Name contains a period (.). Enable Allow Special Characters in Account Names in the India Banking Connector to proceed."
+				),
+				title=_("Invalid Account Name"),
+			)
 
 	def verify_response(self, response, payment_order):
 		if self.action == "initiate_payment":

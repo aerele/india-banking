@@ -23,6 +23,7 @@
   "fetch_bank_statement",
   "settings",
   "payment_configuration_section",
+  "allow_special_characters_in_account_names",
   "enqueue_large_payments_in_the_background",
   "enqueue_payments_threshold",
   "column_break_ozlg",
@@ -315,6 +316,13 @@
    "fieldname": "payment_configuration_section",
    "fieldtype": "Section Break",
    "label": "Payment Configuration"
+  },
+  {
+   "default": "0",
+   "description": "If enabled, periods (.) are allowed in Account Name values for payments sent through this connector.",
+   "fieldname": "allow_special_characters_in_account_names",
+   "fieldtype": "Check",
+   "label": "Allow Special Characters in Account Names"
   },
   {
    "fieldname": "column_break_ozlg",

@@ -129,3 +129,39 @@ class TestIndiaBankingConnector(TestCase):
 			connector.get_bank_statement(bank_account)
 
 		self.assertEqual(post.call_args.kwargs["timeout"], 100)
+
+	def test_period_in_account_name_requires_connector_option(self):
+		connector = self.get_connector()
+		connector.validate_account_names(
+			self.get_payment_order(
+				[{"account_name": "Karan", "payment_status": "Pending"}]
+			)
+		)
+		payment_order = self.get_payment_order(
+			[{"account_name": "Mr.Karan", "payment_status": "Pending"}]
+		)
+
+		with self.assertRaises(frappe.ValidationError) as error:
+			connector.validate_account_names(payment_order)
+
+		self.assertIn("Account Name contains a period", str(error.exception))
+
+		connector.allow_special_characters_in_account_names = 1
+		connector.validate_account_names(payment_order)
+
+	def test_payment_initiation_checks_account_names_before_processing(self):
+		connector = self.get_connector()
+		payment_order = self.get_payment_order(
+			[{"account_name": "Mr.Karan", "payment_status": "Pending"}]
+		)
+
+		with (
+			patch.object(connector, "check_user_permission"),
+			patch.object(connector, "check_otp_enabled") as check_otp_enabled,
+			patch.object(connector, "make_single_request") as make_single_request,
+			self.assertRaises(frappe.ValidationError),
+		):
+			connector.make_post_request(payment_order, action="initiate_payment")
+
+		check_otp_enabled.assert_not_called()
+		make_single_request.assert_not_called()

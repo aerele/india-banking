@@ -7,6 +7,7 @@ from frappe.utils import cstr
 
 IFSC_PATTERN = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
 NAME_PATTERN = re.compile(r"^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$")
+ACCOUNT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9.]+(?: [A-Za-z0-9.]+)*$")
 
 
 def get_data(data=None):
@@ -72,7 +73,8 @@ def validate_special_characters(doc):
 	mandatory_fields = ["account_name", "bank", "bank_account_no"]
 	for field in mandatory_fields:
 		value = cstr(doc.get(field))
-		if not NAME_PATTERN.match(value):
+		pattern = ACCOUNT_NAME_PATTERN if field == "account_name" else NAME_PATTERN
+		if not pattern.match(value):
 			frappe.throw(
 				_("{0} contains invalid characters").format(
 					field.replace("_", " ").title()

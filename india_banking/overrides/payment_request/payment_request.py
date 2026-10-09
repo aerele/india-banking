@@ -128,9 +128,9 @@ class BankPaymentRequest(PaymentRequest):
 				f"{self.reference_doctype} Item",
 				filters={"parent": self.reference_name},
 				fields=[
-					"SUM(igst_amount) as total_igst",
-					"SUM(cgst_amount) as total_cgst",
-					"SUM(sgst_amount) as total_sgst",
+					{"SUM": "igst_amount", "as": "total_igst"},
+					{"SUM": "cgst_amount", "as": "total_cgst"},
+					{"SUM": "sgst_amount", "as": "total_sgst"},
 				],
 			)
 

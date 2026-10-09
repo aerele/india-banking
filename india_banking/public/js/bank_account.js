@@ -87,6 +87,13 @@ frappe.ui.form.on("Bank Account", {
 		});
 	},
 	add_bank_custom_buttons(frm) {
+		// Editing Bank Accounts does not require access to connector configuration.
+		// Skip the permission-checked lookup and banking actions for restricted users.
+		if (!frappe.model.can_read("India Banking Connector")) {
+			frm.set_df_property("bank_balance", "hidden", 1);
+			return;
+		}
+
 		if (!frm.doc.__islocal) {
 			let balance_service_subscribed = false;
 			frappe.db

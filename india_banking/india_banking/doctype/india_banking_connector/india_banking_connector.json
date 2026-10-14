@@ -41,6 +41,12 @@
   "auto_update_payment_status",
   "status_check_at",
   "retry_period",
+  "payment_handling_section",
+  "auto_cancel_failed_payment_requests",
+  "auto_cancel_failed_payment_entries",
+  "payment_handling_column",
+  "cancel_payment_requests_on_unlink_allocation",
+  "unreconcile_payment_entries_on_unlink_allocation",
   "reposting_configurations_section",
   "auto_update_posting_date_as_payment_date",
   "column_break_wkfp",
@@ -203,6 +209,44 @@
    "fieldname": "retry_period",
    "fieldtype": "Int",
    "label": "Retry Period(In Days) [eg:1=1 Day(s)]"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "payment_handling_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Handling"
+  },
+  {
+   "default": "0",
+   "description": "Automatically cancel linked Payment Requests when the bank returns Failed or Rejected.",
+   "fieldname": "auto_cancel_failed_payment_requests",
+   "fieldtype": "Check",
+   "label": "Auto Cancel Failed Payment Requests"
+  },
+  {
+   "default": "0",
+   "description": "Automatically cancel linked submitted Payment Entries when the bank returns Failed or Rejected.",
+   "fieldname": "auto_cancel_failed_payment_entries",
+   "fieldtype": "Check",
+   "label": "Auto Cancel Failed Payment Entries"
+  },
+  {
+   "fieldname": "payment_handling_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "Cancel linked Payment Requests when using Unlink Allocation.",
+   "fieldname": "cancel_payment_requests_on_unlink_allocation",
+   "fieldtype": "Check",
+   "label": "Cancel Payment Requests on Unlink Allocation"
+  },
+  {
+   "default": "1",
+   "description": "Unreconcile the selected Payment Entry allocations when using Unlink Allocation.",
+   "fieldname": "unreconcile_payment_entries_on_unlink_allocation",
+   "fieldtype": "Check",
+   "label": "Unreconcile Payment Entries on Unlink Allocation"
   },
   {
    "collapsible": 1,

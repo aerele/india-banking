@@ -76,7 +76,18 @@ frappe.ui.form.on("Payment Order", {
 			});
 		}
 	},
-	set_unlink_vouchers_button(frm) {
+	async set_unlink_vouchers_button(frm) {
+		if (frm.doc.docstatus !== 1 || !frm.doc.references?.length || !frm.doc.company_bank_account) {
+			return;
+		}
+
+		const unlink_allocation_enabled = await frappe.xcall(
+			"india_banking.india_banking.doctype.unreconcile_bank_payment.unreconcile_bank_payment.is_unlink_allocation_enabled",
+			{ payment_order: frm.doc.name }
+		);
+		if (!unlink_allocation_enabled) {
+			return;
+		}
 		const dialog_fields = [
 			{
 				columns: 2,

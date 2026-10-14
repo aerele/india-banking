@@ -2,10 +2,13 @@
 # See license.txt
 
 from unittest import TestCase
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import frappe
 
+from india_banking.india_banking.doc_events.payment_entry import (
+	on_cancel as on_payment_entry_cancel,
+)
 from india_banking.india_banking.doctype.india_banking_connector.india_banking_connector import (
 	IndiaBankingConnector,
 )
@@ -83,24 +86,254 @@ class TestIndiaBankingConnector(TestCase):
 			payment_order, payment_order.summary[0]
 		)
 
-	def test_single_processed_row_with_failures_marks_partially_approved(self):
+	def test_terminal_summary_status_sets_payment_order_status(self):
+		for summary_statuses, expected_status in (
+			(["Failed", "Failed"], "Failed"),
+			(["Rejected", "Rejected"], "Rejected"),
+			(["Failed", "Rejected"], "Failed"),
+			(["Processed", "Failed"], "Partially Approved"),
+			(["Processed", "Rejected"], "Partially Approved"),
+			(["Processed", "Failed", "Rejected"], "Partially Approved"),
+		):
+			with self.subTest(
+				summary_statuses=summary_statuses, expected_status=expected_status
+			):
+				connector = self.get_connector()
+				payment_order = self.get_payment_order(
+					[{"payment_status": status} for status in summary_statuses]
+				)
+
+				with patch("frappe.db.set_value") as set_value:
+					IndiaBankingConnector.update_payment_status(
+						connector, payment_order
+					)
+
+				set_value.assert_called_once_with(
+					"Payment Order",
+					payment_order.name,
+					"status",
+					expected_status,
+				)
+
+	def test_status_response_handles_mixed_processed_and_failed_summaries(self):
 		connector = self.get_connector()
 		payment_order = self.get_payment_order(
 			[
-				{"payment_status": "Processed"},
-				{"payment_status": "Failed"},
+				{"name": "processed-row", "payment_entry": None},
+				{"name": "failed-row", "payment_entry": "PE-FAILED"},
 			]
 		)
+		response = frappe._dict({"ok": True})
+		response_details = {
+			"payment_status": "PROCESSED",
+			"summary_details": {
+				"processed-row": {
+					"status": "Processed",
+					"utr_number": "UTR-001",
+					"message": "Payment completed",
+				},
+				"failed-row": {"status": "Failed", "message": "Insufficient funds"},
+			},
+		}
 
-		with patch("frappe.db.set_value") as set_value:
-			IndiaBankingConnector.update_payment_status(connector, payment_order)
+		with (
+			patch.object(
+				connector, "get_response_details", return_value=response_details
+			),
+			patch.object(connector, "handle_failed_summary") as handle_failed_summary,
+			patch("frappe.db.set_value"),
+		):
+			connector.verify_status_response(response, payment_order)
 
-		set_value.assert_called_once_with(
-			"Payment Order",
-			payment_order.name,
-			"status",
-			"Partially Approved",
+		handle_failed_summary.assert_called_once_with(
+			payment_order, payment_order.summary[1]
 		)
+		self.assertEqual(connector.status_count_map["Processed"], 1)
+		self.assertEqual(connector.status_count_map["Failed"], 1)
+
+	def test_failed_payment_entry_cancellation_ignores_payment_order_link_only(self):
+		payment_order = self.get_payment_order([])
+		connector = self.get_connector()
+		connector.auto_cancel_failed_payment_requests = 1
+		connector.auto_cancel_failed_payment_entries = 1
+		summary = frappe._dict(
+			{
+				"name": "summary-row",
+				"payment_entry": "PE-FAILED",
+				"journal_entry_account": None,
+			}
+		)
+		payment_entry = MagicMock(docstatus=1, name="PE-FAILED")
+		payment_entry.flags = frappe._dict()
+
+		def get_value(fieldname):
+			if fieldname == "ignore_linked_doctypes":
+				return getattr(payment_entry, "ignore_linked_doctypes", None)
+			return None
+
+		def cancel():
+			self.assertTrue(payment_entry.flags.from_bank_failure)
+			payment_entry.ignore_linked_doctypes = ["GL Entry"]
+			on_payment_entry_cancel(payment_entry)
+
+		payment_entry.get.side_effect = get_value
+		payment_entry.cancel.side_effect = cancel
+
+		with (
+			patch.object(
+				connector, "process_bank_payment_requests"
+			) as process_requests,
+			patch("frappe.get_doc", return_value=payment_entry),
+		):
+			connector.handle_failed_summary(payment_order, summary)
+
+		process_requests.assert_called_once_with(payment_order, summary)
+		self.assertEqual(
+			payment_entry.ignore_linked_doctypes, ["GL Entry", "Payment Order"]
+		)
+		self.assertNotIn("from_bank_failure", payment_entry.flags)
+		payment_entry.cancel.assert_called_once()
+
+	def test_failed_summary_respects_auto_cancel_settings(self):
+		for cancel_requests, cancel_entries in (
+			(0, 0),
+			(0, 1),
+			(1, 0),
+			(1, 1),
+		):
+			with self.subTest(
+				cancel_requests=cancel_requests, cancel_entries=cancel_entries
+			):
+				connector = self.get_connector()
+				connector.auto_cancel_failed_payment_requests = cancel_requests
+				connector.auto_cancel_failed_payment_entries = cancel_entries
+				payment_order = self.get_payment_order([])
+				summary = frappe._dict(
+					{
+						"name": "summary-row",
+						"payment_entry": "PE-FAILED",
+						"journal_entry_account": None,
+					}
+				)
+				payment_entry = MagicMock(docstatus=1, name="PE-FAILED")
+				payment_entry.flags = frappe._dict()
+
+				with (
+					patch.object(
+						connector, "process_bank_payment_requests"
+					) as process_requests,
+					patch("frappe.get_doc", return_value=payment_entry) as get_doc,
+				):
+					connector.handle_failed_summary(payment_order, summary)
+
+				if cancel_requests:
+					process_requests.assert_called_once_with(payment_order, summary)
+				else:
+					process_requests.assert_not_called()
+
+				if cancel_entries:
+					get_doc.assert_called_once_with("Payment Entry", "PE-FAILED")
+					payment_entry.cancel.assert_called_once()
+				else:
+					get_doc.assert_not_called()
+					payment_entry.cancel.assert_not_called()
+
+	def test_failed_summary_uses_persisted_payment_entry_and_cancels_it_first(self):
+		connector = self.get_connector()
+		connector.auto_cancel_failed_payment_requests = 1
+		connector.auto_cancel_failed_payment_entries = 1
+		payment_order = self.get_payment_order([])
+		summary = frappe._dict(
+			{
+				"name": "summary-row",
+				"payment_entry": None,
+				"journal_entry_account": None,
+			}
+		)
+		payment_entry = MagicMock(docstatus=1, name="PE-PERSISTED")
+		payment_entry.flags = frappe._dict()
+		cleanup_order = []
+		payment_entry.cancel.side_effect = lambda: cleanup_order.append("payment_entry")
+
+		with (
+			patch("frappe.db.get_value", return_value="PE-PERSISTED") as get_value,
+			patch("frappe.get_doc", return_value=payment_entry),
+			patch("frappe.db.savepoint"),
+			patch("frappe.db.release_savepoint"),
+			patch.object(
+				connector,
+				"process_bank_payment_requests",
+				side_effect=lambda *args: cleanup_order.append("payment_request"),
+			),
+		):
+			connector.handle_failed_summary(payment_order, summary)
+
+		get_value.assert_called_once_with(
+			"Payment Order Summary", "summary-row", "payment_entry"
+		)
+		self.assertEqual(cleanup_order, ["payment_entry", "payment_request"])
+		payment_entry.cancel.assert_called_once()
+		self.assertNotIn("from_bank_failure", payment_entry.flags)
+
+	def test_failed_payment_entry_cancellation_rolls_back_cleanup(self):
+		connector = self.get_connector()
+		connector.auto_cancel_failed_payment_requests = 1
+		connector.auto_cancel_failed_payment_entries = 1
+		payment_order = self.get_payment_order([])
+		summary = frappe._dict(
+			{
+				"name": "summary-row",
+				"payment_entry": "PE-FAILED",
+				"journal_entry_account": None,
+			}
+		)
+		payment_entry = MagicMock(docstatus=1, name="PE-FAILED")
+		payment_entry.flags = frappe._dict()
+		payment_entry.cancel.side_effect = frappe.LinkExistsError
+
+		with (
+			patch("frappe.get_doc", return_value=payment_entry),
+			patch("frappe.db.savepoint") as savepoint,
+			patch("frappe.db.rollback") as rollback,
+			patch("frappe.db.release_savepoint") as release_savepoint,
+			patch("frappe.clear_last_message"),
+			patch("frappe.log_error") as log_error,
+			patch.object(
+				connector, "process_bank_payment_requests"
+			) as process_requests,
+		):
+			connector.handle_failed_summary(payment_order, summary)
+
+		savepoint.assert_called_once_with("before_failed_payment_cleanup")
+		rollback.assert_called_once_with(save_point="before_failed_payment_cleanup")
+		release_savepoint.assert_not_called()
+		process_requests.assert_not_called()
+		log_error.assert_called_once()
+		self.assertNotIn("from_bank_failure", payment_entry.flags)
+
+	def test_auto_cancel_payment_request_without_payment_entry(self):
+		connector = self.get_connector()
+		connector.auto_cancel_failed_payment_requests = 1
+		connector.auto_cancel_failed_payment_entries = 1
+		payment_order = self.get_payment_order([])
+		summary = frappe._dict(
+			{
+				"name": "summary-row",
+				"payment_entry": None,
+				"journal_entry_account": None,
+			}
+		)
+
+		with (
+			patch.object(
+				connector, "process_bank_payment_requests"
+			) as process_requests,
+			patch("frappe.get_doc") as get_doc,
+		):
+			connector.handle_failed_summary(payment_order, summary)
+
+		process_requests.assert_called_once_with(payment_order, summary)
+		get_doc.assert_not_called()
 
 	def test_get_bank_statement_uses_request_timeout(self):
 		connector = self.get_connector()

@@ -42,7 +42,43 @@ class UnreconcileBankPayment(Document):
 			)
 
 	def on_submit(self):
+		had_from_payment_order = "from_payment_order" in frappe.flags
+		previous_from_payment_order = frappe.flags.get("from_payment_order")
 		frappe.flags.from_payment_order = True
+		try:
+			self.unlink_allocations()
+		finally:
+			if had_from_payment_order:
+				frappe.flags.from_payment_order = previous_from_payment_order
+			else:
+				frappe.flags.pop("from_payment_order", None)
+
+	def unlink_allocations(self):
+		settings = (
+			frappe.db.get_value(
+				"India Banking Connector",
+				frappe.db.get_value(
+					self.voucher_type, self.voucher_no, "company_bank_account"
+				),
+				[
+					"unreconcile_payment_entries_on_unlink_allocation",
+					"cancel_payment_requests_on_unlink_allocation",
+				],
+				as_dict=True,
+			)
+			or frappe._dict()
+		)
+		unreconcile_payment_entries = settings.get(
+			"unreconcile_payment_entries_on_unlink_allocation"
+		)
+		cancel_payment_requests = settings.get(
+			"cancel_payment_requests_on_unlink_allocation"
+		)
+		if not unreconcile_payment_entries:
+			frappe.throw(
+				_("Unlink Allocation is disabled in India Banking Connector settings.")
+			)
+
 		voucher_nos = frappe._dict()
 
 		comment_msg = [_("The following vouchers are unlinked from the Payment Order:")]
@@ -74,33 +110,31 @@ class UnreconcileBankPayment(Document):
 			)
 
 		for (party_type, party), vouchers in voucher_nos.items():
-			payment_entry = frappe.db.get_value(
-				"Payment Entry",
-				{
-					"party_type": party_type,
-					"party": party,
-					"payment_order": self.voucher_no,
-					"docstatus": 1,
-				},
-			)
+			if unreconcile_payment_entries:
+				payment_entry = frappe.db.get_value(
+					"Payment Entry",
+					{
+						"party_type": party_type,
+						"party": party,
+						"payment_order": self.voucher_no,
+						"docstatus": 1,
+					},
+				)
 
-			if not payment_entry:
-				continue
+				if payment_entry:
+					selections = [
+						{
+							"company": self.company,
+							"voucher_type": "Payment Entry",
+							"voucher_no": payment_entry,
+							"against_voucher_type": voucher["voucher_type"],
+							"against_voucher_no": voucher["voucher_no"],
+						}
+						for voucher in vouchers
+					]
+					create_unreconcile_doc_for_selection(json.dumps(selections))
 
-			selections = [
-				{
-					"company": self.company,
-					"voucher_type": "Payment Entry",
-					"voucher_no": payment_entry,
-					"against_voucher_type": voucher["voucher_type"],
-					"against_voucher_no": voucher["voucher_no"],
-				}
-				for voucher in vouchers
-			]
-
-			create_unreconcile_doc_for_selection(json.dumps(selections))
-
-			for voucher in vouchers:
+			for voucher in vouchers if cancel_payment_requests else []:
 				if voucher["payment_request"]:
 					if not frappe.has_permission(
 						"Payment Request", "cancel", voucher["payment_request"]
@@ -135,11 +169,23 @@ class UnreconcileBankPayment(Document):
 				"Comment", "<br>".join(comment_msg)
 			)
 
-		frappe.flags.from_payment_order = False
-
 	@frappe.whitelist()
 	def get_reference_from_payment_order(self):
 		return get_payment_order_reference(self.voucher_no)
+
+
+@frappe.whitelist()
+def is_unlink_allocation_enabled(payment_order: str) -> bool:
+	payment_order_doc = frappe.get_doc("Payment Order", payment_order)
+	payment_order_doc.check_permission("read")
+
+	return bool(
+		frappe.db.get_value(
+			"India Banking Connector",
+			payment_order_doc.company_bank_account,
+			"unreconcile_payment_entries_on_unlink_allocation",
+		)
+	)
 
 
 @frappe.whitelist()

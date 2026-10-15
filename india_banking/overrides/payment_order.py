@@ -272,7 +272,30 @@ class CustomPaymentOrder(PaymentOrder):
 		)
 
 		if ref_field and ref_doc_field:
+			cancelled_payment_requests = set()
+			if cancel and self.payment_order_type == "Payment Request":
+				payment_requests = [
+					d.get(ref_doc_field)
+					for d in self.references
+					if d.get(ref_doc_field)
+				]
+				if payment_requests:
+					cancelled_payment_requests = set(
+						frappe.get_all(
+							"Payment Request",
+							filters={
+								"name": ["in", payment_requests],
+								"docstatus": 2,
+							},
+							pluck="name",
+						)
+					)
+
 			for d in self.references:
+				reference_name = d.get(ref_doc_field)
+				if reference_name in cancelled_payment_requests:
+					continue
+
 				doctype = (
 					self.payment_order_type + " Account"
 					if self.payment_order_type == "Journal Entry"
@@ -280,7 +303,7 @@ class CustomPaymentOrder(PaymentOrder):
 				)
 				frappe.db.set_value(
 					doctype,
-					d.get(ref_doc_field),
+					reference_name,
 					ref_field,
 					status,
 				)

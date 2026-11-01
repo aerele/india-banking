@@ -49,7 +49,12 @@ def create_api_log(res, action=None, ref_doctype=None, ref_docname=None):
 		log_doc.action = action
 		log_doc.url = res.request.url
 		log_doc.method = res.request.method
-		log_doc.header = format_with_indent(res.request.headers)
+		# Request headers carry the connector credentials; never persist them in the log.
+		redacted_headers = {
+			key: "***" if key.lower() == "authorization" else value
+			for key, value in res.request.headers.items()
+		}
+		log_doc.header = format_with_indent(redacted_headers)
 		log_doc.payload = format_with_indent(res.request.body)
 		log_doc.response = format_with_indent(res.text)
 		log_doc.status_code = res.status_code

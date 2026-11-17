@@ -245,6 +245,10 @@ class BankConnector(Document):
 								"payment_date": getdate(),
 								"payment_initiated": 1,
 								"message": details.get("message", ""),
+								"cms_ref": details.get("cms_ref")
+								or frappe.db.get_value(
+									"Payment Order Summary", _name, "cms_ref"
+								),
 							},
 						)
 						self.success_count += 1

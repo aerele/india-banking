@@ -18,6 +18,7 @@
   "processed_date",
   "message",
   "reference_number",
+  "cms_ref",
   "bank_account",
   "email",
   "branch_code",
@@ -98,6 +99,12 @@
    "fieldname": "reference_number",
    "fieldtype": "Data",
    "label": "Reference Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cms_ref",
+   "fieldtype": "Data",
+   "label": "CMS Reference",
    "read_only": 1
   },
   {

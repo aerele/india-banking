@@ -69,7 +69,7 @@ def make_payment_order(source_name, target_doc=None):
 			return {
 				"reference_doctype": "Payment Entry",
 				"reference_name": source.name,
-				"amount": source.paid_amount,
+				"amount": source.paid_amount_after_tax,
 				"party_type": source.party_type,
 				"party": source.party,
 				"mode_of_payment": "Wire Transfer",
@@ -134,7 +134,7 @@ def get_payment_entry(doctype, txt, searchfield, start, page_len, filters):
 	source_doctype_filter = filters.pop("source_doctype", None)
 
 	pe = DocType("Payment Entry")
-	query = frappe.qb.from_(pe).select(pe.name, pe.party, pe.paid_amount)
+	query = frappe.qb.from_(pe).select(pe.name, pe.party, pe.paid_amount_after_tax)
 
 	simple_op = {"=": lambda f, v: f == v, "!=": lambda f, v: f != v}
 	for field, condition in filters.items():

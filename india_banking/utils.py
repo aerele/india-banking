@@ -52,6 +52,7 @@ def get_bank_address_details(bank_account):
 		"BuildingNumber": building_number,
 		"PostCode": post_code,
 		"TownName": town_name,
+		"CountrySubDivision": country_sub_division,
 		"CountySubDivision": country_sub_division,
 		"Country": country,
 	}
@@ -115,9 +116,20 @@ def unlink_bank_payment(payment_order_summary=None):
 	if not payment_order_summary:
 		return
 
-	summary_references = ast.literal_eval(
-		payment_order_summary.get("summary_references")
-	)
+	raw_references = payment_order_summary.get("summary_references")
+	if not raw_references:
+		return
+
+	if isinstance(raw_references, str):
+		try:
+			summary_references = ast.literal_eval(raw_references)
+		except (ValueError, SyntaxError):
+			summary_references = []
+	elif isinstance(raw_references, (list, tuple)):
+		summary_references = raw_references
+	else:
+		summary_references = []
+
 	for reference in summary_references:
 		payment_request = frappe.get_doc(
 			"Payment Order Reference", reference, "payment_request"
@@ -142,9 +154,9 @@ def unlink_bank_payment(payment_order_summary=None):
 
 
 def get_payment_order_summary(payment_entry):
-	is_ammended = frappe.db.get_value("Payment Entry", payment_entry, "amended_from")
+	is_amended = frappe.db.get_value("Payment Entry", payment_entry, "amended_from")
 	payment_entry = (
-		"-".join(payment_entry.split("-")[:-1]) if is_ammended else payment_entry
+		"-".join(payment_entry.split("-")[:-1]) if is_amended else payment_entry
 	)
 	summary = frappe.db.get_value(
 		"Payment Order Summary", {"payment_entry": payment_entry}, "name"
@@ -214,6 +226,8 @@ def update_series(doc, method=None):
 
 
 def minutes_to_cron(minutes: int) -> str:
+	if not minutes or minutes <= 0:
+		return "* * * * *"
 	if minutes < 60:
 		# Every N minutes
 		return f"*/{minutes} * * * *"
@@ -231,3 +245,4 @@ def minutes_to_cron(minutes: int) -> str:
 		days = minutes / 1440
 		if days.is_integer():
 			return f"0 0 */{int(days)} * *"
+		return f"*/{minutes} * * * *"

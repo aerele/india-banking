@@ -11,10 +11,18 @@ class IndiaBankingSettings(Document):
 	def validate(self):
 		self.enable_or_disable_workflow_to_bank_account()
 		self.validate_document_series()
+		self.validate_retry_interval()
 		self.enable_payment_entry_reposting()
 		self.update_cron_job_type_format()
 		if not self.notify_party:
 			self.payment_notification = []
+
+	def validate_retry_interval(self):
+		if self.retry_interval_minutes is not None:
+			try:
+				minutes_to_cron(self.retry_interval_minutes)
+			except ValueError as e:
+				frappe.throw(str(e))
 
 	def update_cron_job_type_format(self):
 		cron_format = minutes_to_cron(self.retry_interval_minutes or 5)

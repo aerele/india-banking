@@ -52,6 +52,7 @@ def get_bank_address_details(bank_account):
 		"BuildingNumber": building_number,
 		"PostCode": post_code,
 		"TownName": town_name,
+		"CountrySubDivision": country_sub_division,
 		"CountySubDivision": country_sub_division,
 		"Country": country,
 	}
@@ -104,6 +105,25 @@ def extract_error_message(response_json, show_message=False) -> str:
 		)
 
 
+def parse_summary_references(raw_references):
+	"""Parse summary_references from Payment Order Summary safely.
+
+	Returns a list of references, or raises (SyntaxError, ValueError, TypeError) if data is malformed.
+	"""
+	if not raw_references:
+		return []
+	if isinstance(raw_references, (list, tuple)):
+		return list(raw_references)
+	if isinstance(raw_references, str):
+		val = ast.literal_eval(raw_references)
+		if isinstance(val, (list, tuple)):
+			return list(val)
+		return [val]
+	raise TypeError(
+		f"Expected str, list, or tuple for summary_references, got {type(raw_references).__name__}"
+	)
+
+
 def unlink_bank_payment(payment_order_summary=None):
 	"""
 	Unlinks bank payment references from the given payment order summary.
@@ -115,9 +135,9 @@ def unlink_bank_payment(payment_order_summary=None):
 	if not payment_order_summary:
 		return
 
-	summary_references = ast.literal_eval(
-		payment_order_summary.get("summary_references")
-	)
+	raw_references = payment_order_summary.get("summary_references")
+	summary_references = parse_summary_references(raw_references)
+
 	for reference in summary_references:
 		payment_request = frappe.get_doc(
 			"Payment Order Reference", reference, "payment_request"
@@ -142,9 +162,9 @@ def unlink_bank_payment(payment_order_summary=None):
 
 
 def get_payment_order_summary(payment_entry):
-	is_ammended = frappe.db.get_value("Payment Entry", payment_entry, "amended_from")
+	is_amended = frappe.db.get_value("Payment Entry", payment_entry, "amended_from")
 	payment_entry = (
-		"-".join(payment_entry.split("-")[:-1]) if is_ammended else payment_entry
+		"-".join(payment_entry.split("-")[:-1]) if is_amended else payment_entry
 	)
 	summary = frappe.db.get_value(
 		"Payment Order Summary", {"payment_entry": payment_entry}, "name"
@@ -214,8 +234,10 @@ def update_series(doc, method=None):
 
 
 def minutes_to_cron(minutes: int) -> str:
+	if not minutes or minutes <= 0:
+		raise ValueError("Minutes must be a positive integer greater than 0.")
 	if minutes < 60:
-		# Every N minutes
+		# Every N minutes (1 to 59)
 		return f"*/{minutes} * * * *"
 	elif minutes % 60 == 0 and minutes < 1440:
 		hours = minutes // 60
@@ -231,3 +253,7 @@ def minutes_to_cron(minutes: int) -> str:
 		days = minutes / 1440
 		if days.is_integer():
 			return f"0 0 */{int(days)} * *"
+		raise ValueError(
+			f"Cannot represent an interval of {minutes} minutes as a standard cron expression. "
+			"Intervals >= 60 minutes must be exact multiples of 60 minutes (hours) or 1440 minutes (days)."
+		)

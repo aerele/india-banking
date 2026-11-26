@@ -29,6 +29,7 @@ from india_banking.utils import (
 	get_party_field_name,
 )
 
+PAYMENT_INITIATION_LOCK_TTL_SECONDS = 60
 OTP_ENABLED_BANK = [
 	("ICICI Bank", 1),  # ICICI Bank, Bulk Transaction
 ]
@@ -166,6 +167,8 @@ class BankConnector(Document):
 			headers = self.headers
 
 			payload = self.get_payload(payment_order, otp=otp)
+			if not self.is_payment_initiation_allowed(payload):
+				return
 
 			response = None
 			if self.same_site == "Yes":
@@ -204,6 +207,39 @@ class BankConnector(Document):
 			frappe.msgprint(msg)
 
 		frappe.flags.error_message = ""
+
+	def is_payment_initiation_allowed(self, payload):
+		"""Return True if this payment may be initiated now, otherwise False.
+
+		The first call for a payment sets a short-lived cache lock (see
+		PAYMENT_INITIATION_LOCK_TTL_SECONDS), so repeat calls within that window,
+		e.g. the same row queued twice in the background, are rejected.
+		Only `initiate_payment` is guarded; other methods are always allowed.
+		"""
+		if payload.get("method") != "initiate_payment":
+			return True
+
+		# Same unique id the connectors use: payment order (bulk) or summary row (single)
+		payment_unique_id = (
+			payload["doc"]["name"]
+			if cint(payload.get("bulk_transaction"))
+			else payload["name"]
+		)
+		lock_key = frappe.cache().make_key(
+			f"payment-initiation-lock:{payment_unique_id}"
+		)
+
+		# SET NX is atomic: only one caller can create the key
+		if frappe.cache().set(
+			lock_key, 1, nx=True, ex=PAYMENT_INITIATION_LOCK_TTL_SECONDS
+		):
+			return True
+
+		frappe.msgprint(
+			_("Payment initiation was already requested in the last minute."),
+			indicator="orange",
+		)
+		return False
 
 	def verify_response(self, response, payment_order):
 		if self.action == "initiate_payment":
@@ -446,6 +482,8 @@ class BankConnector(Document):
 			summary.party_type, summary.party, get_party_field_name(summary.party_type)
 		)
 		payload.address = json.dumps(get_bank_address_details(summary.bank_account))
+		if not self.is_payment_initiation_allowed(payload):
+			return
 
 		response = None
 		if self.same_site == "Yes":

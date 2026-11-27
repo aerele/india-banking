@@ -297,7 +297,7 @@ frappe.ui.form.on("Payment Order", {
 			target: frm,
 			setters: {
 				party: "",
-				paid_amount: "",
+				paid_amount_after_tax: "",
 			},
 			get_query_filters: {
 				docstatus: 1,
